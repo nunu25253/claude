@@ -1,0 +1,109 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-auto-flow: dense;
+  align-items: start;
+  gap: var(--gap);
+  padding-bottom: clamp(3rem, 6vw, 5rem);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.card:hover .thumb {
+  transform: translateY(-4px);
+}
+
+.card:hover .index {
+  opacity: 1;
+}
+
+.thumb {
+  position: relative;
+  width: 100%;
+  border-radius: 4px;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  background-size: cover;
+}
+
+.index {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 0.75rem;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  opacity: 0.6;
+  transition: opacity 0.25s ease;
+}
+
+.info h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+.info p {
+  margin: 0.25rem 0 0;
+  font-size: 0.82rem;
+  color: var(--color-ink-soft);
+}
+
+.dot {
+  color: var(--color-accent);
+}
+
+/* --- sizes (6 col grid) --- */
+.lg {
+  grid-column: span 3;
+}
+.lg .thumb {
+  aspect-ratio: 4 / 5;
+}
+
+.wide {
+  grid-column: span 6;
+}
+.wide .thumb {
+  aspect-ratio: 21 / 8;
+}
+
+.md {
+  grid-column: span 2;
+}
+.md .thumb {
+  aspect-ratio: 1 / 1;
+}
+
+.sm {
+  grid-column: span 2;
+}
+.sm .thumb {
+  aspect-ratio: 4 / 5;
+}
+
+/* --- tones (placeholder thumbnails) --- */
+.tone1 { background: linear-gradient(155deg, var(--color-card-1), #7a1f16); }
+.tone2 { background: linear-gradient(155deg, var(--color-card-2), #123027); }
+.tone3 { background: linear-gradient(155deg, var(--color-card-3), #16234f); }
+.tone4 { background: linear-gradient(155deg, var(--color-card-4), #7a5b13); }
+.tone5 { background: linear-gradient(155deg, var(--color-card-5), #3c2a52); }
+.tone6 { background: linear-gradient(155deg, var(--color-card-6), #000); }
+
+@media (max-width: 860px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .lg,
+  .wide,
+  .md,
+  .sm {
+    grid-column: span 2;
+  }
+}

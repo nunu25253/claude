@@ -1,0 +1,23 @@
+.bar {
+  background: var(--color-ink);
+  color: color-mix(in srgb, var(--color-bg) 55%, transparent);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-bg) 20%, transparent);
+  font-size: 0.78rem;
+}
+
+.inner a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.inner a:hover {
+  color: var(--color-bg);
+}
