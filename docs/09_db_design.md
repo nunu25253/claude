@@ -369,6 +369,21 @@
 **インデックス**:
 - `INDEX idx_carousels_proposal_id (proposal_id)`
 
+## 20. image_prompt_sets（AI生成画像プロンプト一式。AIマーケティングOS Phase13で追加）
+
+実装は `backend/src/main/resources/db/migration/V11__image_prompt_sets.sql`。Phase11の`video_scripts`またはPhase12の`carousels`いずれか1件から、各要素（カット/ページ）の`visualDirection`を元に生成した画像生成プロンプト（テキストのみ。実際の画像生成は行わない）を保持する。`source_id`は`video_scripts.id`または`carousels.id`を指すポリモーフィックな参照のため、DB外部キー制約は付けない（アプリ層で整合性を保証。詳細は`docs/phases/phase13_image_prompt_generation.md`参照）。
+
+| カラム名 | 型 | 制約 | 説明 |
+|----------|----|------|------|
+| id | UUID | PK | プロンプト一式のID |
+| source_type | VARCHAR(30) | NOT NULL | `VIDEO_SCRIPT` / `CAROUSEL` |
+| source_id | UUID | NOT NULL | 参照先（`video_scripts.id`または`carousels.id`。FK制約なし） |
+| prompts | TEXT | NOT NULL | プロンプト一覧（JSON配列。index/originalDirection/generatedPrompt） |
+| created_at | TIMESTAMPTZ | NOT NULL | 生成日時 |
+
+**インデックス**:
+- `INDEX idx_image_prompt_sets_source (source_type, source_id)`
+
 ## 外部キー制約一覧（サマリー）
 
 | 子テーブル | 列 | 親テーブル | ON DELETE |

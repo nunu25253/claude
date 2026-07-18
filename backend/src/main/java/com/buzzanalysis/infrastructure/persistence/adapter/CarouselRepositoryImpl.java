@@ -7,6 +7,7 @@ import com.buzzanalysis.infrastructure.persistence.repository.CarouselJpaReposit
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /** {@link CarouselRepository} のJPA実装（Repositoryパターン）。 */
@@ -29,5 +30,10 @@ public class CarouselRepositoryImpl implements CarouselRepository {
     @Override
     public List<Carousel> findByProposalId(UUID proposalId) {
         return jpaRepository.findByProposalId(proposalId).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public Optional<Carousel> findById(UUID id) {
+        return jpaRepository.findById(id).map(mapper::toDomain);
     }
 }

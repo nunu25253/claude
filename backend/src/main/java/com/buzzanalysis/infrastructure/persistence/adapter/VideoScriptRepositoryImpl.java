@@ -7,6 +7,7 @@ import com.buzzanalysis.infrastructure.persistence.repository.VideoScriptJpaRepo
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /** {@link VideoScriptRepository} のJPA実装（Repositoryパターン）。 */
@@ -29,5 +30,10 @@ public class VideoScriptRepositoryImpl implements VideoScriptRepository {
     @Override
     public List<VideoScript> findByProposalId(UUID proposalId) {
         return jpaRepository.findByProposalId(proposalId).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public Optional<VideoScript> findById(UUID id) {
+        return jpaRepository.findById(id).map(mapper::toDomain);
     }
 }

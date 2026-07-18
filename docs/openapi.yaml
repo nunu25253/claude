@@ -41,6 +41,8 @@ tags:
     description: 台本生成AI（AIマーケティングOS Phase11）
   - name: Carousels
     description: カルーセル生成AI（AIマーケティングOS Phase12）
+  - name: ImagePrompts
+    description: 画像生成プロンプト（AIマーケティングOS Phase13）
   - name: Search
     description: 検索
   - name: Competitors
@@ -650,6 +652,52 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Carousel"
+
+  /image-prompts/scripts/{scriptId}:
+    post:
+      tags: [ImagePrompts]
+      summary: 動画台本からの画像生成プロンプト作成（AIマーケティングOS Phase13）
+      description: >-
+        指定した台本の各カットのvisualDirectionを元に、画像生成AI(ChatGPT Image/DALL·E等)向けの
+        プロンプト文字列を生成する。実際の画像生成は行わない(コスト・著作権上の判断)。
+      parameters:
+        - name: scriptId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 生成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImagePromptSet"
+        "404":
+          description: 指定したscriptIdの台本が存在しない
+
+  /image-prompts/carousels/{carouselId}:
+    post:
+      tags: [ImagePrompts]
+      summary: カルーセルからの画像生成プロンプト作成（AIマーケティングOS Phase13）
+      description: 指定したカルーセルの各ページのvisualDirectionを元に、画像生成プロンプトを生成する。
+      parameters:
+        - name: carouselId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 生成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImagePromptSet"
+        "404":
+          description: 指定したcarouselIdのカルーセルが存在しない
 
   # ------------------------------------------------------------------
   # Social Accounts / Competitors
@@ -1930,6 +1978,40 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CarouselPage"
+        createdAt:
+          type: string
+          format: date-time
+
+    ImagePrompt:
+      type: object
+      description: 生成元の1要素(台本カット/カルーセルページ)に対応する画像生成プロンプト1件
+      properties:
+        index:
+          type: integer
+        originalDirection:
+          type: string
+          nullable: true
+        generatedPrompt:
+          type: string
+          nullable: true
+
+    ImagePromptSet:
+      type: object
+      description: AIが生成した画像生成プロンプト一式（AIマーケティングOS Phase13）
+      properties:
+        id:
+          type: string
+          format: uuid
+        sourceType:
+          type: string
+          enum: [VIDEO_SCRIPT, CAROUSEL]
+        sourceId:
+          type: string
+          format: uuid
+        prompts:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImagePrompt"
         createdAt:
           type: string
           format: date-time
