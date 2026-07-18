@@ -21,6 +21,8 @@ tags:
     description: プラットフォームマスタ
   - name: Posts
     description: 投稿URL分析・投稿検索
+  - name: Normalization
+    description: 投稿データの正規化（AIマーケティングOS Phase1）
   - name: Search
     description: 検索
   - name: SocialAccounts
@@ -286,6 +288,24 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Post"
+
+  /posts/{postId}/normalized:
+    get:
+      tags: [Normalization]
+      summary: 正規化済み投稿データ取得（AIマーケティングOS Phase1）
+      description: >-
+        Instagram/TikTok/Xなどプラットフォームごとに異なるデータ構造を統一した NormalizedPost を返す。
+        再生数・シェア数がプラットフォーム上「公開情報として取得不可（未計測）」な場合はnullとなり、
+        unmeasuredMetricsにそのフィールド名が列挙される（推定値による穴埋めは行わない）。
+      parameters:
+        - $ref: "#/components/parameters/PostIdPath"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NormalizedPost"
 
   # ------------------------------------------------------------------
   # Search
@@ -1110,6 +1130,75 @@ components:
         fetchedAt:
           type: string
           format: date-time
+
+    NormalizedPost:
+      type: object
+      description: プラットフォーム非依存に正規化された投稿データ（AIマーケティングOS Phase1の成果物）
+      properties:
+        postId:
+          type: string
+          format: uuid
+        accountId:
+          type: string
+          format: uuid
+        platform:
+          $ref: "#/components/schemas/PlatformCode"
+        postType:
+          $ref: "#/components/schemas/PostType"
+        url:
+          type: string
+          format: uri
+        publishedAt:
+          type: string
+          format: date-time
+        authorName:
+          type: string
+        rawText:
+          type: string
+          description: キャプション/本文（未加工。絵文字・URL等の除去はPhase2で行う）
+        hashtags:
+          type: array
+          items:
+            type: string
+        likeCount:
+          type: integer
+          format: int64
+          nullable: true
+        commentCount:
+          type: integer
+          format: int64
+          nullable: true
+        viewCount:
+          type: integer
+          format: int64
+          nullable: true
+          description: 未計測（プラットフォーム上取得不可）の場合はnull。0とは区別される
+        shareCount:
+          type: integer
+          format: int64
+          nullable: true
+          description: 未計測（プラットフォーム上取得不可）の場合はnull。0とは区別される
+        videoDurationSeconds:
+          type: integer
+          nullable: true
+        mediaCount:
+          type: integer
+          description: 正規化されたメディア件数（カルーセルは画像枚数、単一メディア投稿は1）
+        hasVideo:
+          type: boolean
+        engagementRate:
+          type: number
+          format: float
+          nullable: true
+          description: 実測値のみから算出。推定値は含まない
+        postAgeInHours:
+          type: integer
+          format: int64
+        unmeasuredMetrics:
+          type: array
+          items:
+            type: string
+          description: このプラットフォーム/投稿種別では取得不可・未計測のメトリクス名（例:["viewCount"]）
 
     AnalyzePostUrlRequest:
       type: object
