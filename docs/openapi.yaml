@@ -946,6 +946,9 @@ paths:
 
   # ------------------------------------------------------------------
   # Trends
+  # 注記: 本セクションの/trends(GET, Post[]を返す)は初期設計時点の理想化されたエンドポイントであり、
+  # 実装は/trends/analyze・/trends/latest(AIマーケティングOS Phase15、下記)を使用している
+  # (既存の乖離。Competitorsセクションの/social-accounts系と同じ位置づけ)。
   # ------------------------------------------------------------------
   /trends:
     get:
@@ -969,6 +972,50 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Post"
+
+  /trends/analyze:
+    post:
+      tags: [Trends]
+      summary: トレンド分析の実行（AIマーケティングOS Phase15）
+      description: >-
+        直近ウィンドウ(既定7日)とベースラインウィンドウ(既定21日)の2期間比較で、急上昇している
+        ハッシュタグ/ジャンル/コンテンツ形式を検出する(統計計算は決定的。AIはサマリー生成のみ)。
+        platform省略時は全プラットフォーム対象。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrendAnalysisRequest"
+      responses:
+        "200":
+          description: 分析成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrendReport"
+
+  /trends/latest:
+    get:
+      tags: [Trends]
+      summary: 最新トレンドレポートの取得（AIマーケティングOS Phase15）
+      description: platform省略時は全プラットフォーム対象のレポートを検索する。
+      parameters:
+        - $ref: "#/components/parameters/PlatformParam"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 5
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TrendReport"
 
   # ------------------------------------------------------------------
   # Rankings
@@ -2122,6 +2169,66 @@ components:
         predictedScore:
           type: integer
           description: 0〜100の予測投稿スコア（AIによる定性評価。Phase7の実測値ベースのランキングスコアとは別指標）
+        createdAt:
+          type: string
+          format: date-time
+
+    TrendAnalysisRequest:
+      type: object
+      properties:
+        platform:
+          $ref: "#/components/schemas/Platform"
+        recentWindowDays:
+          type: integer
+          nullable: true
+          description: 省略時は既定値7日
+        baselineWindowDays:
+          type: integer
+          nullable: true
+          description: 省略時は既定値21日
+
+    TrendItem:
+      type: object
+      description: トレンド分析の1項目
+      properties:
+        category:
+          type: string
+          enum: [HASHTAG, GENRE, CONTENT_FORMAT]
+        value:
+          type: string
+        recentCount:
+          type: integer
+        baselineCount:
+          type: integer
+        growthRatePercent:
+          type: number
+          format: double
+          nullable: true
+          description: baselineCountが0の場合はnull(emerging=trueとなり無限大を便宜的な数値で埋めない)
+        emerging:
+          type: boolean
+          description: ベースライン期間の出現が0件で新規急伸と判定された項目
+
+    TrendReport:
+      type: object
+      description: トレンド分析レポート（AIマーケティングOS Phase15）
+      properties:
+        id:
+          type: string
+          format: uuid
+        platform:
+          $ref: "#/components/schemas/Platform"
+        recentWindowDays:
+          type: integer
+        baselineWindowDays:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendItem"
+        aiSummary:
+          type: string
+          nullable: true
         createdAt:
           type: string
           format: date-time

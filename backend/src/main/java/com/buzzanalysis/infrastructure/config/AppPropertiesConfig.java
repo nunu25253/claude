@@ -5,6 +5,7 @@ import com.buzzanalysis.infrastructure.external.platform.instagram.InstagramApiP
 import com.buzzanalysis.infrastructure.external.platform.tiktok.TikTokApiProperties;
 import com.buzzanalysis.infrastructure.external.platform.x.XApiProperties;
 import com.buzzanalysis.infrastructure.scheduling.BatchSyncProperties;
+import com.buzzanalysis.infrastructure.scheduling.BatchTrendProperties;
 import com.buzzanalysis.infrastructure.security.JwtProperties;
 import com.buzzanalysis.infrastructure.storage.S3Properties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -19,7 +20,8 @@ import org.springframework.context.annotation.Configuration;
         OpenAiProperties.class,
         JwtProperties.class,
         S3Properties.class,
-        BatchSyncProperties.class
+        BatchSyncProperties.class,
+        BatchTrendProperties.class
 })
 public class AppPropertiesConfig {
 }

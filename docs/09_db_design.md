@@ -404,6 +404,23 @@
 **インデックス**:
 - `INDEX idx_content_evaluations_proposal_id (proposal_id)`
 
+## 22. trend_reports（トレンド分析結果。AIマーケティングOS Phase15で追加）
+
+実装は `backend/src/main/resources/db/migration/V13__trend_reports.sql`。直近ウィンドウ・ベースラインウィンドウの2期間比較で統計的に検出した急上昇項目（ハッシュタグ/ジャンル/コンテンツ形式）と、そのAIサマリーを保持する。`platform`がNULLの場合は全プラットフォーム対象のレポートを表す。
+
+| カラム名 | 型 | 制約 | 説明 |
+|----------|----|------|------|
+| id | UUID | PK | レポートID |
+| platform | VARCHAR(30) | NULL許容 | 対象プラットフォーム（NULLは全プラットフォーム対象） |
+| recent_window_days | INTEGER | NOT NULL | 直近ウィンドウの日数 |
+| baseline_window_days | INTEGER | NOT NULL | ベースラインウィンドウの日数 |
+| items | TEXT | NOT NULL | 検出項目一覧（JSON配列。category/value/recentCount/baselineCount/growthRatePercent/emerging） |
+| ai_summary | TEXT | NULL許容 | AIによる自然言語サマリー |
+| created_at | TIMESTAMPTZ | NOT NULL | 分析実行日時 |
+
+**インデックス**:
+- `INDEX idx_trend_reports_platform_created_at (platform, created_at DESC)`（最新レポート取得用）
+
 ## 外部キー制約一覧（サマリー）
 
 | 子テーブル | 列 | 親テーブル | ON DELETE |

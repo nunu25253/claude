@@ -67,6 +67,13 @@ batch:
     delay-between-accounts-ms: ${BATCH_SYNC_DELAY_MS:500}
     ranking-candidate-pool-size: ${BATCH_SYNC_RANKING_POOL_SIZE:200}
     ranking-top-n: ${BATCH_SYNC_RANKING_TOP_N:20}
+  trend:
+    # トレンド分析の日次自動実行（AIマーケティングOS Phase15）。デフォルトはOFF。
+    # 蓄積済みデータのみを対象とするため、有効化しても外部APIへの新規アクセスは発生しない。
+    enabled: ${BATCH_TREND_ENABLED:false}
+    cron: ${BATCH_TREND_CRON:0 0 3 * * *}
+    recent-window-days: ${BATCH_TREND_RECENT_WINDOW_DAYS:7}
+    baseline-window-days: ${BATCH_TREND_BASELINE_WINDOW_DAYS:21}
 
 storage:
   s3:
