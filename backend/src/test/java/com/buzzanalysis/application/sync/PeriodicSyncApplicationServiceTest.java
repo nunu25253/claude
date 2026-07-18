@@ -3,6 +3,9 @@ package com.buzzanalysis.application.sync;
 import com.buzzanalysis.application.sync.dto.SyncSummaryDto;
 import com.buzzanalysis.domain.account.SocialAccount;
 import com.buzzanalysis.domain.account.SocialAccountRepository;
+import com.buzzanalysis.domain.analysis.AnalysisResult;
+import com.buzzanalysis.domain.analysis.AnalysisResultRepository;
+import com.buzzanalysis.domain.genre.GenreNormalizer;
 import com.buzzanalysis.domain.platform.FetchedPostData;
 import com.buzzanalysis.domain.platform.Platform;
 import com.buzzanalysis.domain.platform.PlatformFactory;
@@ -60,13 +63,16 @@ class PeriodicSyncApplicationServiceTest {
     private CacheManager cacheManager;
     @Mock
     private SocialPlatform instagramClient;
+    @Mock
+    private AnalysisResultRepository analysisResultRepository;
 
     private PeriodicSyncApplicationService service;
 
     @BeforeEach
     void setUp() {
         service = new PeriodicSyncApplicationService(socialAccountRepository, platformFactory, postRepository,
-                buzzScoreCalculator, buzzScoreRepository, rankingRepository, cacheManager);
+                buzzScoreCalculator, buzzScoreRepository, rankingRepository, cacheManager,
+                analysisResultRepository, new GenreNormalizer());
         when(cacheManager.getCache(any())).thenReturn(null);
         when(postRepository.search(any())).thenReturn(new PostSearchResult(List.of(), 0, 0, 0));
     }
@@ -95,6 +101,36 @@ class PeriodicSyncApplicationServiceTest {
         ArgumentCaptor<BuzzScore> scoreCaptor = ArgumentCaptor.forClass(BuzzScore.class);
         verify(buzzScoreRepository).save(scoreCaptor.capture());
         assertThat(scoreCaptor.getValue().getTotalScore()).isEqualTo(72.5);
+    }
+
+    @Test
+    void syncAll_reusesExistingBuzzScoreId_whenPostWasAlreadyScored() {
+        // buzz_scores.post_id にはUNIQUE制約があるため、2回目以降の同期実行で新規IDを発行すると
+        // 制約違反になる。既存のBuzzScoreがあればそのIDを引き継いで更新されることを検証する。
+        SocialAccount account = SocialAccount.createNew(Platform.INSTAGRAM, "ext-1", "demo_creator",
+                "Demo Creator", "https://www.instagram.com/demo_creator/", 10_000L, 100L);
+        when(socialAccountRepository.findAllTrackingEnabled()).thenReturn(List.of(account));
+        when(platformFactory.resolve(Platform.INSTAGRAM)).thenReturn(instagramClient);
+
+        FetchedPostData fetched = new FetchedPostData("ig-post-1", "https://www.instagram.com/reel/ig-post-1/",
+                OffsetDateTime.now().minusHours(2), "demo_creator", "caption", List.of("tag"),
+                1000L, 50L, 20000L, 30L, 15, null, PostType.REEL);
+        when(instagramClient.fetchRecentPosts("demo_creator", 20)).thenReturn(List.of(fetched));
+        Post existingPost = samplePost("ig-post-1", Platform.INSTAGRAM, OffsetDateTime.now().minusHours(2));
+        when(postRepository.findByPlatformAndExternalId(Platform.INSTAGRAM, "ig-post-1"))
+                .thenReturn(Optional.of(existingPost));
+        when(postRepository.save(any(Post.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(buzzScoreCalculator.calculate(any())).thenReturn(new BuzzScoreCalculator.CalculationResult(80.0, Map.of()));
+        UUID existingScoreId = UUID.randomUUID();
+        when(buzzScoreRepository.findByPostId(existingPost.getId()))
+                .thenReturn(Optional.of(new BuzzScore(existingScoreId, existingPost.getId(), 72.5, Map.of(), OffsetDateTime.now())));
+
+        service.syncAll(20, 0, 200, 20);
+
+        ArgumentCaptor<BuzzScore> scoreCaptor = ArgumentCaptor.forClass(BuzzScore.class);
+        verify(buzzScoreRepository).save(scoreCaptor.capture());
+        assertThat(scoreCaptor.getValue().getId()).isEqualTo(existingScoreId);
+        assertThat(scoreCaptor.getValue().getTotalScore()).isEqualTo(80.0);
     }
 
     @Test
@@ -140,6 +176,34 @@ class PeriodicSyncApplicationServiceTest {
         assertThat(trendingRankings.get(0).getPostId()).isEqualTo(highScore.getId());
         assertThat(trendingRankings.get(0).getRankPosition()).isEqualTo(1);
         assertThat(trendingRankings.get(1).getPostId()).isEqualTo(lowScore.getId());
+    }
+
+    @Test
+    void syncAll_buildsGenreRankings_normalizedToFrontendCanonicalCode() {
+        when(socialAccountRepository.findAllTrackingEnabled()).thenReturn(List.of());
+
+        Post beautyPost = samplePost("beauty-post", Platform.INSTAGRAM, OffsetDateTime.now().minusHours(1));
+        when(postRepository.search(any())).thenReturn(new PostSearchResult(List.of(beautyPost), 0, 200, 1));
+        when(buzzScoreRepository.findByPostId(beautyPost.getId()))
+                .thenReturn(Optional.of(BuzzScore.of(beautyPost.getId(), 50.0, Map.of())));
+        // AI分析結果は日本語自由記述("美容")。GenreNormalizerによりフロントエンドの英大文字コードへ
+        // 正規化された状態でRankingに保存されないと、genre="BEAUTY"での絞り込み検索が常に空になる。
+        when(analysisResultRepository.findByPostId(beautyPost.getId()))
+                .thenReturn(Optional.of(AnalysisResult.builder().postId(beautyPost.getId()).genre("美容").build()));
+
+        service.syncAll(20, 0, 200, 20);
+
+        ArgumentCaptor<List<Ranking>> savedCaptor = ArgumentCaptor.forClass(List.class);
+        verify(rankingRepository, times(3)).save(savedCaptor.capture());
+
+        List<Ranking> genreRankings = savedCaptor.getAllValues().stream()
+                .flatMap(List::stream)
+                .filter(r -> r.getType() == RankingType.TRENDING && r.getGenre() != null)
+                .toList();
+
+        assertThat(genreRankings).hasSize(1);
+        assertThat(genreRankings.get(0).getGenre()).isEqualTo("BEAUTY");
+        assertThat(genreRankings.get(0).getPostId()).isEqualTo(beautyPost.getId());
     }
 
     private Post samplePost(String externalId, Platform platform, OffsetDateTime publishedAt) {

@@ -18,6 +18,8 @@ import java.util.List;
 /**
  * JWTベースのステートレス認証を行うSpring Security設定。
  * 認証系エンドポイントとSwagger UI/Actuatorヘルスチェックのみ匿名アクセスを許可し、それ以外はJWT必須とする。
+ * {@code /api/v1/reports/files/**}（LocalFileStorageServiceのローカルストレージ配信先）も、
+ * S3の署名付きURLと同じ考え方でURLの知得自体をアクセス権とみなし匿名アクセスを許可する。
  * フロントエンド（Next.js）はブラウザから別オリジンでAPIを呼び出すため、CORSを明示的に許可する
  * （{@link CorsProperties}、既定は{@code http://localhost:3000}）。
  */
@@ -30,7 +32,8 @@ public class SecurityConfig {
             "/swagger-ui.html",
             "/swagger-ui/**",
             "/v3/api-docs/**",
-            "/actuator/health"
+            "/actuator/health",
+            "/api/v1/reports/files/**"
     };
 
     private final JwtTokenProvider jwtTokenProvider;

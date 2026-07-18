@@ -4,6 +4,7 @@ import com.buzzanalysis.application.report.StoragePort;
 import com.buzzanalysis.domain.common.exception.ExternalApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -19,6 +20,7 @@ import java.time.Duration;
  * {@code storage.s3.endpoint} を設定することでMinIO等にも接続できる。
  */
 @Service
+@ConditionalOnProperty(prefix = "storage", name = "provider", havingValue = "s3")
 public class S3StorageService implements StoragePort {
 
     private static final Logger log = LoggerFactory.getLogger(S3StorageService.class);

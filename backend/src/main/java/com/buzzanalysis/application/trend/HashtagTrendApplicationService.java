@@ -5,6 +5,7 @@ import com.buzzanalysis.application.trend.dto.TrendPostDto;
 import com.buzzanalysis.application.trend.dto.TrendResponseDto;
 import com.buzzanalysis.domain.analysis.AnalysisResult;
 import com.buzzanalysis.domain.analysis.AnalysisResultRepository;
+import com.buzzanalysis.domain.genre.GenreNormalizer;
 import com.buzzanalysis.domain.platform.Platform;
 import com.buzzanalysis.domain.post.Post;
 import com.buzzanalysis.domain.post.PostRepository;
@@ -43,13 +44,16 @@ public class HashtagTrendApplicationService {
     private final PostRepository postRepository;
     private final AnalysisResultRepository analysisResultRepository;
     private final BuzzScoreRepository buzzScoreRepository;
+    private final GenreNormalizer genreNormalizer;
 
     public HashtagTrendApplicationService(PostRepository postRepository,
                                            AnalysisResultRepository analysisResultRepository,
-                                           BuzzScoreRepository buzzScoreRepository) {
+                                           BuzzScoreRepository buzzScoreRepository,
+                                           GenreNormalizer genreNormalizer) {
         this.postRepository = postRepository;
         this.analysisResultRepository = analysisResultRepository;
         this.buzzScoreRepository = buzzScoreRepository;
+        this.genreNormalizer = genreNormalizer;
     }
 
     @Transactional(readOnly = true)
@@ -66,9 +70,10 @@ public class HashtagTrendApplicationService {
         for (Post post : posts) {
             analysisResultRepository.findByPostId(post.getId())
                     .map(AnalysisResult::getGenre)
-                    .filter(g -> g != null && !g.isBlank())
+                    .map(genreNormalizer::normalize)
                     .ifPresent(g -> genreByPostId.put(post.getId(), g));
         }
+        String normalizedGenreFilter = genreNormalizer.normalize(genre);
 
         List<Post> recentPosts = new ArrayList<>();
         List<Post> baselinePosts = new ArrayList<>();
@@ -77,8 +82,8 @@ public class HashtagTrendApplicationService {
             if (publishedAt == null || publishedAt.isBefore(baselineStart)) {
                 continue;
             }
-            if (genre != null && !genre.isBlank()
-                    && !genre.equalsIgnoreCase(genreByPostId.get(post.getId()))) {
+            if (normalizedGenreFilter != null
+                    && !normalizedGenreFilter.equals(genreByPostId.get(post.getId()))) {
                 continue;
             }
             if (!publishedAt.isBefore(recentStart)) {

@@ -3,6 +3,9 @@ package com.buzzanalysis.application.sync;
 import com.buzzanalysis.application.sync.dto.SyncSummaryDto;
 import com.buzzanalysis.domain.account.SocialAccount;
 import com.buzzanalysis.domain.account.SocialAccountRepository;
+import com.buzzanalysis.domain.analysis.AnalysisResult;
+import com.buzzanalysis.domain.analysis.AnalysisResultRepository;
+import com.buzzanalysis.domain.genre.GenreNormalizer;
 import com.buzzanalysis.domain.platform.FetchedPostData;
 import com.buzzanalysis.domain.platform.Platform;
 import com.buzzanalysis.domain.platform.PlatformFactory;
@@ -29,9 +32,11 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * 「定期データ取得バッチ」ユースケース（自動化）。
@@ -61,6 +66,8 @@ public class PeriodicSyncApplicationService {
     private final BuzzScoreRepository buzzScoreRepository;
     private final RankingRepository rankingRepository;
     private final CacheManager cacheManager;
+    private final AnalysisResultRepository analysisResultRepository;
+    private final GenreNormalizer genreNormalizer;
 
     public PeriodicSyncApplicationService(SocialAccountRepository socialAccountRepository,
                                            PlatformFactory platformFactory,
@@ -68,7 +75,9 @@ public class PeriodicSyncApplicationService {
                                            BuzzScoreCalculator buzzScoreCalculator,
                                            BuzzScoreRepository buzzScoreRepository,
                                            RankingRepository rankingRepository,
-                                           CacheManager cacheManager) {
+                                           CacheManager cacheManager,
+                                           AnalysisResultRepository analysisResultRepository,
+                                           GenreNormalizer genreNormalizer) {
         this.socialAccountRepository = socialAccountRepository;
         this.platformFactory = platformFactory;
         this.postRepository = postRepository;
@@ -76,6 +85,8 @@ public class PeriodicSyncApplicationService {
         this.buzzScoreRepository = buzzScoreRepository;
         this.rankingRepository = rankingRepository;
         this.cacheManager = cacheManager;
+        this.analysisResultRepository = analysisResultRepository;
+        this.genreNormalizer = genreNormalizer;
     }
 
     /**
@@ -143,10 +154,19 @@ public class PeriodicSyncApplicationService {
         return postRepository.save(newPost);
     }
 
-    /** AI分析結果を伴わない、公開メトリクスのみに基づくBuzzScore再計算（Strategyパターン）。 */
+    /**
+     * AI分析結果を伴わない、公開メトリクスのみに基づくBuzzScore再計算（Strategyパターン）。
+     * {@code buzz_scores.post_id}にUNIQUE制約があるため、既存レコードがあればそのIDを引き継いで
+     * 更新する（{@link BuzzScore#of}で毎回新規IDを発行すると、2回目以降の同期実行で
+     * 制約違反になる）。
+     */
     private void recalculateBuzzScore(Post post) {
         BuzzScoreCalculator.CalculationResult result = buzzScoreCalculator.calculate(BuzzScoreInput.withoutAi(post));
-        buzzScoreRepository.save(BuzzScore.of(post.getId(), result.totalScore(), result.breakdown()));
+        UUID existingId = buzzScoreRepository.findByPostId(post.getId()).map(BuzzScore::getId).orElse(null);
+        BuzzScore buzzScore = existingId != null
+                ? new BuzzScore(existingId, post.getId(), result.totalScore(), result.breakdown(), OffsetDateTime.now())
+                : BuzzScore.of(post.getId(), result.totalScore(), result.breakdown());
+        buzzScoreRepository.save(buzzScore);
     }
 
     /** 急上昇(48時間)/週間(7日)/月間(30日)の各ランキングを、全体版とプラットフォーム別版で再構築する。 */
@@ -169,7 +189,7 @@ public class PeriodicSyncApplicationService {
         }
 
         List<Ranking> rankings = new ArrayList<>();
-        rankings.addAll(buildRankings(type, null, candidates, topN, periodStart, periodEnd));
+        rankings.addAll(buildRankings(type, null, null, candidates, topN, periodStart, periodEnd));
 
         Map<Platform, List<ScoredPost>> byPlatform = new EnumMap<>(Platform.class);
         for (ScoredPost scored : candidates) {
@@ -178,13 +198,34 @@ public class PeriodicSyncApplicationService {
         for (Platform platform : TRACKED_PLATFORMS) {
             List<ScoredPost> forPlatform = byPlatform.get(platform);
             if (forPlatform != null && !forPlatform.isEmpty()) {
-                rankings.addAll(buildRankings(type, platform, forPlatform, topN, periodStart, periodEnd));
+                rankings.addAll(buildRankings(type, null, platform, forPlatform, topN, periodStart, periodEnd));
             }
+        }
+
+        // ジャンル別ランキング。AI分析済み（AnalysisResultが存在する）投稿のみが対象で、
+        // ジャンルはGenreNormalizerでフロントエンドの英大文字コードに正規化して保存する
+        // （そうしないと genre 絞り込み検索が常に空を返してしまう）。
+        Map<String, List<ScoredPost>> byGenre = new HashMap<>();
+        for (ScoredPost scored : candidates) {
+            String genre = genreForPost(scored.post().getId());
+            if (genre != null) {
+                byGenre.computeIfAbsent(genre, g -> new ArrayList<>()).add(scored);
+            }
+        }
+        for (Map.Entry<String, List<ScoredPost>> entry : byGenre.entrySet()) {
+            rankings.addAll(buildRankings(type, entry.getKey(), null, entry.getValue(), topN, periodStart, periodEnd));
         }
 
         rankingRepository.deleteByType(type);
         rankingRepository.save(rankings);
         return rankings.size();
+    }
+
+    private String genreForPost(UUID postId) {
+        return analysisResultRepository.findByPostId(postId)
+                .map(AnalysisResult::getGenre)
+                .map(genreNormalizer::normalize)
+                .orElse(null);
     }
 
     private List<ScoredPost> collectCandidates(OffsetDateTime periodStart, int candidatePoolSize) {
@@ -197,7 +238,8 @@ public class PeriodicSyncApplicationService {
                 .toList();
     }
 
-    private List<Ranking> buildRankings(RankingType type, Platform platform, List<ScoredPost> candidates, int topN,
+    private List<Ranking> buildRankings(RankingType type, String genre, Platform platform,
+                                         List<ScoredPost> candidates, int topN,
                                          OffsetDateTime periodStart, OffsetDateTime periodEnd) {
         List<ScoredPost> sorted = candidates.stream()
                 .sorted(Comparator.comparingDouble(ScoredPost::score).reversed())
@@ -206,7 +248,7 @@ public class PeriodicSyncApplicationService {
         List<Ranking> rankings = new ArrayList<>();
         for (int i = 0; i < sorted.size(); i++) {
             ScoredPost scored = sorted.get(i);
-            rankings.add(Ranking.createNew(type, null, platform, scored.post().getId(), i + 1, scored.score(),
+            rankings.add(Ranking.createNew(type, genre, platform, scored.post().getId(), i + 1, scored.score(),
                     periodStart, periodEnd));
         }
         return rankings;

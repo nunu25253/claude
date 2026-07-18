@@ -1,5 +1,6 @@
 package com.buzzanalysis.infrastructure.storage;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -18,6 +19,7 @@ import java.net.URI;
  * {@code storage.s3.endpoint} を設定するとMinIO等のS3互換ストレージへ接続できる。
  */
 @Configuration
+@ConditionalOnProperty(prefix = "storage", name = "provider", havingValue = "s3")
 public class S3Config {
 
     @Bean

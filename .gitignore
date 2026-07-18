@@ -47,3 +47,6 @@ docker-data/
 *.log
 .env.*.local
 dump.rdb
+
+# ==== Backend: local storage provider (storage.provider=local) ====
+backend/data/

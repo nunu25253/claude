@@ -988,32 +988,29 @@ paths:
 
   # ------------------------------------------------------------------
   # Trends
-  # 注記: 本セクションの/trends(GET, Post[]を返す)は初期設計時点の理想化されたエンドポイントであり、
-  # 実装は/trends/analyze・/trends/latest(AIマーケティングOS Phase15、下記)を使用している
-  # (既存の乖離。Competitorsセクションの/social-accounts系と同じ位置づけ)。
+  # /trendsは急上昇ハッシュタグと関連投稿を都度算出して返す軽量エンドポイント(フロントエンドの
+  # トレンド画面が使用)。/trends/analyze・/trends/latestはAIサマリー付きで結果を永続化する
+  # 別実装(AIマーケティングOS Phase15)であり、互いに独立している。
   # ------------------------------------------------------------------
   /trends:
     get:
       tags: [Trends]
-      summary: プラットフォーム/ジャンル横断のトレンド取得
+      summary: 急上昇ハッシュタグ・投稿の取得
+      description: >-
+        直近7日間とその前21日間(ベースライン)の出現数比較でハッシュタグの伸び率を算出する
+        (決定的な統計計算のみ、AIは使用しない。結果は永続化しない)。platform/genre省略時は絞り込みなし。
+        genreはAI分析結果の自由記述ジャンル(日本語)とフロントエンドのジャンルコード(英大文字)の
+        両方を受け付け、内部で正規化して比較する。
       parameters:
         - $ref: "#/components/parameters/PlatformParam"
         - $ref: "#/components/parameters/GenreParam"
-        - name: period
-          in: query
-          schema:
-            type: string
-            enum: [DAILY, WEEKLY, MONTHLY]
-            default: WEEKLY
       responses:
         "200":
           description: 取得成功
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Post"
+                $ref: "#/components/schemas/TrendResponse"
 
   /trends/analyze:
     post:
@@ -1113,86 +1110,49 @@ paths:
   # ------------------------------------------------------------------
   # Reports
   # ------------------------------------------------------------------
-  /reports:
+  /reports/{postId}/generate:
     post:
       tags: [Reports]
       summary: AIレポート生成（PDF/Markdown/HTML）
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/GenerateReportRequest"
+      description: >-
+        指定した投稿の分析結果(POST /posts/analyze で事前に分析済みであること)からレポートを
+        同期的に生成し、ダウンロードURLを返す。storage.provider設定によりダウンロードURLは
+        ローカルストレージ配信URLまたはS3署名付きURLのいずれかになる。
+      parameters:
+        - $ref: "#/components/parameters/PostIdPath"
+        - name: format
+          in: query
+          required: true
+          description: 出力フォーマット (pdf|markdown|html、大文字小文字を問わない)
+          schema:
+            type: string
+            enum: [pdf, markdown, html]
       responses:
-        "201":
-          description: 生成成功（同期完了）
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Report"
-        "202":
-          description: 生成受付（非同期処理中）
+        "200":
+          description: 生成成功
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Report"
         "404":
           $ref: "#/components/responses/NotFound"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /reports:
     get:
       tags: [Reports]
-      summary: 生成済みレポート一覧取得
-      parameters:
-        - $ref: "#/components/parameters/PageParam"
-        - $ref: "#/components/parameters/SizeParam"
-        - $ref: "#/components/parameters/SortParam"
+      summary: レポート生成履歴一覧取得
+      description: ログイン中ユーザーが生成したレポートを新しい順に返す(ページングなし)。
       responses:
         "200":
           description: 取得成功
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: "#/components/schemas/PageEnvelope"
-                  - type: object
-                    properties:
-                      content:
-                        type: array
-                        items:
-                          $ref: "#/components/schemas/Report"
-
-  /reports/{reportId}:
-    get:
-      tags: [Reports]
-      summary: レポート詳細取得
-      parameters:
-        - $ref: "#/components/parameters/ReportIdPath"
-      responses:
-        "200":
-          description: 取得成功
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Report"
-        "404":
-          $ref: "#/components/responses/NotFound"
-
-  /reports/{reportId}/download:
-    get:
-      tags: [Reports]
-      summary: レポートファイルダウンロード
-      parameters:
-        - $ref: "#/components/parameters/ReportIdPath"
-      responses:
-        "302":
-          description: ストレージの署名付きURLへリダイレクト
-        "200":
-          description: レポートファイル（バイナリ）
-          content:
-            application/pdf: {}
-            text/markdown: {}
-            text/html: {}
-        "404":
-          $ref: "#/components/responses/NotFound"
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReportHistoryItem"
 
   # ------------------------------------------------------------------
   # Saved Analyses
@@ -1290,34 +1250,92 @@ paths:
 
   # ------------------------------------------------------------------
   # Settings
+  # プロフィール(表示名)・通知設定・APIキーはそれぞれ独立したリソースとして分離している
+  # (表示名は既存のUser集約、通知設定/APIキーは新規のUserSettings集約が保持するため)。
   # ------------------------------------------------------------------
-  /settings:
+  /settings/profile:
     get:
       tags: [Settings]
-      summary: ユーザー設定取得
+      summary: プロフィール取得
       responses:
         "200":
           description: 取得成功
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserSettings"
+                $ref: "#/components/schemas/ProfileSettings"
     put:
       tags: [Settings]
-      summary: ユーザー設定更新
+      summary: プロフィール更新
+      description: displayNameのみ反映する。emailはログインIDを兼ねるため不変であり、リクエストに含めても無視される。
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UserSettings"
+              $ref: "#/components/schemas/UpdateProfileRequest"
       responses:
         "200":
           description: 更新成功
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserSettings"
+                $ref: "#/components/schemas/ProfileSettings"
+
+  /settings/notifications:
+    get:
+      tags: [Settings]
+      summary: 通知設定取得
+      description: 初回アクセス時は既定値(分析完了通知のみON)で自動作成される。
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationSettings"
+    put:
+      tags: [Settings]
+      summary: 通知設定更新
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationSettings"
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationSettings"
+
+  /settings/api-key:
+    get:
+      tags: [Settings]
+      summary: APIキー取得
+      description: 未発行の場合はapiKeyがnullで返る。
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiKeySettings"
+
+  /settings/api-key/regenerate:
+    post:
+      tags: [Settings]
+      summary: APIキー再発行
+      description: 既存のAPIキーは無効になる。
+      responses:
+        "200":
+          description: 再発行成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiKeySettings"
 
 components:
   securitySchemes:
@@ -2275,6 +2293,116 @@ components:
           type: string
           format: date-time
 
+    TrendHashtag:
+      type: object
+      description: GET /trends が返すハッシュタグ1件分。直近7日間とベースライン21日間の比較による伸び率。
+      properties:
+        tag:
+          type: string
+        platform:
+          $ref: "#/components/schemas/Platform"
+        genre:
+          type: string
+          nullable: true
+          description: 正規化後のジャンルコード(英大文字)。該当投稿がAI分析未実施の場合はnull。
+        postCount:
+          type: integer
+          description: 直近7日間の出現件数
+        growthRate:
+          type: number
+          format: double
+          description: ベースライン比の伸び率(%)。ベースライン期間の出現が0件の場合は100に丸める。
+
+    TrendPost:
+      type: object
+      description: >-
+        GET /trends が返す投稿1件分。バックエンドは投稿者の表示名とハンドル名を区別して保持しないため
+        accountName/accountHandle は同じ値になる。thumbnailUrl/accountAvatarUrl/saveCountは
+        バックエンドで保持していないため常にnull。
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        platform:
+          $ref: "#/components/schemas/Platform"
+        genre:
+          type: string
+          nullable: true
+        accountId:
+          type: string
+          format: uuid
+        accountName:
+          type: string
+        accountHandle:
+          type: string
+        accountAvatarUrl:
+          type: string
+          nullable: true
+        thumbnailUrl:
+          type: string
+          nullable: true
+        caption:
+          type: string
+          nullable: true
+        hashtags:
+          type: array
+          items:
+            type: string
+        postedAt:
+          type: string
+          format: date-time
+          nullable: true
+        likeCount:
+          type: integer
+          format: int64
+          nullable: true
+        commentCount:
+          type: integer
+          format: int64
+          nullable: true
+        shareCount:
+          type: integer
+          format: int64
+          nullable: true
+        saveCount:
+          type: integer
+          format: int64
+          nullable: true
+        viewCount:
+          type: integer
+          format: int64
+          nullable: true
+        videoDurationSeconds:
+          type: integer
+          nullable: true
+        carouselCount:
+          type: integer
+          nullable: true
+        characterCount:
+          type: integer
+          nullable: true
+        buzzScore:
+          type: number
+          format: double
+          nullable: true
+          description: BuzzScore算出済みの場合のみ値が入る(0-100)
+
+    TrendResponse:
+      type: object
+      description: GET /trends のレスポンス全体
+      properties:
+        hashtags:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendHashtag"
+        posts:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendPost"
+
     RagIndexRequest:
       type: object
       required: [sourceType, contentText]
@@ -2629,44 +2757,55 @@ components:
           type: string
           format: date-time
 
-    GenerateReportRequest:
-      type: object
-      required: [analysisResultId, format]
-      properties:
-        analysisResultId:
-          type: string
-          format: uuid
-        format:
-          $ref: "#/components/schemas/ReportFormat"
-        title:
-          type: string
-
     Report:
       type: object
+      description: POST /reports/{postId}/generate のレスポンス(生成は常に同期完了)
       properties:
         id:
           type: string
           format: uuid
-        userId:
+        postId:
           type: string
           format: uuid
-        analysisResultId:
-          type: string
-          format: uuid
-        title:
-          type: string
         format:
           $ref: "#/components/schemas/ReportFormat"
-        fileUrl:
+        title:
+          type: string
+        contentSizeBytes:
+          type: integer
+          format: int64
+        downloadUrl:
           type: string
           format: uri
-          nullable: true
-        status:
-          type: string
-          enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+          description: >-
+            ローカルストレージ配信URL、またはS3署名付きURL(storage.provider設定による)。
+            いずれも認証不要でアクセスできる(URLの知得自体をアクセス権とみなす)。
         generatedAt:
           type: string
           format: date-time
+
+    ReportHistoryItem:
+      type: object
+      description: GET /reports の1件分
+      properties:
+        reportId:
+          type: string
+          format: uuid
+        postId:
+          type: string
+          format: uuid
+        postCaption:
+          type: string
+          nullable: true
+          description: 生成元投稿のキャプション。投稿が削除済みの場合はnull。
+        format:
+          $ref: "#/components/schemas/ReportFormat"
+        createdAt:
+          type: string
+          format: date-time
+        downloadUrl:
+          type: string
+          format: uri
 
     SaveAnalysisRequest:
       type: object
@@ -2702,16 +2841,48 @@ components:
           type: string
           format: date-time
 
-    UserSettings:
+    ProfileSettings:
       type: object
       properties:
-        notificationEmailEnabled:
+        displayName:
+          type: string
+          nullable: true
+        email:
+          type: string
+          format: email
+
+    UpdateProfileRequest:
+      type: object
+      required: [displayName]
+      properties:
+        displayName:
+          type: string
+        email:
+          type: string
+          format: email
+          description: 互換のため受け付けるが無視される(emailはログインIDを兼ねるため不変)。
+
+    NotificationSettings:
+      type: object
+      properties:
+        emailOnAnalysisComplete:
           type: boolean
-        defaultPlatform:
-          $ref: "#/components/schemas/PlatformCode"
-        locale:
+          description: 投稿分析が完了したときにメール通知する
+        emailWeeklyDigest:
+          type: boolean
+          description: 週間ランキングのサマリーをメールで受け取る
+        emailTrendingAlert:
+          type: boolean
+          description: 急上昇アラートをメールで受け取る
+
+    ApiKeySettings:
+      type: object
+      properties:
+        apiKey:
           type: string
-          example: ja
-        timezone:
+          nullable: true
+          description: 未発行の場合はnull
+        createdAt:
           type: string
-          example: Asia/Tokyo
+          format: date-time
+          nullable: true

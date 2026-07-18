@@ -4,6 +4,7 @@ import com.buzzanalysis.application.trend.dto.TrendHashtagDto;
 import com.buzzanalysis.application.trend.dto.TrendResponseDto;
 import com.buzzanalysis.domain.analysis.AnalysisResult;
 import com.buzzanalysis.domain.analysis.AnalysisResultRepository;
+import com.buzzanalysis.domain.genre.GenreNormalizer;
 import com.buzzanalysis.domain.platform.Platform;
 import com.buzzanalysis.domain.post.Post;
 import com.buzzanalysis.domain.post.PostRepository;
@@ -41,7 +42,8 @@ class HashtagTrendApplicationServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new HashtagTrendApplicationService(postRepository, analysisResultRepository, buzzScoreRepository);
+        service = new HashtagTrendApplicationService(postRepository, analysisResultRepository, buzzScoreRepository,
+                new GenreNormalizer());
         when(analysisResultRepository.findByPostId(any())).thenReturn(Optional.empty());
         when(buzzScoreRepository.findByPostId(any())).thenReturn(Optional.empty());
     }
@@ -105,6 +107,26 @@ class HashtagTrendApplicationServiceTest {
         assertThat(result.hashtags().get(0).postCount()).isEqualTo(1);
         assertThat(result.posts()).hasSize(1);
         assertThat(result.posts().get(0).id()).isEqualTo(beautyPost.getId());
+    }
+
+    @Test
+    void getTrends_filtersByGenre_acrossEnglishCodeAndJapaneseAiText() {
+        OffsetDateTime now = OffsetDateTime.now();
+        Post beautyPost = post(now.minusDays(1), List.of("共通タグ"));
+        Post foodPost = post(now.minusDays(1), List.of("共通タグ"));
+        when(postRepository.search(any()))
+                .thenReturn(new PostSearchResult(List.of(beautyPost, foodPost), 0, 500, 2));
+        when(analysisResultRepository.findByPostId(beautyPost.getId()))
+                .thenReturn(Optional.of(AnalysisResult.builder().postId(beautyPost.getId()).genre("美容").build()));
+        when(analysisResultRepository.findByPostId(foodPost.getId()))
+                .thenReturn(Optional.of(AnalysisResult.builder().postId(foodPost.getId()).genre("グルメ").build()));
+
+        // フロントエンドは英大文字コード("BEAUTY")を送るが、AI分析結果は日本語自由記述("美容")のため
+        // 正規化なしでは一致しない(このテストが検証している本来の不具合)。
+        TrendResponseDto result = service.getTrends(null, "BEAUTY");
+
+        assertThat(result.posts()).extracting(p -> p.id()).containsExactly(beautyPost.getId());
+        assertThat(result.posts().get(0).genre()).isEqualTo("BEAUTY");
     }
 
     @Test
