@@ -1,6 +1,8 @@
-# SNS AIバズ分析プラットフォーム
+# SNS AIバズ分析プラットフォーム（AIマーケティングOS）
 
-Instagram / TikTok / X（将来的に YouTube, Pinterest, Threads へ拡張予定）の **公開投稿のみ** を対象に、AIが「なぜバズったか」「どのような投稿を作れば伸びるか」を分析・提案するプラットフォームです。
+[![CI](https://github.com/nunu25253/claude/actions/workflows/ci.yml/badge.svg)](https://github.com/nunu25253/claude/actions/workflows/ci.yml)
+
+Instagram / TikTok / X（将来的に YouTube, Pinterest, Threads へ拡張予定）の **公開投稿のみ** を対象に、AIが「なぜバズったか」「どのような投稿を作れば伸びるか」を分析・提案するプラットフォームです。バズ分析基盤の上に、投稿データの正規化・前処理からAIによる企画・台本・カルーセル生成、投稿評価、トレンド分析、RAGまでを備えた「AIマーケティングOS」として拡張されています（後述）。
 
 > **重要な設計方針**
 > - 利用規約を遵守し、**公式APIを優先**して利用します（スクレイピング前提の実装は行いません）。
@@ -38,6 +40,37 @@ Instagram / TikTok / X（将来的に YouTube, Pinterest, Threads へ拡張予�
 | Infra | Docker, Docker Compose（将来的にAWS / Cloud Run / Kubernetesへ移行可能な設計） |
 
 アーキテクチャは **クリーンアーキテクチャ + DDD** を採用し、Repository / Factory / Strategy / Builder / Observer / Command の各デザインパターンを適用しています。詳細は [クラス図](./docs/07_class_diagram.md) を参照してください。
+
+## AIマーケティングOS拡張機能（Phase1-17）
+
+バズ分析基盤（要件定義〜デプロイ手順の初期18成果物）の完成後、以下の17フェーズで「SNS AIマーケティングOS」へ拡張しました。各フェーズは**設計→レビュー→実装→テスト**のサイクルで、フェーズ着手前に必ずSNSのAPI/ToS制約を踏まえた実現可能性のセルフレビューを行っています（各フェーズのドキュメントに記載）。
+
+| Phase | 機能 | 概要 | 設計ドキュメント |
+|---|---|---|---|
+| 1 | 正規化 | プラットフォーム横断の投稿データ正規化（Strategyパターン） | [phase1](./docs/phases/phase1_normalization.md) |
+| 2 | 前処理 | AI分析用テキストクリーニング・ハッシュタグ/メンション抽出等 | [phase2](./docs/phases/phase2_preprocessing.md) |
+| 3 | Embedding生成 | OpenAI Embeddings + pgvectorによるベクトル化 | [phase3](./docs/phases/phase3_embeddings.md) |
+| 4 | 意味検索 | キーワードの意味的な近さで投稿を検索 | [phase4](./docs/phases/phase4_semantic_search.md) |
+| 5 | 投稿分析AI拡張 | ジャンル/サブジャンル/投稿目的/強み弱み等の分析項目拡張 | [phase5](./docs/phases/phase5_post_analysis.md) |
+| 6 | ユーザー条件分析 | 検索条件と投稿の一致率算出 | [phase6](./docs/phases/phase6_condition_matching.md) |
+| 7 | ランキングAI | 一致率+BuzzScore等の重み付き総合ランキング | [phase7](./docs/phases/phase7_ranking.md) |
+| 8 | 共通点分析 | 投稿群の統計的共通項目＋AIによる共通パターン抽出 | [phase8](./docs/phases/phase8_commonality_analysis.md) |
+| 9 | 競合分析拡張 | 平均再生数/投稿形式分布/ジャンル分布＋AI差分説明 | [phase9](./docs/phases/phase9_competitor_analysis.md) |
+| 10 | 企画生成AI | 共通点分析結果を元に投稿企画（既定20件）を生成 | [phase10](./docs/phases/phase10_proposal_generation.md) |
+| 11 | 台本生成AI | 30/60/90秒動画のナレーション・テロップ・カット構成生成 | [phase11](./docs/phases/phase11_script_generation.md) |
+| 12 | カルーセル生成AI | Instagramカルーセル（2〜8ページ）生成 | [phase12](./docs/phases/phase12_carousel_generation.md) |
+| 13 | 画像生成プロンプト | 画像生成AI向けプロンプト文字列の作成（画像生成自体は行わない） | [phase13](./docs/phases/phase13_image_prompt_generation.md) |
+| 14 | 投稿評価AI | 一致率・改善提案・予測投稿スコアの算出 | [phase14](./docs/phases/phase14_post_evaluation.md) |
+| 15 | トレンド分析 | 急上昇ハッシュタグ/ジャンル/コンテンツ形式の検出（日次バッチ対応） | [phase15](./docs/phases/phase15_trend_analysis.md) |
+| 16 | RAG | 過去の分析結果等を索引化し根拠付きでAIが回答 | [phase16](./docs/phases/phase16_rag.md) |
+| 17 | ダッシュボード | 「AI企画」「投稿評価」画面を追加し要求仕様の9画面が完成 | [phase17](./docs/phases/phase17_dashboard.md) |
+
+すべてのフェーズを通じた設計上の一貫方針:
+
+- **未計測データと0を混同しない**: 実測できない指標（Phase1の非公開メトリクス、Phase6/14の比較基準がない一致率等）は`null`として扱い、便宜的な数値で埋めない。
+- **既存機能の再利用を優先し、新規重複を避ける**: 新フェーズが既存の集約・APIと重なる場合は拡張を優先し、ドメインが明確に異なる場合のみ新規集約を作る（判断根拠は各フェーズドキュメントに明記）。
+- **AIの出力を信頼せず検証・補正する**: 台本のカット秒数（Phase11）、カルーセルのページ数・役割（Phase12）等、構造的な制約はコード側で検証し、AIには内容生成のみを任せる。
+- **コストを意識したAI呼び出し**: サンプリング・要約・差分スキップ（Phase3/8/9）、要素ごとの部分フォールバック（Phase13）など。
 
 ## ディレクトリ構成
 
@@ -241,6 +274,18 @@ cd backend && ./gradlew test
 # フロントエンド
 cd frontend && npm run build && npx tsc --noEmit && npx eslint .
 ```
+
+## CI/CD（GitHub Actions）
+
+`.github/workflows/ci.yml` により、`main`ブランチへのpushおよびすべてのプルリクエストで以下を自動実行します。
+
+| ジョブ | 内容 |
+|---|---|
+| `backend` | `gradle test` / `gradle build`（JDK 21）。Testcontainersを使ったリポジトリ統合テストも、GitHub Actionsランナーには標準でDockerが利用可能なため実行されます。 |
+| `frontend` | `npm run typecheck` / `npm run lint` / `npm run build`（Node.js 20） |
+| `validate-configs` | `docs/openapi.yaml` のOpenAPI仕様検証、`docker-compose.yml` の構文検証 |
+
+> **補足**: 本開発環境（サンドボックス）はネットワーク制限により `gradlew`（Gradle Wrapper）を生成・コミットできていません（`services.gradle.org` に到達不可のため）。GitHub Actions上では`gradle/actions/setup-gradle`でGradle本体を直接セットアップして`gradle`コマンドを実行しています。インターネット接続のある環境であれば `cd backend && gradle wrapper --gradle-version 8.14.3` でWrapperを生成しコミットすることで、以降は通常どおり`./gradlew`が使えます。
 
 ## ライセンス・注意事項
 

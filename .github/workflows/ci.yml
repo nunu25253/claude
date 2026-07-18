@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend (Spring Boot / Gradle)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      # このリポジトリはサンドボックス環境のネットワーク制限によりGradle Wrapperを
+      # コミットできていないため（services.gradle.orgへの到達不可）、
+      # setup-gradleアクションでGradle本体を直接セットアップする。
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14.3"
+
+      - name: Run backend tests
+        working-directory: backend
+        run: gradle test --no-daemon
+
+      - name: Build backend jar
+        working-directory: backend
+        run: gradle build -x test --no-daemon
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: backend/build/reports/tests
+          retention-days: 7
+
+  frontend:
+    name: Frontend (Next.js)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Type check
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+  validate-configs:
+    name: Validate OpenAPI / Docker Compose
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate OpenAPI spec
+        run: |
+          pip install openapi-spec-validator pyyaml
+          python -c "
+          import openapi_spec_validator, yaml
+          spec = yaml.safe_load(open('docs/openapi.yaml'))
+          openapi_spec_validator.validate(spec)
+          print('OpenAPI spec valid')
+          "
+
+      - name: Validate docker-compose config
+        run: docker compose config --quiet

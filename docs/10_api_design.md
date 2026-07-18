@@ -312,3 +312,26 @@
 | ENTERPRISE | 個別契約 |
 
 上限超過時は `429 TOO_MANY_REQUESTS` を返し、レスポンスヘッダー `Retry-After` に再試行可能までの秒数を付与します。
+
+## 7. AIマーケティングOS拡張API（Phase1-17）
+
+初期API設計（本ドキュメント）に加え、Phase1-17で以下のエンドポイント群を追加しています。詳細なリクエスト/レスポンススキーマは `docs/openapi.yaml` を正とします（本節は一覧のみ）。各フェーズの設計判断・セルフレビューは `docs/phases/phaseN_*.md` を参照してください。
+
+| フェーズ | 主なエンドポイント |
+|---|---|
+| Phase1-2 | `POST /normalization/*`, `POST /preprocessing/*` |
+| Phase3 | `POST /embeddings/generate` 等 |
+| Phase4 | `GET /semantic-search` |
+| Phase6 | `POST /matching/*` |
+| Phase7 | `POST /ranking-score/*` |
+| Phase8 | `POST /commonality/analyze` |
+| Phase9 | `GET /competitors/{accountId}/compare/{competitorAccountId}` |
+| Phase10 | `POST /proposals/generate`, `GET /proposals/{generationId}` |
+| Phase11 | `POST /scripts/generate`, `GET /scripts/proposal/{proposalId}` |
+| Phase12 | `POST /carousels/generate`, `GET /carousels/proposal/{proposalId}` |
+| Phase13 | `POST /image-prompts/scripts/{scriptId}`, `POST /image-prompts/carousels/{carouselId}` |
+| Phase14 | `POST /evaluations`, `GET /evaluations/proposal/{proposalId}` |
+| Phase15 | `POST /trends/analyze`, `GET /trends/latest` |
+| Phase16 | `POST /rag/index`, `POST /rag/query` |
+
+既存の初期設計（本ドキュメント4章まで）とPhase1-17実装の間で、パス構成に既知の乖離がある箇所（例: `/social-accounts`系、`/trends`のGET版）は `docs/openapi.yaml` 内にコメントで明記しています。
