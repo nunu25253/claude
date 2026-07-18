@@ -107,8 +107,10 @@ cp .env.example .env
 OPENAI_API_KEY=sk-xxxxxxxx
 OPENAI_MODEL=gpt-4o-mini
 
-# 各SNS公式APIの認証情報（未設定の場合はスタブデータにフォールバックします）
+# 各SNS公式APIの認証情報（未設定の場合はスタブデータにフォールバックします。取得方法・制約は
+# 「SNS公式API連携」セクションを参照）
 INSTAGRAM_ACCESS_TOKEN=
+INSTAGRAM_BUSINESS_ACCOUNT_ID=
 TIKTOK_ACCESS_TOKEN=
 X_BEARER_TOKEN=
 
@@ -227,6 +229,56 @@ curl -X POST http://localhost:8080/api/v1/sync/run \
 ```
 
 レスポンスには処理したアカウント数・同期した投稿数・更新したランキング件数・アカウント単位のエラー一覧が含まれます。詳細は [API設計](./docs/10_api_design.md)（「定期データ取得バッチ」節）を参照してください。
+
+---
+
+## SNS公式API連携
+
+各SNS向けの `SocialPlatform` 実装（`InstagramService`/`TikTokService`/`XService`）は、対応する認証情報が未設定の場合は開発・デモ用のスタブ（モック）データにフォールバックします。実際のSNSから公開データを取得するには、以下の手順で認証情報を取得し `.env` に設定してください。**いずれも「非公開データ（インプレッション・リーチ・保存数等）」は取得しません／取得できません。**
+
+各プラットフォームで「できること」はAPI仕様上大きく異なります。
+
+| プラットフォーム | 単一投稿の分析(`fetchPost`) | アカウントの投稿一覧取得(`fetchRecentPosts`) | 任意の第三者アカウントを閲覧可能か |
+|---|---|---|---|
+| Instagram | ⚠️ 対象アカウントの直近50件以内のみ | ✅ (Business Discovery) | ✅ 可能（対象も自社もビジネス/クリエイターアカウントである必要あり） |
+| TikTok | ⚠️ oEmbedのみ（エンゲージメント指標なし） | ✅ ただし**自分自身のアカウントのみ** | ❌ 不可（TikTok公式APIの仕様上の制約） |
+| X (旧Twitter) | ✅ | ✅ | ✅ 可能（ただし無料プランでは読み取り系エンドポイント自体が使えない） |
+
+### Instagram（Graph API / Business Discovery）
+
+1. [Meta for Developers](https://developers.facebook.com/) でアプリを作成（種類: 「ビジネス」）。
+2. 自社のInstagramアカウントを「ビジネスアカウント」または「クリエイターアカウント」に変更し、Facebookページと連携する。
+3. アプリにFacebookページ・Instagramアカウントを接続し、`instagram_basic` 権限を持つアクセストークンを発行する（長期トークンへの交換を推奨）。
+4. 連携したInstagramアカウントの「IG User ID」を控える（Graph API Explorerや `GET /me/accounts` 等で取得可能）。
+5. `.env` に設定:
+   ```bash
+   INSTAGRAM_ACCESS_TOKEN=EAAxxxxxxxxxx
+   INSTAGRAM_BUSINESS_ACCOUNT_ID=1789xxxxxxxxxxx
+   ```
+
+**制約:** Business Discoveryは「自社アカウントのトークンで“他の”ビジネス/クリエイターアカウントの公開データを閲覧する」仕組みのため、閲覧対象のアカウントもビジネス/クリエイターアカウントである必要があります（個人アカウントは非対応）。また、投稿URL単体からの分析（`fetchPost`）は対象アカウントの直近50件の投稿からしか検索できません（Instagram API自体に「投稿URLから直接1件取得する」手段が用意されていないための制約です）。
+
+### TikTok（Display API v2 / Login Kit）
+
+1. [TikTok for Developers](https://developers.tiktok.com/) でアプリを登録し、Client Key/Secretを取得。
+2. Login Kitの認可コードフロー（ブラウザ経由のOAuth 2.0）を一度実行し、`user.info.basic`・`video.list` スコープのアクセストークンを取得する（このアプリには認可コールバック画面は未実装のため、初回のトークン取得はPostman等で手動実施するか、別途OAuthコールバック実装を追加する必要があります）。
+3. `.env` に設定:
+   ```bash
+   TIKTOK_ACCESS_TOKEN=act.xxxxxxxxxx
+   ```
+
+**制約:** TikTokの公開APIはOAuthで認可した**本人のアカウントのデータしか取得できません**（Instagramのような第三者アカウント閲覧の仕組みはありません）。競合TikTokアカウントの投稿一覧を自動取得することは公式APIの仕様上できません。単一投稿URLの分析（`fetchPost`）はトークン不要のoEmbed（`https://www.tiktok.com/oembed`）を使い、投稿者名・タイトル・サムネイルのみ取得します（いいね数等のエンゲージメント指標はoEmbedには含まれません）。
+
+### X（旧Twitter API v2）
+
+1. [developer.x.com](https://developer.x.com/) で開発者アカウントを申請し、Project + Appを作成。
+2. App-onlyのBearer Tokenを発行する。
+3. `.env` に設定:
+   ```bash
+   X_BEARER_TOKEN=AAAAAAAAAAAAAAAAAAAAA...
+   ```
+
+**制約:** ユーザー検索・投稿検索・タイムライン取得などの読み取り系エンドポイントは、Xの無料プラン（Free tier）では利用できません。最低でもBasicプラン以上（有料）の契約が必要です（詳細はXの公式料金ページを参照してください）。契約さえあれば、Instagramと同様に任意の公開アカウント・投稿をApp-only認証で閲覧できます。
 
 ---
 

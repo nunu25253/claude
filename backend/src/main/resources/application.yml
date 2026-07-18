@@ -55,10 +55,15 @@ openai:
   embedding-dimensions: ${OPENAI_EMBEDDING_DIMENSIONS:1536}
 
 sns:
+  # 各SNSともアクセストークン(等)が未設定の場合はモックデータにフォールバックする(開発・デモ用)。
+  # 実際の取得元・取得可能な範囲はREADMEの「SNS公式API連携」セクションを参照。
   instagram:
     access-token: ${INSTAGRAM_ACCESS_TOKEN:}
+    # Business Discovery呼び出しの起点となる、自社のInstagramビジネス/クリエイターアカウントのIG User ID。
+    business-account-id: ${INSTAGRAM_BUSINESS_ACCOUNT_ID:}
     graph-api-base-url: ${INSTAGRAM_GRAPH_API_BASE_URL:https://graph.facebook.com/v19.0}
   tiktok:
+    # TikTok Login KitのOAuth認可で取得したアクセストークン(認可元アカウント自身のデータのみ取得可能)。
     access-token: ${TIKTOK_ACCESS_TOKEN:}
     api-base-url: ${TIKTOK_API_BASE_URL:https://open.tiktokapis.com/v2}
   x:
