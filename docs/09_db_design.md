@@ -153,6 +153,8 @@
 
 ## 9. analysis_results（AI分析結果）
 
+> **注記**: 本節は初期設計時点の理想化されたスキーマであり、実装（`backend/src/main/resources/db/migration/V1__init_schema.sql`, `V6__analysis_result_phase5_fields.sql`）とは列名・型（JSONB vs TEXT等）が異なる。実装の正確なスキーマは `docs/phases/phase5_post_analysis.md` を参照。Phase5では `genre`/`sub_genre`/`post_purpose`/`post_structure_analysis`/`strengths`/`weaknesses`（すべてTEXT系）を実装に追加済み。
+
 | カラム名 | 型 | 制約 | 説明 |
 |----------|----|------|------|
 | id | UUID | PK, DEFAULT gen_random_uuid() | 分析結果ID |

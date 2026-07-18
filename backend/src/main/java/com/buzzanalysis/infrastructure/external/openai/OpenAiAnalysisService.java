@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -50,9 +51,16 @@ public class OpenAiAnalysisService implements AiPostAnalysisPort {
     private static final String SYSTEM_PROMPT = """
             あなたはSNSのバズ分析専門家です。与えられた投稿の公開データから、なぜバズった/バズらなかったかを分析し、
             以下のキーを持つJSONオブジェクトのみを出力してください（説明文やコードブロック記法は不要）：
-            whyItWentViral, targetAudience, hook, callToAction, sentimentAnalysis, sentimentScore(0.0-1.0),
+            genre, subGenre, whyItWentViral, targetAudience, postPurpose, hook, callToAction,
+            postStructureAnalysis, sentimentAnalysis, sentimentScore(0.0-1.0),
             videoStructureAnalysis, carouselStructureAnalysis, titleAnalysis, textAnalysis, postingTimeAnalysis,
-            hashtagAnalysis, improvementSuggestions, viralPotentialHint(0.0-1.0)
+            hashtagAnalysis, strengths, weaknesses, improvementSuggestions, viralPotentialHint(0.0-1.0)
+
+            各キーの意味:
+            genre=投稿の大分類ジャンル(例: 美容, グルメ, ガジェット), subGenre=ジャンルの下位分類,
+            postPurpose=投稿の目的(例: 認知獲得, 商品訴求, フォロワー獲得, エンゲージメント獲得),
+            postStructureAnalysis=投稿種別によらない全体の構成分析(フック→本編→CTAの流れ等),
+            strengths=この投稿の強み, weaknesses=この投稿の弱み・改善余地
             """;
 
     private String buildPrompt(Post post) {
@@ -81,10 +89,14 @@ public class OpenAiAnalysisService implements AiPostAnalysisPort {
     private AiAnalysisOutput parseResponse(String responseJson) throws Exception {
         JsonNode node = objectMapper.readTree(responseJson);
         return new AiAnalysisOutput(
+                textOrDefault(node, "genre"),
+                textOrDefault(node, "subGenre"),
                 textOrDefault(node, "whyItWentViral"),
                 textOrDefault(node, "targetAudience"),
+                textOrDefault(node, "postPurpose"),
                 textOrDefault(node, "hook"),
                 textOrDefault(node, "callToAction"),
+                textOrDefault(node, "postStructureAnalysis"),
                 textOrDefault(node, "sentimentAnalysis"),
                 doubleOrDefault(node, "sentimentScore", 0.5),
                 textOrDefault(node, "videoStructureAnalysis"),
@@ -93,6 +105,8 @@ public class OpenAiAnalysisService implements AiPostAnalysisPort {
                 textOrDefault(node, "textAnalysis"),
                 textOrDefault(node, "postingTimeAnalysis"),
                 textOrDefault(node, "hashtagAnalysis"),
+                textOrDefault(node, "strengths"),
+                textOrDefault(node, "weaknesses"),
                 textOrDefault(node, "improvementSuggestions"),
                 doubleOrDefault(node, "viralPotentialHint", 0.5)
         );
@@ -123,15 +137,24 @@ public class OpenAiAnalysisService implements AiPostAnalysisPort {
         double viralPotential = Math.min(1.0, 0.3 + engagementRatio * 3);
 
         String format = type == null ? "投稿" : type.name().toLowerCase(Locale.ROOT);
+        List<String> hashtags = post.getHashtags();
+        String genre = (hashtags != null && !hashtags.isEmpty())
+                ? hashtags.get(0) + "（ハッシュタグから簡易推定。本分析はOpenAI未接続時の簡易フォールバックです）"
+                : "未分類（ルールベース簡易分析ではジャンルを判定できません）";
+        String subGenre = (hashtags != null && hashtags.size() > 1) ? hashtags.get(1) : "-";
 
         return new AiAnalysisOutput(
+                genre,
+                subGenre,
                 "エンゲージメント率が%.2f%%と高く、%sフォーマットが視聴者の関心を引いたと推測されます（ルールベース簡易分析）。"
                         .formatted(engagementRatio * 100, format),
                 "投稿内容とハッシュタグ傾向から、トレンドに敏感な10〜30代の視聴者層が中心と推測されます。",
+                engagementRatio > 0.1 ? "エンゲージメント獲得（推測）" : "認知獲得（推測、ルールベース簡易分析）",
                 post.getCaption() != null && !post.getCaption().isBlank()
                         ? "冒頭: 「" + truncate(post.getCaption(), 30) + "」が興味を引くフックになっています。"
                         : "キャプションが未取得のため、動画冒頭の視覚的インパクトがフックと推測されます。",
                 "プロフィールへの誘導やコメントでの問いかけがCTAとして機能している可能性があります。",
+                "フック→本編→CTAの基本構成に沿っていると推測されます（ルールベース簡易分析のため詳細な構成は判定できません）。",
                 sentimentScore >= 0.6 ? "全体的にポジティブな反応が多いと推測されます。" : "反応はやや中立〜控えめと推測されます。",
                 sentimentScore,
                 type == PostType.VIDEO || type == PostType.REEL
@@ -144,6 +167,8 @@ public class OpenAiAnalysisService implements AiPostAnalysisPort {
                 "文章量・改行の使い方は読みやすさに配慮されていると推測されます。",
                 "投稿時間帯はアクティブユーザーが多い時間帯と重なっている可能性があります。",
                 hashtagCount + "個のハッシュタグが使用されており、発見性に一定の効果があると推測されます。",
+                engagementRatio > 0.1 ? "エンゲージメント率の高さが強みと推測されます。" : "公開指標からは明確な強みを特定できません（ルールベース簡易分析）。",
+                "CTAの明確化・投稿頻度の最適化に改善余地があると推測されます（ルールベース簡易分析）。",
                 "類似投稿のパフォーマンスを参考に、CTAの明確化と投稿頻度の最適化を検討してください（本分析はOpenAI未接続時の簡易フォールバックです）。",
                 viralPotential
         );

@@ -19,17 +19,29 @@ public class AnalysisResultEntity {
     @Column(name = "post_id", nullable = false, unique = true)
     private UUID postId;
 
+    @Column(name = "genre", length = 100)
+    private String genre;
+
+    @Column(name = "sub_genre", length = 100)
+    private String subGenre;
+
     @Column(name = "why_it_went_viral", columnDefinition = "TEXT")
     private String whyItWentViral;
 
     @Column(name = "target_audience", columnDefinition = "TEXT")
     private String targetAudience;
 
+    @Column(name = "post_purpose", length = 100)
+    private String postPurpose;
+
     @Column(name = "hook", columnDefinition = "TEXT")
     private String hook;
 
     @Column(name = "call_to_action", columnDefinition = "TEXT")
     private String callToAction;
+
+    @Column(name = "post_structure_analysis", columnDefinition = "TEXT")
+    private String postStructureAnalysis;
 
     @Column(name = "sentiment_analysis", columnDefinition = "TEXT")
     private String sentimentAnalysis;
@@ -52,6 +64,12 @@ public class AnalysisResultEntity {
     @Column(name = "hashtag_analysis", columnDefinition = "TEXT")
     private String hashtagAnalysis;
 
+    @Column(name = "strengths", columnDefinition = "TEXT")
+    private String strengths;
+
+    @Column(name = "weaknesses", columnDefinition = "TEXT")
+    private String weaknesses;
+
     @Column(name = "improvement_suggestions", columnDefinition = "TEXT")
     private String improvementSuggestions;
 
@@ -61,17 +79,23 @@ public class AnalysisResultEntity {
     protected AnalysisResultEntity() {
     }
 
-    public AnalysisResultEntity(UUID id, UUID postId, String whyItWentViral, String targetAudience, String hook,
-                                 String callToAction, String sentimentAnalysis, String videoStructureAnalysis,
-                                 String carouselStructureAnalysis, String titleAnalysis, String textAnalysis,
-                                 String postingTimeAnalysis, String hashtagAnalysis, String improvementSuggestions,
-                                 OffsetDateTime createdAt) {
+    public AnalysisResultEntity(UUID id, UUID postId, String genre, String subGenre, String whyItWentViral,
+                                 String targetAudience, String postPurpose, String hook, String callToAction,
+                                 String postStructureAnalysis, String sentimentAnalysis,
+                                 String videoStructureAnalysis, String carouselStructureAnalysis,
+                                 String titleAnalysis, String textAnalysis, String postingTimeAnalysis,
+                                 String hashtagAnalysis, String strengths, String weaknesses,
+                                 String improvementSuggestions, OffsetDateTime createdAt) {
         this.id = id;
         this.postId = postId;
+        this.genre = genre;
+        this.subGenre = subGenre;
         this.whyItWentViral = whyItWentViral;
         this.targetAudience = targetAudience;
+        this.postPurpose = postPurpose;
         this.hook = hook;
         this.callToAction = callToAction;
+        this.postStructureAnalysis = postStructureAnalysis;
         this.sentimentAnalysis = sentimentAnalysis;
         this.videoStructureAnalysis = videoStructureAnalysis;
         this.carouselStructureAnalysis = carouselStructureAnalysis;
@@ -79,6 +103,8 @@ public class AnalysisResultEntity {
         this.textAnalysis = textAnalysis;
         this.postingTimeAnalysis = postingTimeAnalysis;
         this.hashtagAnalysis = hashtagAnalysis;
+        this.strengths = strengths;
+        this.weaknesses = weaknesses;
         this.improvementSuggestions = improvementSuggestions;
         this.createdAt = createdAt;
     }
@@ -91,6 +117,14 @@ public class AnalysisResultEntity {
         return postId;
     }
 
+    public String getGenre() {
+        return genre;
+    }
+
+    public String getSubGenre() {
+        return subGenre;
+    }
+
     public String getWhyItWentViral() {
         return whyItWentViral;
     }
@@ -99,12 +133,20 @@ public class AnalysisResultEntity {
         return targetAudience;
     }
 
+    public String getPostPurpose() {
+        return postPurpose;
+    }
+
     public String getHook() {
         return hook;
     }
 
     public String getCallToAction() {
         return callToAction;
+    }
+
+    public String getPostStructureAnalysis() {
+        return postStructureAnalysis;
     }
 
     public String getSentimentAnalysis() {
@@ -133,6 +175,14 @@ public class AnalysisResultEntity {
 
     public String getHashtagAnalysis() {
         return hashtagAnalysis;
+    }
+
+    public String getStrengths() {
+        return strengths;
+    }
+
+    public String getWeaknesses() {
+        return weaknesses;
     }
 
     public String getImprovementSuggestions() {

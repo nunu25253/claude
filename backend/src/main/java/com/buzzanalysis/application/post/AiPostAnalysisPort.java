@@ -15,15 +15,21 @@ public interface AiPostAnalysisPort {
 
     /**
      * AI分析出力。感情スコア・バズポテンシャルはBuzzScore算出のAiAnalysisStrategyでも利用する。
+     * {@code genre}/{@code subGenre}/{@code postPurpose}/{@code postStructureAnalysis}/{@code strengths}/
+     * {@code weaknesses} はPhase5（投稿分析AI拡張）で追加された項目。
      *
      * @param sentimentScore     0.0(ネガティブ)〜1.0(ポジティブ)
      * @param viralPotentialHint 0.0〜1.0でAIが推定したバズりやすさ
      */
     record AiAnalysisOutput(
+            String genre,
+            String subGenre,
             String whyItWentViral,
             String targetAudience,
+            String postPurpose,
             String hook,
             String callToAction,
+            String postStructureAnalysis,
             String sentimentAnalysis,
             double sentimentScore,
             String videoStructureAnalysis,
@@ -32,6 +38,8 @@ public interface AiPostAnalysisPort {
             String textAnalysis,
             String postingTimeAnalysis,
             String hashtagAnalysis,
+            String strengths,
+            String weaknesses,
             String improvementSuggestions,
             double viralPotentialHint
     ) {

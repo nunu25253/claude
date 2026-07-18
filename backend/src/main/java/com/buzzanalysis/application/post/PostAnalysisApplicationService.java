@@ -127,10 +127,14 @@ public class PostAnalysisApplicationService {
     private AnalysisResult buildAnalysisResult(UUID postId, AiPostAnalysisPort.AiAnalysisOutput out) {
         return AnalysisResult.builder()
                 .postId(postId)
+                .genre(out.genre())
+                .subGenre(out.subGenre())
                 .whyItWentViral(out.whyItWentViral())
                 .targetAudience(out.targetAudience())
+                .postPurpose(out.postPurpose())
                 .hook(out.hook())
                 .callToAction(out.callToAction())
+                .postStructureAnalysis(out.postStructureAnalysis())
                 .sentimentAnalysis(out.sentimentAnalysis())
                 .videoStructureAnalysis(out.videoStructureAnalysis())
                 .carouselStructureAnalysis(out.carouselStructureAnalysis())
@@ -138,6 +142,8 @@ public class PostAnalysisApplicationService {
                 .textAnalysis(out.textAnalysis())
                 .postingTimeAnalysis(out.postingTimeAnalysis())
                 .hashtagAnalysis(out.hashtagAnalysis())
+                .strengths(out.strengths())
+                .weaknesses(out.weaknesses())
                 .improvementSuggestions(out.improvementSuggestions())
                 .build();
     }

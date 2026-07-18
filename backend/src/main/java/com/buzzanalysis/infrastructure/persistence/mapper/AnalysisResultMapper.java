@@ -10,11 +10,13 @@ public class AnalysisResultMapper {
 
     public AnalysisResultEntity toEntity(AnalysisResult result) {
         return new AnalysisResultEntity(
-                result.getId(), result.getPostId(), result.getWhyItWentViral(), result.getTargetAudience(),
-                result.getHook(), result.getCallToAction(), result.getSentimentAnalysis(),
+                result.getId(), result.getPostId(), result.getGenre(), result.getSubGenre(),
+                result.getWhyItWentViral(), result.getTargetAudience(), result.getPostPurpose(), result.getHook(),
+                result.getCallToAction(), result.getPostStructureAnalysis(), result.getSentimentAnalysis(),
                 result.getVideoStructureAnalysis(), result.getCarouselStructureAnalysis(), result.getTitleAnalysis(),
                 result.getTextAnalysis(), result.getPostingTimeAnalysis(), result.getHashtagAnalysis(),
-                result.getImprovementSuggestions(), result.getCreatedAt()
+                result.getStrengths(), result.getWeaknesses(), result.getImprovementSuggestions(),
+                result.getCreatedAt()
         );
     }
 
@@ -22,10 +24,14 @@ public class AnalysisResultMapper {
         return AnalysisResult.builder()
                 .id(entity.getId())
                 .postId(entity.getPostId())
+                .genre(entity.getGenre())
+                .subGenre(entity.getSubGenre())
                 .whyItWentViral(entity.getWhyItWentViral())
                 .targetAudience(entity.getTargetAudience())
+                .postPurpose(entity.getPostPurpose())
                 .hook(entity.getHook())
                 .callToAction(entity.getCallToAction())
+                .postStructureAnalysis(entity.getPostStructureAnalysis())
                 .sentimentAnalysis(entity.getSentimentAnalysis())
                 .videoStructureAnalysis(entity.getVideoStructureAnalysis())
                 .carouselStructureAnalysis(entity.getCarouselStructureAnalysis())
@@ -33,6 +39,8 @@ public class AnalysisResultMapper {
                 .textAnalysis(entity.getTextAnalysis())
                 .postingTimeAnalysis(entity.getPostingTimeAnalysis())
                 .hashtagAnalysis(entity.getHashtagAnalysis())
+                .strengths(entity.getStrengths())
+                .weaknesses(entity.getWeaknesses())
                 .improvementSuggestions(entity.getImprovementSuggestions())
                 .createdAt(entity.getCreatedAt())
                 .build();
