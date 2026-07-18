@@ -9,22 +9,23 @@ import type { ProposalGenerationRequest } from "@/lib/types";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+function parsePostIds(raw: string): string[] {
+  return raw
+    .split(/[\s,]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 const generationSchema = z.object({
   postIds: z
     .string()
     .min(1, "投稿IDを1件以上入力してください")
-    .transform((v) =>
-      v
-        .split(/[\s,]+/)
-        .map((s) => s.trim())
-        .filter(Boolean),
-    )
-    .refine((ids) => ids.length > 0, "投稿IDを1件以上入力してください")
-    .refine((ids) => ids.every((id) => UUID_PATTERN.test(id)), "投稿IDはUUID形式で入力してください"),
+    .refine((v) => parsePostIds(v).length > 0, "投稿IDを1件以上入力してください")
+    .refine((v) => parsePostIds(v).every((id) => UUID_PATTERN.test(id)), "投稿IDはUUID形式で入力してください"),
   count: z.coerce.number().int().min(1).max(20).optional(),
 });
 
-type GenerationFormValues = z.input<typeof generationSchema>;
+type GenerationFormValues = z.infer<typeof generationSchema>;
 
 interface ProposalGenerationFormProps {
   onSubmit: (payload: ProposalGenerationRequest) => void;
@@ -43,14 +44,13 @@ export function ProposalGenerationForm({ onSubmit, isSubmitting }: ProposalGener
       noValidate
       className="space-y-4"
       onSubmit={handleSubmit((values) => {
-        const parsed = generationSchema.parse(values);
-        onSubmit({ postIds: parsed.postIds, count: parsed.count });
+        onSubmit({ postIds: parsePostIds(values.postIds), count: values.count });
       })}
     >
       <FormField
         label="投稿ID（共通点分析の対象。最大100件、カンマまたは改行区切り）"
         htmlFor="postIds"
-        error={errors.postIds?.message as string | undefined}
+        error={errors.postIds?.message}
       >
         <textarea
           id="postIds"
