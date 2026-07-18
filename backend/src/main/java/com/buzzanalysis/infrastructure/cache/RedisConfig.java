@@ -1,5 +1,6 @@
 package com.buzzanalysis.infrastructure.cache;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
@@ -23,9 +24,22 @@ import java.util.Map;
 @EnableCaching
 public class RedisConfig {
 
+    // アプリ共通のObjectMapperをそのまま渡すと、キャッシュ対象がList<record>等の場合に型情報が
+    // Redis上のJSONへ書き込まれず、キャッシュヒット時の読み戻しでrecordの各要素がLinkedHashMapに
+    // なってしまい再シリアライズに失敗する(HttpMessageNotWritableException)。Redis専用にコピーした
+    // ObjectMapperへ多態的型情報を有効化することで、キャッシュ対象がrecord(finalクラス)であっても
+    // 型情報を保持できるようにする(EVERYTHINGはfinalクラスも対象にする点がNON_FINALと異なる)。
+    // DefaultTyping.EVERYTHINGは非推奨だが、個別のDTOに@JsonTypeInfoを注釈せずに済む実用的な
+    // 回避策として意図的に使用する。
+    @SuppressWarnings("deprecation")
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory, ObjectMapper objectMapper) {
-        GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer(objectMapper);
+        ObjectMapper redisObjectMapper = objectMapper.copy();
+        redisObjectMapper.activateDefaultTyping(
+                redisObjectMapper.getPolymorphicTypeValidator(),
+                ObjectMapper.DefaultTyping.EVERYTHING,
+                JsonTypeInfo.As.PROPERTY);
+        GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer(redisObjectMapper);
 
         RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofMinutes(15))

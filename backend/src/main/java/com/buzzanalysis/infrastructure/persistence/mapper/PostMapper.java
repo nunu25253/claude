@@ -5,6 +5,8 @@ import com.buzzanalysis.domain.post.PostType;
 import com.buzzanalysis.infrastructure.persistence.entity.PostEntity;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+
 /** {@link Post}（ドメイン）と {@link PostEntity}（JPA）の相互変換を行う。 */
 @Component
 public class PostMapper {
@@ -29,9 +31,14 @@ public class PostMapper {
         return new Post(
                 entity.getId(), entity.getSocialAccountId(), platformMapper.toDomain(entity.getPlatform()),
                 entity.getExternalId(), entity.getUrl(), entity.getPublishedAt(), entity.getAuthorName(),
-                entity.getCaption(), entity.getHashtags(), entity.getLikeCount(), entity.getCommentCount(),
-                entity.getViewCount(), entity.getShareCount(), entity.getVideoDurationSeconds(),
-                entity.getImageCount(), toDomainType(entity.getPostType()), entity.getCreatedAt(), entity.getUpdatedAt()
+                // entity.getHashtags()はHibernateの@ElementCollectionが管理する遅延コレクション
+                // (PersistentBag)を返すため、素のArrayListへ複製してドメイン層へHibernate型が
+                // 漏れないようにする(そのまま渡すとRedisキャッシュ等セッション外での再シリアライズ時に
+                // LazyInitializationExceptionになる)。
+                entity.getCaption(), new ArrayList<>(entity.getHashtags()), entity.getLikeCount(),
+                entity.getCommentCount(), entity.getViewCount(), entity.getShareCount(),
+                entity.getVideoDurationSeconds(), entity.getImageCount(), toDomainType(entity.getPostType()),
+                entity.getCreatedAt(), entity.getUpdatedAt()
         );
     }
 
