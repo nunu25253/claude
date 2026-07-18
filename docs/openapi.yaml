@@ -35,6 +35,8 @@ tags:
     description: 総合ランキングスコア算出（AIマーケティングOS Phase7）
   - name: Commonality
     description: 共通点分析（AIマーケティングOS Phase8）
+  - name: Proposals
+    description: 企画生成AI（AIマーケティングOS Phase10）
   - name: Search
     description: 検索
   - name: Competitors
@@ -505,6 +507,51 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CommonalityAnalysisResult"
+
+  /proposals/generate:
+    post:
+      tags: [Proposals]
+      summary: 投稿企画の生成（AIマーケティングOS Phase10）
+      description: >-
+        投稿ID配列(最大100件)からPhase8の共通点分析を行い、その結果を元にAIが投稿企画を
+        count件(省略時20件、上限20件)生成して永続化する。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProposalGenerationRequest"
+      responses:
+        "200":
+          description: 生成成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContentProposal"
+
+  /proposals/{generationId}:
+    get:
+      tags: [Proposals]
+      summary: 生成済み企画の取得（AIマーケティングOS Phase10）
+      description: 指定したgenerationIdで生成された企画一覧を、sequenceNumber昇順で取得する。
+      parameters:
+        - name: generationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContentProposal"
 
   # ------------------------------------------------------------------
   # Social Accounts / Competitors
@@ -1630,6 +1677,62 @@ components:
           type: string
         commonTargetPattern:
           type: string
+
+    ProposalGenerationRequest:
+      type: object
+      required: [postIds]
+      properties:
+        postIds:
+          type: array
+          maxItems: 100
+          items:
+            type: string
+            format: uuid
+        count:
+          type: integer
+          nullable: true
+          description: 生成件数。省略時は20件、上限20件（超過分はクランプ）。
+
+    ContentProposal:
+      type: object
+      description: AIが生成した投稿企画1件（AIマーケティングOS Phase10）
+      properties:
+        id:
+          type: string
+          format: uuid
+        generationId:
+          type: string
+          format: uuid
+          description: 同一生成リクエストの企画をグルーピングするID
+        sequenceNumber:
+          type: integer
+        title:
+          type: string
+        hookPattern:
+          type: string
+          nullable: true
+        structureSummary:
+          type: string
+          nullable: true
+        callToAction:
+          type: string
+          nullable: true
+        targetAudience:
+          type: string
+          nullable: true
+        genre:
+          type: string
+          nullable: true
+        recommendedFormat:
+          type: string
+          nullable: true
+          enum: [SHORT_VIDEO, LONG_VIDEO, SINGLE_IMAGE, MULTI_IMAGE_CAROUSEL, TEXT_ONLY]
+        reasoning:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
 
     CompetitorStatsPhase9:
       type: object

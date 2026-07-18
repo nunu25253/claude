@@ -316,6 +316,28 @@
 - `INDEX idx_embeddings_post_id (post_id)`
 - 類似検索用のANN(ivfflat/hnsw)インデックスはPhase4（意味検索エンジン）で実データ蓄積後に追加予定（意図的に先送り）
 
+## 17. content_proposals（AI生成投稿企画。AIマーケティングOS Phase10で追加）
+
+実装は `backend/src/main/resources/db/migration/V8__content_proposals.sql`。Phase8（共通点分析）の結果を元にAIが生成した投稿企画を、1回の生成リクエスト単位（`generation_id`）でグルーピングして保持する新規テーブル（既存テーブルの拡張ではなく新設。理由は `docs/phases/phase10_proposal_generation.md` 参照）。特定の投稿・アカウントに紐付くものではないためFK制約は持たない。
+
+| カラム名 | 型 | 制約 | 説明 |
+|----------|----|------|------|
+| id | UUID | PK | 企画ID |
+| generation_id | UUID | NOT NULL | 生成単位のグルーピングID（1回の生成で既定20件が同一値） |
+| sequence_number | INTEGER | NOT NULL | 生成単位内の通し番号（1始まり） |
+| title | TEXT | NOT NULL | 投稿タイトル案 |
+| hook_pattern | TEXT | NULL許容 | 冒頭フック案 |
+| structure_summary | TEXT | NULL許容 | 投稿構成案 |
+| call_to_action | TEXT | NULL許容 | CTA案 |
+| target_audience | TEXT | NULL許容 | 想定ターゲット |
+| genre | VARCHAR(100) | NULL許容 | ジャンル |
+| recommended_format | VARCHAR(30) | NULL許容 | 推奨コンテンツ形式（`ContentFormat`。AI応答が未知の値の場合はNULL） |
+| reasoning | TEXT | NULL許容 | この企画が有効と考える理由 |
+| created_at | TIMESTAMPTZ | NOT NULL | 生成日時 |
+
+**インデックス**:
+- `INDEX idx_content_proposals_generation_id (generation_id)`
+
 ## 外部キー制約一覧（サマリー）
 
 | 子テーブル | 列 | 親テーブル | ON DELETE |
