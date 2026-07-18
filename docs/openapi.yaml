@@ -29,6 +29,8 @@ tags:
     description: Embedding生成・取得（AIマーケティングOS Phase3）
   - name: SemanticSearch
     description: 意味検索（AIマーケティングOS Phase4）
+  - name: Matching
+    description: ユーザー条件分析・一致率算出（AIマーケティングOS Phase6）
   - name: Search
     description: 検索
   - name: SocialAccounts
@@ -418,6 +420,35 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/SemanticSearchResult"
+
+  /matching/evaluate:
+    post:
+      tags: [Matching]
+      summary: ユーザー条件と投稿の一致率算出（AIマーケティングOS Phase6）
+      description: >-
+        キーワード・商品名・ブランド・ASP案件名・ジャンル・サブジャンル・ターゲット年齢/性別・投稿形式・
+        SNS・動画時間・投稿目的を条件として、各投稿の一致率(0〜100)をStrategyパターンの重み付き平均で算出する。
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserSearchConditionRequest"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MatchRateResult"
 
   # ------------------------------------------------------------------
   # Social Accounts / Competitors
@@ -1400,6 +1431,54 @@ components:
           type: number
           format: float
           description: 一致率(0〜100にクランプ済み)
+
+    UserSearchConditionRequest:
+      type: object
+      description: ユーザー条件分析のリクエスト(AIマーケティングOS Phase6)。すべての項目は任意
+      properties:
+        keyword:
+          type: string
+        productName:
+          type: string
+        brand:
+          type: string
+        aspOfferName:
+          type: string
+        genre:
+          type: string
+        subGenre:
+          type: string
+        targetAgeRange:
+          type: string
+          example: "20代"
+        targetGender:
+          type: string
+        postFormat:
+          type: string
+          enum: [SHORT_VIDEO, LONG_VIDEO, SINGLE_IMAGE, MULTI_IMAGE_CAROUSEL, TEXT_ONLY]
+        platform:
+          $ref: "#/components/schemas/PlatformCode"
+        videoDurationSeconds:
+          type: integer
+        purpose:
+          type: string
+          example: "認知獲得"
+
+    MatchRateResult:
+      type: object
+      description: 一致率算出の1件分の結果(AIマーケティングOS Phase6)
+      properties:
+        post:
+          $ref: "#/components/schemas/Post"
+        matchRatePercent:
+          type: number
+          format: float
+        breakdown:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+          description: Strategyごとの内訳スコア(semanticSimilarity, genre, hookCtaPresence, targetAudience, postFormat, videoDuration, purpose)
 
     AnalyzePostUrlRequest:
       type: object
