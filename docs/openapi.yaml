@@ -23,6 +23,8 @@ tags:
     description: 投稿URL分析・投稿検索
   - name: Normalization
     description: 投稿データの正規化（AIマーケティングOS Phase1）
+  - name: Preprocessing
+    description: AI分析用前処理（AIマーケティングOS Phase2）
   - name: Search
     description: 検索
   - name: SocialAccounts
@@ -306,6 +308,23 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/NormalizedPost"
+
+  /posts/{postId}/preprocessed:
+    get:
+      tags: [Preprocessing]
+      summary: AI分析用前処理結果取得（AIマーケティングOS Phase2）
+      description: >-
+        絵文字/URL/HTML除去・改行整理済みの本文、判定言語、ハッシュタグ/メンション、投稿時間解析、
+        動画時間解析、コンテンツ形式判定の結果を返す。すべて決定的なルールで導出され、AI生成値は含まない。
+      parameters:
+        - $ref: "#/components/parameters/PostIdPath"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreprocessedPost"
 
   # ------------------------------------------------------------------
   # Search
@@ -1199,6 +1218,55 @@ components:
           items:
             type: string
           description: このプラットフォーム/投稿種別では取得不可・未計測のメトリクス名（例:["viewCount"]）
+
+    PreprocessedPost:
+      type: object
+      description: AI分析用前処理を終えた投稿データ（AIマーケティングOS Phase2の成果物）。AI生成値は含まない
+      properties:
+        postId:
+          type: string
+          format: uuid
+        cleanText:
+          type: string
+          description: 絵文字・URL・HTML除去、改行整理済みの本文
+        language:
+          type: string
+          enum: [JAPANESE, ENGLISH, OTHER, UNKNOWN]
+          description: ヒューリスティック判定による言語（AIによる推定ではない）
+        hashtags:
+          type: array
+          items:
+            type: string
+        mentions:
+          type: array
+          items:
+            type: string
+        postingTime:
+          type: object
+          properties:
+            hour:
+              type: integer
+            dayOfWeek:
+              type: string
+            isWeekend:
+              type: boolean
+            timeSlot:
+              type: string
+              enum: [LATE_NIGHT, EARLY_MORNING, MORNING, AFTERNOON, EVENING, NIGHT]
+        videoDuration:
+          type: object
+          nullable: true
+          properties:
+            durationSeconds:
+              type: integer
+              nullable: true
+            category:
+              type: string
+              nullable: true
+              enum: [SHORT, MEDIUM, LONG, EXTENDED]
+        contentFormat:
+          type: string
+          enum: [SHORT_VIDEO, LONG_VIDEO, SINGLE_IMAGE, MULTI_IMAGE_CAROUSEL, TEXT_ONLY]
 
     AnalyzePostUrlRequest:
       type: object
