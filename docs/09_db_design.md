@@ -338,6 +338,23 @@
 **インデックス**:
 - `INDEX idx_content_proposals_generation_id (generation_id)`
 
+## 18. video_scripts（AI生成動画台本。AIマーケティングOS Phase11で追加）
+
+実装は `backend/src/main/resources/db/migration/V9__video_scripts.sql`。Phase10の`content_proposals`1件から、尺(30/60/90秒)ごとに複数生成できる動画台本を保持する。カット構成（`cuts`）は可変長のため、Phase9の分布Mapと同様の方針でJSON文字列としてTEXT列に格納する（`ScriptCutListJsonConverter`）。
+
+| カラム名 | 型 | 制約 | 説明 |
+|----------|----|------|------|
+| id | UUID | PK | 台本ID |
+| proposal_id | UUID | NOT NULL, FK → content_proposals(id) ON DELETE CASCADE | 元になった投稿企画 |
+| duration_seconds | INTEGER | NOT NULL | 尺（秒）。アプリ層で30/60/90のみに制限 |
+| bgm_image | TEXT | NULL許容 | BGMの雰囲気イメージ |
+| call_to_action | TEXT | NULL許容 | 動画全体のCTA |
+| cuts | TEXT | NOT NULL | カット構成（JSON配列。cutNumber/startSecond/endSecond/narration/telop/visualDirection） |
+| created_at | TIMESTAMPTZ | NOT NULL | 生成日時 |
+
+**インデックス**:
+- `INDEX idx_video_scripts_proposal_id (proposal_id)`
+
 ## 外部キー制約一覧（サマリー）
 
 | 子テーブル | 列 | 親テーブル | ON DELETE |
@@ -363,6 +380,7 @@
 | reports | analysis_result_id | analysis_results(id) | CASCADE |
 | saved_analyses | user_id | users(id) | CASCADE |
 | saved_analyses | analysis_result_id | analysis_results(id) | CASCADE |
+| video_scripts | proposal_id | content_proposals(id) | CASCADE |
 
 ## インデックス設計方針
 

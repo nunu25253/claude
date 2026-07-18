@@ -37,6 +37,8 @@ tags:
     description: 共通点分析（AIマーケティングOS Phase8）
   - name: Proposals
     description: 企画生成AI（AIマーケティングOS Phase10）
+  - name: Scripts
+    description: 台本生成AI（AIマーケティングOS Phase11）
   - name: Search
     description: 検索
   - name: Competitors
@@ -552,6 +554,54 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ContentProposal"
+
+  /scripts/generate:
+    post:
+      tags: [Scripts]
+      summary: 動画台本の生成（AIマーケティングOS Phase11）
+      description: >-
+        投稿企画IDと尺(30/60/90秒のいずれか)から、AIがナレーション/テロップ/BGMイメージ/CTA/
+        カット構成を生成する。AI応答のカット秒数範囲は尺を超える等の不正があれば除外し、
+        全滅時はフック20%/本編60%/CTA20%の機械的な3分割にフォールバックする。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScriptGenerationRequest"
+      responses:
+        "200":
+          description: 生成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VideoScript"
+        "400":
+          description: durationSecondsが30/60/90以外
+        "404":
+          description: 指定したproposalIdの企画が存在しない
+
+  /scripts/proposal/{proposalId}:
+    get:
+      tags: [Scripts]
+      summary: 企画に紐づく生成済み台本の取得（AIマーケティングOS Phase11）
+      description: 指定した投稿企画IDに紐づく台本一覧を取得する。
+      parameters:
+        - name: proposalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VideoScript"
 
   # ------------------------------------------------------------------
   # Social Accounts / Competitors
@@ -1730,6 +1780,63 @@ components:
         reasoning:
           type: string
           nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    ScriptGenerationRequest:
+      type: object
+      required: [proposalId, durationSeconds]
+      properties:
+        proposalId:
+          type: string
+          format: uuid
+        durationSeconds:
+          type: integer
+          enum: [30, 60, 90]
+
+    ScriptCut:
+      type: object
+      description: 動画台本の1カット分
+      properties:
+        cutNumber:
+          type: integer
+        startSecond:
+          type: integer
+        endSecond:
+          type: integer
+        narration:
+          type: string
+          nullable: true
+        telop:
+          type: string
+          nullable: true
+        visualDirection:
+          type: string
+          nullable: true
+
+    VideoScript:
+      type: object
+      description: AIが生成した動画台本（AIマーケティングOS Phase11）
+      properties:
+        id:
+          type: string
+          format: uuid
+        proposalId:
+          type: string
+          format: uuid
+        durationSeconds:
+          type: integer
+        bgmImage:
+          type: string
+          nullable: true
+        callToAction:
+          type: string
+          nullable: true
+        cuts:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScriptCut"
         createdAt:
           type: string
           format: date-time

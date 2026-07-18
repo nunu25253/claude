@@ -8,6 +8,7 @@ import com.buzzanalysis.infrastructure.persistence.repository.ContentProposalJpa
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /** {@link ContentProposalRepository} のJPA実装（Repositoryパターン）。 */
@@ -33,5 +34,10 @@ public class ContentProposalRepositoryImpl implements ContentProposalRepository 
         return jpaRepository.findByGenerationIdOrderBySequenceNumberAsc(generationId).stream()
                 .map(mapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    public Optional<ContentProposal> findById(UUID id) {
+        return jpaRepository.findById(id).map(mapper::toDomain);
     }
 }
