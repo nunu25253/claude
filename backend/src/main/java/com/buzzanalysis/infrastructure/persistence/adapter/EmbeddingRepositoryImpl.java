@@ -3,9 +3,11 @@ package com.buzzanalysis.infrastructure.persistence.adapter;
 import com.buzzanalysis.domain.embedding.Embedding;
 import com.buzzanalysis.domain.embedding.EmbeddingRepository;
 import com.buzzanalysis.domain.embedding.EmbeddingTarget;
+import com.buzzanalysis.domain.embedding.SimilarityMatch;
 import com.buzzanalysis.infrastructure.persistence.entity.EmbeddingEntity;
 import com.buzzanalysis.infrastructure.persistence.mapper.EmbeddingMapper;
 import com.buzzanalysis.infrastructure.persistence.repository.EmbeddingJpaRepository;
+import com.buzzanalysis.infrastructure.persistence.type.VectorType;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -54,5 +56,13 @@ public class EmbeddingRepositoryImpl implements EmbeddingRepository {
     @Override
     public List<Embedding> findAllByPostId(UUID postId) {
         return jpaRepository.findAllByPostId(postId).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public List<SimilarityMatch> findNearest(EmbeddingTarget target, float[] queryVector, int limit) {
+        String queryVectorLiteral = VectorType.toVectorLiteral(queryVector);
+        return jpaRepository.findNearest(queryVectorLiteral, target.name(), limit).stream()
+                .map(row -> new SimilarityMatch(row.getPostId(), row.getSimilarity()))
+                .toList();
     }
 }

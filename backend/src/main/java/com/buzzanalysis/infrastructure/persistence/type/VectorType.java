@@ -93,8 +93,12 @@ public class VectorType implements UserType<float[]> {
         return deepCopy((float[]) cached);
     }
 
-    /** pgvectorのテキスト表現（例: "[0.1,0.2,0.3]"）を {@code float[]} に変換する。 */
-    static float[] parseVectorLiteral(String literal) {
+    /**
+     * pgvectorのテキスト表現（例: "[0.1,0.2,0.3]"）を {@code float[]} に変換する。
+     * {@code public}: 類似検索のネイティブクエリでクエリベクトルを組み立てる際にも再利用するため
+     * （{@code EmbeddingRepositoryImpl} 参照）。
+     */
+    public static float[] parseVectorLiteral(String literal) {
         String trimmed = literal.trim();
         if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
             trimmed = trimmed.substring(1, trimmed.length() - 1);
@@ -110,8 +114,8 @@ public class VectorType implements UserType<float[]> {
         return result;
     }
 
-    /** {@code float[]} をpgvectorのテキスト表現（例: "[0.1,0.2,0.3]"）に変換する。 */
-    static String toVectorLiteral(float[] vector) {
+    /** {@code float[]} をpgvectorのテキスト表現（例: "[0.1,0.2,0.3]"）に変換する。{@code public} の理由は上記と同じ。 */
+    public static String toVectorLiteral(float[] vector) {
         StringJoiner joiner = new StringJoiner(",", "[", "]");
         for (float v : vector) {
             joiner.add(Float.toString(v));

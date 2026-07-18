@@ -27,6 +27,8 @@ tags:
     description: AI分析用前処理（AIマーケティングOS Phase2）
   - name: Embeddings
     description: Embedding生成・取得（AIマーケティングOS Phase3）
+  - name: SemanticSearch
+    description: 意味検索（AIマーケティングOS Phase4）
   - name: Search
     description: 検索
   - name: SocialAccounts
@@ -387,6 +389,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PageEnvelope"
+
+  /search/semantic:
+    get:
+      tags: [SemanticSearch]
+      summary: 意味検索（AIマーケティングOS Phase4）
+      description: >-
+        キーワードをEmbedding化し、pgvectorのコサイン類似度が近い投稿を一致率付きで返す。
+        文字列としては一致しない意味的に近い投稿（例:「楽天カード」で「ポイ活」「SPU」等）もヒットする。
+        Phase3でBODY Embeddingが生成済みの投稿のみが検索対象。
+      parameters:
+        - name: keyword
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SemanticSearchResult"
 
   # ------------------------------------------------------------------
   # Social Accounts / Competitors
@@ -1354,6 +1385,21 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Embedding"
+
+    SemanticSearchResult:
+      type: object
+      description: 意味検索の1件分の結果(AIマーケティングOS Phase4)
+      properties:
+        post:
+          $ref: "#/components/schemas/Post"
+        similarity:
+          type: number
+          format: float
+          description: コサイン類似度(0.0〜1.0、1.0に近いほど類似)
+        matchRatePercent:
+          type: number
+          format: float
+          description: 一致率(0〜100にクランプ済み)
 
     AnalyzePostUrlRequest:
       type: object

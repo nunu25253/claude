@@ -35,7 +35,11 @@ public class RedisConfig {
 
         Map<String, RedisCacheConfiguration> perCacheConfig = Map.of(
                 "competitorStats", defaultConfig.entryTtl(Duration.ofMinutes(30)),
-                "rankings", defaultConfig.entryTtl(Duration.ofMinutes(10))
+                "rankings", defaultConfig.entryTtl(Duration.ofMinutes(10)),
+                // 意味検索結果(Phase4)。同一キーワードの再検索でOpenAI Embeddings API呼び出しと
+                // pgvector検索の両方を削減する。新規Embedding生成時の明示的なキャッシュ無効化は
+                // 未実装のため、TTLを短めにしている(docs/phases/phase4_semantic_search.md参照)。
+                "semanticSearchResults", defaultConfig.entryTtl(Duration.ofMinutes(10))
         );
 
         return RedisCacheManager.builder(connectionFactory)
