@@ -31,6 +31,8 @@ tags:
     description: 意味検索（AIマーケティングOS Phase4）
   - name: Matching
     description: ユーザー条件分析・一致率算出（AIマーケティングOS Phase6）
+  - name: RankingScore
+    description: 総合ランキングスコア算出（AIマーケティングOS Phase7）
   - name: Search
     description: 検索
   - name: SocialAccounts
@@ -449,6 +451,35 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/MatchRateResult"
+
+  /ranking-score/rank:
+    post:
+      tags: [RankingScore]
+      summary: 総合ランキングスコアで投稿を順位付け（AIマーケティングOS Phase7）
+      description: >-
+        Phase6の一致率に加え、既存BuzzScore・いいね率・投稿鮮度・動画時間を重み付き平均した
+        総合ランキングスコアで降順に並び替える。
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserSearchConditionRequest"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RankingScoreResult"
 
   # ------------------------------------------------------------------
   # Social Accounts / Competitors
@@ -1479,6 +1510,25 @@ components:
             type: number
             format: float
           description: Strategyごとの内訳スコア(semanticSimilarity, genre, hookCtaPresence, targetAudience, postFormat, videoDuration, purpose)
+
+    RankingScoreResult:
+      type: object
+      description: 総合ランキングスコア算出の1件分の結果(AIマーケティングOS Phase7)
+      properties:
+        post:
+          $ref: "#/components/schemas/Post"
+        rankingScore:
+          type: number
+          format: float
+        matchRatePercent:
+          type: number
+          format: float
+        breakdown:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+          description: Strategyごとの内訳スコア(matchRate, buzzScore, likeRate, freshness, videoDuration)
 
     AnalyzePostUrlRequest:
       type: object
