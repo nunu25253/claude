@@ -12,13 +12,13 @@ export interface RequestOptions {
   signal?: AbortSignal;
 }
 
-function buildUrl(path: string, params?: RequestOptions["params"]): string {
+function buildUrl(path: string, params?: object): string {
   const url = new URL(
     path.startsWith("/") ? path.slice(1) : path,
     `${API_BASE_URL}/`,
   );
   if (params) {
-    for (const [key, value] of Object.entries(params)) {
+    for (const [key, value] of Object.entries(params as Record<string, unknown>)) {
       if (value !== undefined && value !== null && value !== "") {
         url.searchParams.set(key, String(value));
       }
@@ -72,7 +72,7 @@ async function request<T>(
       signal: options.signal,
       cache: "no-store",
     });
-  } catch (err) {
+  } catch {
     // バックエンドに到達できない場合（起動していない・ネットワーク断など）
     throw new ApiError(0, {
       message:
@@ -100,8 +100,7 @@ async function request<T>(
 }
 
 export const apiClient = {
-  get: <T>(path: string, options?: RequestOptions) =>
-    request<T>("GET", path, undefined, options),
+  get: <T>(path: string, options?: RequestOptions) => request<T>("GET", path, undefined, options),
   post: <T>(path: string, body?: unknown, options?: RequestOptions) =>
     request<T>("POST", path, body, options),
   put: <T>(path: string, body?: unknown, options?: RequestOptions) =>
@@ -111,5 +110,16 @@ export const apiClient = {
   delete: <T>(path: string, options?: RequestOptions) =>
     request<T>("DELETE", path, undefined, options),
 };
+
+/**
+ * PostSearchParams のような具体的な型（index signature を持たない）を
+ * apiClient の params（index signature 付きの Record 型）に渡すためのヘルパー。
+ * スプレッドでフレッシュなオブジェクトリテラルにすることで型チェックを通す。
+ */
+export function toQueryParams<T extends object>(
+  params: T,
+): Record<string, string | number | boolean | undefined> {
+  return { ...params } as Record<string, string | number | boolean | undefined>;
+}
 
 export { API_BASE_URL };

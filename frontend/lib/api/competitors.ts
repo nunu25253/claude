@@ -1,4 +1,4 @@
-import { apiClient } from "../api-client";
+import { apiClient, toQueryParams } from "../api-client";
 import type { CompetitorStats, Page, Post, PostSearchParams } from "../types";
 
 export const competitorsApi = {
@@ -7,5 +7,5 @@ export const competitorsApi = {
 
   // アカウント検索は投稿検索APIの account パラメータを流用してアカウント候補を引く想定
   searchAccountPosts: (params: PostSearchParams) =>
-    apiClient.get<Page<Post>>("/posts/search", { params }),
+    apiClient.get<Page<Post>>("/posts/search", { params: toQueryParams(params) }),
 };

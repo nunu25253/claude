@@ -1,7 +1,7 @@
-import { apiClient } from "../api-client";
+import { apiClient, toQueryParams } from "../api-client";
 import type { TrendQueryParams, TrendResponse } from "../types";
 
 export const trendsApi = {
   get: (params: TrendQueryParams) =>
-    apiClient.get<TrendResponse>("/trends", { params }),
+    apiClient.get<TrendResponse>("/trends", { params: toQueryParams(params) }),
 };
