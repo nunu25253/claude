@@ -7,3 +7,5 @@ export * from "./trend";
 export * from "./report";
 export * from "./saved-analysis";
 export * from "./settings";
+export * from "./proposal";
+export * from "./evaluation";

@@ -6,3 +6,5 @@ export * from "./trends";
 export * from "./reports";
 export * from "./saved-analyses";
 export * from "./settings";
+export * from "./proposals";
+export * from "./evaluations";
