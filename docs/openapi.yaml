@@ -43,6 +43,8 @@ tags:
     description: カルーセル生成AI（AIマーケティングOS Phase12）
   - name: ImagePrompts
     description: 画像生成プロンプト（AIマーケティングOS Phase13）
+  - name: Evaluations
+    description: 投稿評価AI（AIマーケティングOS Phase14）
   - name: Search
     description: 検索
   - name: Competitors
@@ -698,6 +700,52 @@ paths:
                 $ref: "#/components/schemas/ImagePromptSet"
         "404":
           description: 指定したcarouselIdのカルーセルが存在しない
+
+  /evaluations:
+    post:
+      tags: [Evaluations]
+      summary: 投稿内容の評価（AIマーケティングOS Phase14）
+      description: >-
+        タイトル/フック/構成/CTA/ターゲットを評価する。proposalId指定時のみPhase10の元企画と
+        比較して一致率(matchRatePercent)を算出する。未指定時はnull(比較基準がないため0%とは
+        区別する)。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostEvaluationRequest"
+      responses:
+        "200":
+          description: 評価成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentEvaluation"
+        "404":
+          description: 指定したproposalIdの企画が存在しない
+
+  /evaluations/proposal/{proposalId}:
+    get:
+      tags: [Evaluations]
+      summary: 企画に紐づく評価履歴の取得（AIマーケティングOS Phase14）
+      description: 指定した投稿企画IDに紐づく評価履歴一覧を取得する。
+      parameters:
+        - name: proposalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContentEvaluation"
 
   # ------------------------------------------------------------------
   # Social Accounts / Competitors
@@ -2012,6 +2060,68 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ImagePrompt"
+        createdAt:
+          type: string
+          format: date-time
+
+    PostEvaluationRequest:
+      type: object
+      required: [title]
+      properties:
+        proposalId:
+          type: string
+          format: uuid
+          nullable: true
+          description: 指定時のみ元企画との一致率を算出する
+        title:
+          type: string
+        hookText:
+          type: string
+          nullable: true
+        structureText:
+          type: string
+          nullable: true
+        ctaText:
+          type: string
+          nullable: true
+        targetAudienceText:
+          type: string
+          nullable: true
+
+    ContentEvaluation:
+      type: object
+      description: AIによる投稿内容評価結果（AIマーケティングOS Phase14）
+      properties:
+        id:
+          type: string
+          format: uuid
+        proposalId:
+          type: string
+          format: uuid
+          nullable: true
+        title:
+          type: string
+        matchRatePercent:
+          type: number
+          format: double
+          nullable: true
+          description: proposalId未指定の場合はnull（比較基準がないため0%と区別する）
+        targetAudienceEstimate:
+          type: string
+          nullable: true
+        improvementSuggestions:
+          type: array
+          items:
+            type: string
+        hookImprovement:
+          type: string
+          nullable: true
+        ctaImprovement:
+          type: string
+          nullable: true
+        predictedScore:
+          type: integer
+          description: 0〜100の予測投稿スコア（AIによる定性評価。Phase7の実測値ベースのランキングスコアとは別指標）
         createdAt:
           type: string
           format: date-time

@@ -384,6 +384,26 @@
 **インデックス**:
 - `INDEX idx_image_prompt_sets_source (source_type, source_id)`
 
+## 21. content_evaluations（AI投稿評価結果。AIマーケティングOS Phase14で追加）
+
+実装は `backend/src/main/resources/db/migration/V12__content_evaluations.sql`。ユーザーが作成した（またはAIが生成した）投稿内容（台本/カルーセル等）の評価結果を保持する。`proposal_id`は任意（指定して評価した場合のみPhase10の企画との一致率を算出）。企画が削除されても評価履歴自体は残すため`ON DELETE SET NULL`とする（他フェーズの`CASCADE`と異なる方針。理由は`docs/phases/phase14_post_evaluation.md`参照）。
+
+| カラム名 | 型 | 制約 | 説明 |
+|----------|----|------|------|
+| id | UUID | PK | 評価ID |
+| proposal_id | UUID | NULL許容, FK → content_proposals(id) ON DELETE SET NULL | 比較対象とした元企画（未指定可） |
+| title | TEXT | NULL許容 | 評価対象のタイトル |
+| match_rate_percent | DOUBLE PRECISION | NULL許容 | 元企画との一致率（proposal_id未指定時はNULL。0%と区別する） |
+| target_audience_estimate | TEXT | NULL許容 | AIによる想定ターゲットの推定 |
+| improvement_suggestions | TEXT | NOT NULL | 改善提案一覧（JSON配列） |
+| hook_improvement | TEXT | NULL許容 | フックの改善案 |
+| cta_improvement | TEXT | NULL許容 | CTAの改善案 |
+| predicted_score | INTEGER | NOT NULL | 0〜100の予測投稿スコア（AIの定性評価。Phase7のランキングスコアとは別指標） |
+| created_at | TIMESTAMPTZ | NOT NULL | 評価日時 |
+
+**インデックス**:
+- `INDEX idx_content_evaluations_proposal_id (proposal_id)`
+
 ## 外部キー制約一覧（サマリー）
 
 | 子テーブル | 列 | 親テーブル | ON DELETE |
@@ -411,6 +431,7 @@
 | saved_analyses | analysis_result_id | analysis_results(id) | CASCADE |
 | video_scripts | proposal_id | content_proposals(id) | CASCADE |
 | carousels | proposal_id | content_proposals(id) | CASCADE |
+| content_evaluations | proposal_id | content_proposals(id) | SET NULL |
 
 ## インデックス設計方針
 
