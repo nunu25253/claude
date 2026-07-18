@@ -355,6 +355,20 @@
 **インデックス**:
 - `INDEX idx_video_scripts_proposal_id (proposal_id)`
 
+## 19. carousels（AI生成カルーセル。AIマーケティングOS Phase12で追加）
+
+実装は `backend/src/main/resources/db/migration/V10__carousels.sql`。Phase10の`content_proposals`1件から生成できるInstagramカルーセル（2〜8ページ）を保持する。ページ構成（`pages`）はPhase11の`cuts`と同方針でJSON文字列としてTEXT列に格納する（`CarouselPageListJsonConverter`）。各ページの役割（HOOK/EXPLANATION/CTA）はAIに判定させず、application層がページ配列内の位置（先頭=HOOK、末尾=CTA、それ以外=EXPLANATION）から機械的に決定した上で保存する。
+
+| カラム名 | 型 | 制約 | 説明 |
+|----------|----|------|------|
+| id | UUID | PK | カルーセルID |
+| proposal_id | UUID | NOT NULL, FK → content_proposals(id) ON DELETE CASCADE | 元になった投稿企画 |
+| pages | TEXT | NOT NULL | ページ構成（JSON配列。pageNumber/role/headline/bodyText/visualDirection） |
+| created_at | TIMESTAMPTZ | NOT NULL | 生成日時 |
+
+**インデックス**:
+- `INDEX idx_carousels_proposal_id (proposal_id)`
+
 ## 外部キー制約一覧（サマリー）
 
 | 子テーブル | 列 | 親テーブル | ON DELETE |
@@ -381,6 +395,7 @@
 | saved_analyses | user_id | users(id) | CASCADE |
 | saved_analyses | analysis_result_id | analysis_results(id) | CASCADE |
 | video_scripts | proposal_id | content_proposals(id) | CASCADE |
+| carousels | proposal_id | content_proposals(id) | CASCADE |
 
 ## インデックス設計方針
 

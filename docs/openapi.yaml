@@ -39,6 +39,8 @@ tags:
     description: 企画生成AI（AIマーケティングOS Phase10）
   - name: Scripts
     description: 台本生成AI（AIマーケティングOS Phase11）
+  - name: Carousels
+    description: カルーセル生成AI（AIマーケティングOS Phase12）
   - name: Search
     description: 検索
   - name: Competitors
@@ -602,6 +604,52 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/VideoScript"
+
+  /carousels/generate:
+    post:
+      tags: [Carousels]
+      summary: カルーセルの生成（AIマーケティングOS Phase12）
+      description: >-
+        投稿企画IDから、AIがInstagramカルーセル(2〜8ページ)を生成する。各ページの役割
+        (HOOK/EXPLANATION/CTA)はAIに判定させず、応答配列内の位置(先頭=HOOK、末尾=CTA、
+        それ以外=EXPLANATION)からサーバー側で機械的に決定する。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CarouselGenerationRequest"
+      responses:
+        "200":
+          description: 生成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Carousel"
+        "404":
+          description: 指定したproposalIdの企画が存在しない
+
+  /carousels/proposal/{proposalId}:
+    get:
+      tags: [Carousels]
+      summary: 企画に紐づく生成済みカルーセルの取得（AIマーケティングOS Phase12）
+      description: 指定した投稿企画IDに紐づくカルーセル一覧を取得する。
+      parameters:
+        - name: proposalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Carousel"
 
   # ------------------------------------------------------------------
   # Social Accounts / Competitors
@@ -1837,6 +1885,51 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ScriptCut"
+        createdAt:
+          type: string
+          format: date-time
+
+    CarouselGenerationRequest:
+      type: object
+      required: [proposalId]
+      properties:
+        proposalId:
+          type: string
+          format: uuid
+
+    CarouselPage:
+      type: object
+      description: カルーセルの1ページ分
+      properties:
+        pageNumber:
+          type: integer
+        role:
+          type: string
+          enum: [HOOK, EXPLANATION, CTA]
+          description: サーバー側がページ位置から機械的に決定する役割
+        headline:
+          type: string
+        bodyText:
+          type: string
+          nullable: true
+        visualDirection:
+          type: string
+          nullable: true
+
+    Carousel:
+      type: object
+      description: AIが生成したInstagramカルーセル（AIマーケティングOS Phase12）
+      properties:
+        id:
+          type: string
+          format: uuid
+        proposalId:
+          type: string
+          format: uuid
+        pages:
+          type: array
+          items:
+            $ref: "#/components/schemas/CarouselPage"
         createdAt:
           type: string
           format: date-time
