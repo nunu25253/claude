@@ -15,14 +15,18 @@ public record CompetitorStatsDto(
         Map<Integer, Double> postingTimeDistribution,
         Double averageVideoDurationSeconds,
         double averageCaptionLength,
-        List<UUID> topPerformingPostIds
+        List<UUID> topPerformingPostIds,
+        Double averageViewCount,
+        Map<String, Double> postFormatDistribution,
+        Map<String, Double> genreDistribution
 ) {
     public static CompetitorStatsDto from(CompetitorStats stats) {
         return new CompetitorStatsDto(
                 stats.getSocialAccountId(), stats.getAverageLikeCount(), stats.getAverageCommentCount(),
                 stats.getPostingFrequencyPerWeek(), stats.getPostingTimeDistribution(),
                 stats.getAverageVideoDurationSeconds(), stats.getAverageCaptionLength(),
-                stats.getTopPerformingPostIds()
+                stats.getTopPerformingPostIds(), stats.getAverageViewCount(), stats.getPostFormatDistribution(),
+                stats.getGenreDistribution()
         );
     }
 }

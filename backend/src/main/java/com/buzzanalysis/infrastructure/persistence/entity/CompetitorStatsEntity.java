@@ -1,6 +1,7 @@
 package com.buzzanalysis.infrastructure.persistence.entity;
 
 import com.buzzanalysis.infrastructure.persistence.converter.IntegerDoubleMapJsonConverter;
+import com.buzzanalysis.infrastructure.persistence.converter.StringDoubleMapJsonConverter;
 import com.buzzanalysis.infrastructure.persistence.converter.UuidListJsonConverter;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
@@ -47,6 +48,17 @@ public class CompetitorStatsEntity {
     @Column(name = "top_performing_post_ids", columnDefinition = "TEXT")
     private List<UUID> topPerformingPostIds;
 
+    @Column(name = "average_view_count")
+    private Double averageViewCount;
+
+    @Convert(converter = StringDoubleMapJsonConverter.class)
+    @Column(name = "post_format_distribution", columnDefinition = "TEXT")
+    private Map<String, Double> postFormatDistribution;
+
+    @Convert(converter = StringDoubleMapJsonConverter.class)
+    @Column(name = "genre_distribution", columnDefinition = "TEXT")
+    private Map<String, Double> genreDistribution;
+
     @Column(name = "calculated_at", nullable = false)
     private OffsetDateTime calculatedAt;
 
@@ -56,7 +68,9 @@ public class CompetitorStatsEntity {
     public CompetitorStatsEntity(UUID id, UUID socialAccountId, double averageLikeCount, double averageCommentCount,
                                   double postingFrequencyPerWeek, Map<Integer, Double> postingTimeDistribution,
                                   Double averageVideoDurationSeconds, double averageCaptionLength,
-                                  List<UUID> topPerformingPostIds, OffsetDateTime calculatedAt) {
+                                  List<UUID> topPerformingPostIds, Double averageViewCount,
+                                  Map<String, Double> postFormatDistribution, Map<String, Double> genreDistribution,
+                                  OffsetDateTime calculatedAt) {
         this.id = id;
         this.socialAccountId = socialAccountId;
         this.averageLikeCount = averageLikeCount;
@@ -66,6 +80,9 @@ public class CompetitorStatsEntity {
         this.averageVideoDurationSeconds = averageVideoDurationSeconds;
         this.averageCaptionLength = averageCaptionLength;
         this.topPerformingPostIds = topPerformingPostIds;
+        this.averageViewCount = averageViewCount;
+        this.postFormatDistribution = postFormatDistribution;
+        this.genreDistribution = genreDistribution;
         this.calculatedAt = calculatedAt;
     }
 
@@ -103,6 +120,18 @@ public class CompetitorStatsEntity {
 
     public List<UUID> getTopPerformingPostIds() {
         return topPerformingPostIds;
+    }
+
+    public Double getAverageViewCount() {
+        return averageViewCount;
+    }
+
+    public Map<String, Double> getPostFormatDistribution() {
+        return postFormatDistribution;
+    }
+
+    public Map<String, Double> getGenreDistribution() {
+        return genreDistribution;
     }
 
     public OffsetDateTime getCalculatedAt() {

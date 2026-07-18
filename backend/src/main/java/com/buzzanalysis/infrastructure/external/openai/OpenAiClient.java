@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -28,21 +29,36 @@ public class OpenAiClient {
     }
 
     /**
-     * system/userプロンプトを送信し、モデルの応答テキストを返す。
+     * system/userプロンプトを送信し、JSON形式のモデル応答テキストを返す（{@code response_format=json_object}）。
      *
      * @throws ExternalApiException API呼び出しに失敗した場合
      */
-    @SuppressWarnings("unchecked")
     public String chatComplete(String systemPrompt, String userPrompt) {
-        Map<String, Object> requestBody = Map.of(
-                "model", properties.getModel(),
-                "messages", List.of(
-                        Map.of("role", "system", "content", systemPrompt),
-                        Map.of("role", "user", "content", userPrompt)
-                ),
-                "temperature", 0.7,
-                "response_format", Map.of("type", "json_object")
-        );
+        return callChatCompletions(systemPrompt, userPrompt, Map.of("type", "json_object"));
+    }
+
+    /**
+     * system/userプロンプトを送信し、自由記述の平文モデル応答テキストを返す（JSON形式を強制しない）。
+     * 分析の説明文等、構造化不要な出力を得たい場合に使用する（例: 競合との差分説明、Phase9）。
+     *
+     * @throws ExternalApiException API呼び出しに失敗した場合
+     */
+    public String chatCompleteAsPlainText(String systemPrompt, String userPrompt) {
+        return callChatCompletions(systemPrompt, userPrompt, null);
+    }
+
+    @SuppressWarnings("unchecked")
+    private String callChatCompletions(String systemPrompt, String userPrompt, Map<String, String> responseFormat) {
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("model", properties.getModel());
+        requestBody.put("messages", List.of(
+                Map.of("role", "system", "content", systemPrompt),
+                Map.of("role", "user", "content", userPrompt)
+        ));
+        requestBody.put("temperature", 0.7);
+        if (responseFormat != null) {
+            requestBody.put("response_format", responseFormat);
+        }
 
         try {
             Map<String, Object> response = webClient.post()

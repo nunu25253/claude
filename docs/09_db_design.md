@@ -209,6 +209,8 @@
 
 ## 11. competitor_stats（競合統計）
 
+> **注記**: 実装（`V1__init_schema.sql` + `V7__competitor_stats_phase9_fields.sql`）では、本節の理想化スキーマとカラム構成が異なる。実装では `average_view_count`(DOUBLE PRECISION, NULL許容)、`post_format_distribution`/`genre_distribution`（いずれもJSON文字列としてTEXT列に格納、形式/ジャンルごとの割合を保持するMap。本節の`dominant_post_type`/`dominant_genre`のような単一値ではなく分布そのものを保持する）を追加している。詳細は `docs/phases/phase9_competitor_analysis.md` を参照。
+
 | カラム名 | 型 | 制約 | 説明 |
 |----------|----|------|------|
 | id | UUID | PK, DEFAULT gen_random_uuid() | 統計ID |

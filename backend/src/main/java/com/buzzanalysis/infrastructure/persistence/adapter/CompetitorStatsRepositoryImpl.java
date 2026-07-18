@@ -30,7 +30,8 @@ public class CompetitorStatsRepositoryImpl implements CompetitorStatsRepository 
             entity = mapper.toEntity(new CompetitorStats(existing.get().getId(), stats.getSocialAccountId(),
                     stats.getAverageLikeCount(), stats.getAverageCommentCount(), stats.getPostingFrequencyPerWeek(),
                     stats.getPostingTimeDistribution(), stats.getAverageVideoDurationSeconds(),
-                    stats.getAverageCaptionLength(), stats.getTopPerformingPostIds(), stats.getCalculatedAt()));
+                    stats.getAverageCaptionLength(), stats.getTopPerformingPostIds(), stats.getAverageViewCount(),
+                    stats.getPostFormatDistribution(), stats.getGenreDistribution(), stats.getCalculatedAt()));
         }
         return mapper.toDomain(jpaRepository.save(entity));
     }

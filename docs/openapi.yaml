@@ -37,6 +37,8 @@ tags:
     description: 共通点分析（AIマーケティングOS Phase8）
   - name: Search
     description: 検索
+  - name: Competitors
+    description: 競合アカウント比較・AI差分説明（AIマーケティングOS Phase9）
   - name: SocialAccounts
     description: SNSアカウント・競合分析
   - name: Trends
@@ -506,7 +508,38 @@ paths:
 
   # ------------------------------------------------------------------
   # Social Accounts / Competitors
+  # 注記: 本セクションの/social-accounts系パスは初期設計時点の理想化されたパス構成であり、実装は
+  # /api/v1/competitors/{accountId}/stats 等の別パスを使用している(既存の乖離。Phase9で追記した
+  # /competitors/{accountId}/compare/{competitorAccountId} は実装と一致する)。
   # ------------------------------------------------------------------
+  /competitors/{accountId}/compare/{competitorAccountId}:
+    get:
+      tags: [Competitors]
+      summary: 競合アカウントとの差分をAIが説明（AIマーケティングOS Phase9）
+      description: >-
+        自社(accountId)と競合(competitorAccountId)の統計(平均いいね/コメント/再生数/投稿頻度/
+        投稿形式分布/ジャンル分布等)を比較し、AIが差分を自然言語で説明する。
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: competitorAccountId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitorComparisonResult"
+
   /social-accounts:
     post:
       tags: [SocialAccounts]
@@ -1596,6 +1629,50 @@ components:
         commonStructurePattern:
           type: string
         commonTargetPattern:
+          type: string
+
+    CompetitorStatsPhase9:
+      type: object
+      description: アカウント単位の集計統計(AIマーケティングOS Phase9で拡張)
+      properties:
+        socialAccountId:
+          type: string
+          format: uuid
+        averageLikeCount:
+          type: number
+          format: float
+        averageCommentCount:
+          type: number
+          format: float
+        postingFrequencyPerWeek:
+          type: number
+          format: float
+        averageViewCount:
+          type: number
+          format: float
+          nullable: true
+          description: 再生数が未計測の投稿は集計から除外(0とは区別される)
+        postFormatDistribution:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+        genreDistribution:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+          description: Phase5で分析済みの投稿のみを対象に集計(未分析投稿は除外)
+
+    CompetitorComparisonResult:
+      type: object
+      description: 競合比較結果(AIマーケティングOS Phase9)
+      properties:
+        target:
+          $ref: "#/components/schemas/CompetitorStatsPhase9"
+        competitor:
+          $ref: "#/components/schemas/CompetitorStatsPhase9"
+        aiExplanation:
           type: string
 
     AnalyzePostUrlRequest:

@@ -13,7 +13,8 @@ public class CompetitorStatsMapper {
                 stats.getId(), stats.getSocialAccountId(), stats.getAverageLikeCount(), stats.getAverageCommentCount(),
                 stats.getPostingFrequencyPerWeek(), stats.getPostingTimeDistribution(),
                 stats.getAverageVideoDurationSeconds(), stats.getAverageCaptionLength(),
-                stats.getTopPerformingPostIds(), stats.getCalculatedAt()
+                stats.getTopPerformingPostIds(), stats.getAverageViewCount(), stats.getPostFormatDistribution(),
+                stats.getGenreDistribution(), stats.getCalculatedAt()
         );
     }
 
@@ -22,7 +23,8 @@ public class CompetitorStatsMapper {
                 entity.getId(), entity.getSocialAccountId(), entity.getAverageLikeCount(), entity.getAverageCommentCount(),
                 entity.getPostingFrequencyPerWeek(), entity.getPostingTimeDistribution(),
                 entity.getAverageVideoDurationSeconds(), entity.getAverageCaptionLength(),
-                entity.getTopPerformingPostIds(), entity.getCalculatedAt()
+                entity.getTopPerformingPostIds(), entity.getAverageViewCount(), entity.getPostFormatDistribution(),
+                entity.getGenreDistribution(), entity.getCalculatedAt()
         );
     }
 }
