@@ -1,0 +1,101 @@
+spring:
+  application:
+    name: buzz-analysis-backend
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:buzz_analysis}
+    username: ${DB_USERNAME:buzz_user}
+    password: ${DB_PASSWORD:buzz_password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+server:
+  port: ${SERVER_PORT:8080}
+
+jwt:
+  secret: ${JWT_SECRET:change-this-secret-in-production-please-0123456789abcdef}
+  issuer: ${JWT_ISSUER:buzz-analysis-platform}
+  access-token-expiration-minutes: ${JWT_ACCESS_EXPIRATION_MINUTES:30}
+  refresh-token-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS:14}
+
+openai:
+  api-key: ${OPENAI_API_KEY:}
+  base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+  model: ${OPENAI_MODEL:gpt-4o-mini}
+  timeout-seconds: ${OPENAI_TIMEOUT_SECONDS:30}
+
+sns:
+  instagram:
+    access-token: ${INSTAGRAM_ACCESS_TOKEN:}
+    graph-api-base-url: ${INSTAGRAM_GRAPH_API_BASE_URL:https://graph.facebook.com/v19.0}
+  tiktok:
+    access-token: ${TIKTOK_ACCESS_TOKEN:}
+    api-base-url: ${TIKTOK_API_BASE_URL:https://open.tiktokapis.com/v2}
+  x:
+    bearer-token: ${X_BEARER_TOKEN:}
+    api-base-url: ${X_API_BASE_URL:https://api.twitter.com/2}
+
+storage:
+  s3:
+    endpoint: ${S3_ENDPOINT:}
+    region: ${S3_REGION:ap-northeast-1}
+    bucket: ${S3_BUCKET:buzz-analysis-reports}
+    access-key: ${S3_ACCESS_KEY:}
+    secret-key: ${S3_SECRET_KEY:}
+    path-style-access: ${S3_PATH_STYLE_ACCESS:true}
+    presigned-url-expiration-minutes: ${S3_PRESIGNED_URL_EXPIRATION_MINUTES:60}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    com.buzzanalysis: INFO
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:postgres}:${DB_PORT:5432}/${DB_NAME:buzz_analysis}
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+
+storage:
+  s3:
+    endpoint: ${S3_ENDPOINT:http://minio:9000}

@@ -5,7 +5,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 import java.time.OffsetDateTime;
@@ -26,9 +25,8 @@ public class BuzzScoreEntity {
     @Column(name = "total_score", nullable = false)
     private double totalScore;
 
-    @Lob
     @Convert(converter = StringDoubleMapJsonConverter.class)
-    @Column(name = "breakdown", nullable = false)
+    @Column(name = "breakdown", nullable = false, columnDefinition = "TEXT")
     private Map<String, Double> breakdown;
 
     @Column(name = "calculated_at", nullable = false)

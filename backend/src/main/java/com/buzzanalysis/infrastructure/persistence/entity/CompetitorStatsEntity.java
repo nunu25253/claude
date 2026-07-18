@@ -6,7 +6,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 import java.time.OffsetDateTime;
@@ -34,9 +33,8 @@ public class CompetitorStatsEntity {
     @Column(name = "posting_frequency_per_week", nullable = false)
     private double postingFrequencyPerWeek;
 
-    @Lob
     @Convert(converter = IntegerDoubleMapJsonConverter.class)
-    @Column(name = "posting_time_distribution")
+    @Column(name = "posting_time_distribution", columnDefinition = "TEXT")
     private Map<Integer, Double> postingTimeDistribution;
 
     @Column(name = "average_video_duration_seconds")
@@ -45,9 +43,8 @@ public class CompetitorStatsEntity {
     @Column(name = "average_caption_length", nullable = false)
     private double averageCaptionLength;
 
-    @Lob
     @Convert(converter = UuidListJsonConverter.class)
-    @Column(name = "top_performing_post_ids")
+    @Column(name = "top_performing_post_ids", columnDefinition = "TEXT")
     private List<UUID> topPerformingPostIds;
 
     @Column(name = "calculated_at", nullable = false)

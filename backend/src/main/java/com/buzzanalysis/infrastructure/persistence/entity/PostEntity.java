@@ -9,7 +9,6 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
@@ -47,8 +46,7 @@ public class PostEntity {
     @Column(name = "author_name")
     private String authorName;
 
-    @Lob
-    @Column(name = "caption")
+    @Column(name = "caption", columnDefinition = "TEXT")
     private String caption;
 
     @ElementCollection(fetch = FetchType.EAGER)

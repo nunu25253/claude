@@ -3,7 +3,6 @@ package com.buzzanalysis.infrastructure.persistence.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 import java.time.OffsetDateTime;
@@ -20,52 +19,40 @@ public class AnalysisResultEntity {
     @Column(name = "post_id", nullable = false, unique = true)
     private UUID postId;
 
-    @Lob
-    @Column(name = "why_it_went_viral")
+    @Column(name = "why_it_went_viral", columnDefinition = "TEXT")
     private String whyItWentViral;
 
-    @Lob
-    @Column(name = "target_audience")
+    @Column(name = "target_audience", columnDefinition = "TEXT")
     private String targetAudience;
 
-    @Lob
-    @Column(name = "hook")
+    @Column(name = "hook", columnDefinition = "TEXT")
     private String hook;
 
-    @Lob
-    @Column(name = "call_to_action")
+    @Column(name = "call_to_action", columnDefinition = "TEXT")
     private String callToAction;
 
-    @Lob
-    @Column(name = "sentiment_analysis")
+    @Column(name = "sentiment_analysis", columnDefinition = "TEXT")
     private String sentimentAnalysis;
 
-    @Lob
-    @Column(name = "video_structure_analysis")
+    @Column(name = "video_structure_analysis", columnDefinition = "TEXT")
     private String videoStructureAnalysis;
 
-    @Lob
-    @Column(name = "carousel_structure_analysis")
+    @Column(name = "carousel_structure_analysis", columnDefinition = "TEXT")
     private String carouselStructureAnalysis;
 
-    @Lob
-    @Column(name = "title_analysis")
+    @Column(name = "title_analysis", columnDefinition = "TEXT")
     private String titleAnalysis;
 
-    @Lob
-    @Column(name = "text_analysis")
+    @Column(name = "text_analysis", columnDefinition = "TEXT")
     private String textAnalysis;
 
-    @Lob
-    @Column(name = "posting_time_analysis")
+    @Column(name = "posting_time_analysis", columnDefinition = "TEXT")
     private String postingTimeAnalysis;
 
-    @Lob
-    @Column(name = "hashtag_analysis")
+    @Column(name = "hashtag_analysis", columnDefinition = "TEXT")
     private String hashtagAnalysis;
 
-    @Lob
-    @Column(name = "improvement_suggestions")
+    @Column(name = "improvement_suggestions", columnDefinition = "TEXT")
     private String improvementSuggestions;
 
     @Column(name = "created_at", nullable = false)
