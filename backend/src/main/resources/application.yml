@@ -43,6 +43,8 @@ openai:
   base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
   model: ${OPENAI_MODEL:gpt-4o-mini}
   timeout-seconds: ${OPENAI_TIMEOUT_SECONDS:30}
+  embedding-model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+  embedding-dimensions: ${OPENAI_EMBEDDING_DIMENSIONS:1536}
 
 sns:
   instagram:

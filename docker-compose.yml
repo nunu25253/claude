@@ -4,7 +4,7 @@ name: sns-buzz-analysis
 # SNS AIバズ分析プラットフォーム - ローカル開発/検証用 Docker Compose
 #
 # 構成:
-#   postgres        : アプリケーションDB
+#   postgres        : アプリケーションDB (pgvector拡張同梱、Phase3のEmbedding保存に使用)
 #   redis           : キャッシュ (競合分析/ランキング等)
 #   minio           : S3互換オブジェクトストレージ (AIレポート PDF/Markdown/HTML保存)
 #   minio-init      : minio起動後にバケットを自動作成するワンショットジョブ
@@ -18,7 +18,8 @@ name: sns-buzz-analysis
 
 services:
   postgres:
-    image: postgres:16-alpine
+    # pgvector拡張同梱の公式イメージ(PostgreSQL 16ベース)。Phase3(Embedding生成)でベクトル検索に使用する。
+    image: pgvector/pgvector:pg16
     container_name: buzz-postgres
     restart: unless-stopped
     environment:
@@ -116,6 +117,7 @@ services:
       JWT_ISSUER: ${JWT_ISSUER:-buzz-analysis-platform}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
       INSTAGRAM_ACCESS_TOKEN: ${INSTAGRAM_ACCESS_TOKEN:-}
       TIKTOK_ACCESS_TOKEN: ${TIKTOK_ACCESS_TOKEN:-}
       X_BEARER_TOKEN: ${X_BEARER_TOKEN:-}

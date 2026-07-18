@@ -292,6 +292,26 @@
 - `UNIQUE INDEX ux_saved_analyses_user_analysis (user_id, analysis_result_id)`
 - `INDEX ix_saved_analyses_user_folder (user_id, folder_name)`
 
+## 16. embeddings（Embeddingベクトル。AIマーケティングOS Phase3で追加）
+
+実装は `backend/src/main/resources/db/migration/V4__pgvector_embeddings.sql`。`pgvector` 拡張が必要（`docker-compose.yml` は `pgvector/pgvector:pg16` イメージを使用）。
+
+| カラム名 | 型 | 制約 | 説明 |
+|----------|----|------|------|
+| id | UUID | PK | Embedding ID |
+| post_id | UUID | NOT NULL, FK → posts(id) ON DELETE CASCADE | 対象投稿 |
+| target | VARCHAR(30) | NOT NULL | TITLE / BODY / HASHTAGS / COMMENT_SUMMARY（現状BODY/HASHTAGSのみ生成。理由は `docs/phases/phase3_embeddings.md` 参照） |
+| vector | vector(1536) | NOT NULL | Embeddingベクトル（text-embedding-3-small想定） |
+| source_text | TEXT | NOT NULL | 生成元テキスト（再生成要否の判定に使用） |
+| model | VARCHAR(100) | NOT NULL | 使用モデル名 |
+| dimensions | INTEGER | NOT NULL | ベクトル次元数 |
+| generated_at | TIMESTAMPTZ | NOT NULL | 生成日時 |
+
+**インデックス**:
+- `UNIQUE INDEX uq_embeddings_post_target (post_id, target)`
+- `INDEX idx_embeddings_post_id (post_id)`
+- 類似検索用のANN(ivfflat/hnsw)インデックスはPhase4（意味検索エンジン）で実データ蓄積後に追加予定（意図的に先送り）
+
 ## 外部キー制約一覧（サマリー）
 
 | 子テーブル | 列 | 親テーブル | ON DELETE |
@@ -305,6 +325,7 @@
 | post_hashtags | hashtag_id | hashtags(id) | CASCADE |
 | post_metrics | post_id | posts(id) | CASCADE |
 | analysis_results | post_id | posts(id) | CASCADE |
+| embeddings | post_id | posts(id) | CASCADE |
 | analysis_results | requested_by_user_id | users(id) | SET NULL |
 | buzz_scores | post_id | posts(id) | CASCADE |
 | buzz_scores | analysis_result_id | analysis_results(id) | CASCADE |

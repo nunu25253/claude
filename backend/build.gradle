@@ -42,7 +42,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
     // --- DB / Migration ---
-    runtimeOnly 'org.postgresql:postgresql'
+    // pgvector用のカスタムHibernate型(VectorType)がorg.postgresql.util.PGobjectをコンパイル時に
+    // 参照するため、runtimeOnlyではなくimplementationにしている。
+    implementation 'org.postgresql:postgresql'
     implementation 'org.flywaydb:flyway-core'
     implementation 'org.flywaydb:flyway-database-postgresql'
 

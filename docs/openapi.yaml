@@ -25,6 +25,8 @@ tags:
     description: 投稿データの正規化（AIマーケティングOS Phase1）
   - name: Preprocessing
     description: AI分析用前処理（AIマーケティングOS Phase2）
+  - name: Embeddings
+    description: Embedding生成・取得（AIマーケティングOS Phase3）
   - name: Search
     description: 検索
   - name: SocialAccounts
@@ -325,6 +327,40 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PreprocessedPost"
+
+  /posts/{postId}/embeddings/generate:
+    post:
+      tags: [Embeddings]
+      summary: 投稿のEmbedding生成（AIマーケティングOS Phase3）
+      description: >-
+        本文・ハッシュタグのEmbeddingをOpenAI Embeddings APIで生成/再生成し、pgvectorへ保存する。
+        前回生成時から本文が変わっていない対象はAPI呼び出しをスキップする（コスト削減）。
+        タイトル・コメント要約は現状データ未収集のため非対応。
+      parameters:
+        - $ref: "#/components/parameters/PostIdPath"
+      responses:
+        "200":
+          description: 実行完了
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmbeddingGenerationSummary"
+
+  /posts/{postId}/embeddings:
+    get:
+      tags: [Embeddings]
+      summary: 投稿のEmbedding一覧取得
+      parameters:
+        - $ref: "#/components/parameters/PostIdPath"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Embedding"
 
   # ------------------------------------------------------------------
   # Search
@@ -1267,6 +1303,57 @@ components:
         contentFormat:
           type: string
           enum: [SHORT_VIDEO, LONG_VIDEO, SINGLE_IMAGE, MULTI_IMAGE_CAROUSEL, TEXT_ONLY]
+
+    Embedding:
+      type: object
+      description: 投稿の特定要素(本文/ハッシュタグ等)をベクトル化した結果(AIマーケティングOS Phase3)
+      properties:
+        id:
+          type: string
+          format: uuid
+        postId:
+          type: string
+          format: uuid
+        target:
+          type: string
+          enum: [TITLE, BODY, HASHTAGS, COMMENT_SUMMARY]
+          description: TITLE/COMMENT_SUMMARYは現状生成されない(データ未収集のため)
+        vector:
+          type: array
+          items:
+            type: number
+            format: float
+        model:
+          type: string
+          description: 使用モデル名。APIキー未設定時は "stub-deterministic-v1"（実APIと判別可能な擬似ベクトル）
+        dimensions:
+          type: integer
+        generatedAt:
+          type: string
+          format: date-time
+
+    EmbeddingGenerationSummary:
+      type: object
+      properties:
+        postId:
+          type: string
+          format: uuid
+        generated:
+          type: array
+          items:
+            type: string
+            enum: [TITLE, BODY, HASHTAGS, COMMENT_SUMMARY]
+          description: 新規生成/再生成した対象
+        skipped:
+          type: array
+          items:
+            type: string
+            enum: [TITLE, BODY, HASHTAGS, COMMENT_SUMMARY]
+          description: 本文が前回生成時から未変更のためAPI呼び出しをスキップした対象
+        embeddings:
+          type: array
+          items:
+            $ref: "#/components/schemas/Embedding"
 
     AnalyzePostUrlRequest:
       type: object

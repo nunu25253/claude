@@ -11,6 +11,10 @@ public class OpenAiProperties {
     private String baseUrl = "https://api.openai.com/v1";
     private String model = "gpt-4o-mini";
     private int timeoutSeconds = 30;
+    /** Embedding生成に使用するモデル（Phase3）。 */
+    private String embeddingModel = "text-embedding-3-small";
+    /** {@code embeddingModel} が出力するベクトルの次元数。DBの {@code vector(N)} 列と一致させること。 */
+    private int embeddingDimensions = 1536;
 
     public String getApiKey() {
         return apiKey;
@@ -42,6 +46,22 @@ public class OpenAiProperties {
 
     public void setTimeoutSeconds(int timeoutSeconds) {
         this.timeoutSeconds = timeoutSeconds;
+    }
+
+    public String getEmbeddingModel() {
+        return embeddingModel;
+    }
+
+    public void setEmbeddingModel(String embeddingModel) {
+        this.embeddingModel = embeddingModel;
+    }
+
+    public int getEmbeddingDimensions() {
+        return embeddingDimensions;
+    }
+
+    public void setEmbeddingDimensions(int embeddingDimensions) {
+        this.embeddingDimensions = embeddingDimensions;
     }
 
     public boolean isConfigured() {
