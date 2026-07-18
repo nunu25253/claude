@@ -76,6 +76,21 @@ public class TikTokService implements SocialPlatform {
         }
     }
 
+    @Override
+    public List<FetchedPostData> fetchRecentPosts(String usernameOrId, int limit) {
+        if (!properties.isConfigured()) {
+            log.info("TikTok access token not configured; returning stub recent posts for {}", usernameOrId);
+            return stubRecentPosts(usernameOrId, limit);
+        }
+        try {
+            // 本番では POST /v2/video/query/ に user_id を指定して最新動画一覧を取得する。
+            log.warn("Live TikTok Display API call is not implemented in this environment; falling back to stub data.");
+            return stubRecentPosts(usernameOrId, limit);
+        } catch (Exception e) {
+            throw new ExternalApiException("Failed to fetch TikTok recent posts: " + usernameOrId, e);
+        }
+    }
+
     private String extractVideoId(String postUrlOrId) {
         Matcher matcher = VIDEO_ID_PATTERN.matcher(postUrlOrId);
         if (matcher.find()) {
@@ -104,6 +119,21 @@ public class TikTokService implements SocialPlatform {
                 null,
                 PostType.VIDEO
         );
+    }
+
+    /** 同一アカウントの再取得で同じ投稿IDを返すよう、ユーザー名+連番で決定的な externalId を生成する。 */
+    private List<FetchedPostData> stubRecentPosts(String usernameOrId, int limit) {
+        List<FetchedPostData> posts = new java.util.ArrayList<>();
+        for (int i = 0; i < Math.max(0, limit); i++) {
+            String videoId = usernameOrId + "-tt-" + i;
+            FetchedPostData base = stubPost(videoId, "https://www.tiktok.com/@" + usernameOrId + "/video/" + videoId);
+            posts.add(new FetchedPostData(
+                    base.externalId(), base.url(), OffsetDateTime.now().minusDays(i + 1L), usernameOrId,
+                    base.caption(), base.hashtags(), base.likeCount(), base.commentCount(), base.viewCount(),
+                    base.shareCount(), base.videoDurationSeconds(), base.imageCount(), base.postType()
+            ));
+        }
+        return posts;
     }
 
     private FetchedAccountData stubAccount(String username) {

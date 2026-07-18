@@ -8,6 +8,7 @@ import com.buzzanalysis.infrastructure.persistence.mapper.SocialAccountMapper;
 import com.buzzanalysis.infrastructure.persistence.repository.SocialAccountJpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -46,5 +47,10 @@ public class SocialAccountRepositoryImpl implements SocialAccountRepository {
     public Optional<SocialAccount> findByPlatformAndUsername(Platform platform, String username) {
         return jpaRepository.findByPlatformAndUsername(platformMapper.toEntity(platform), username)
                 .map(mapper::toDomain);
+    }
+
+    @Override
+    public List<SocialAccount> findAllTrackingEnabled() {
+        return jpaRepository.findByTrackingEnabledTrue().stream().map(mapper::toDomain).toList();
     }
 }

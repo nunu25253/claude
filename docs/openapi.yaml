@@ -29,6 +29,8 @@ tags:
     description: トレンド
   - name: Rankings
     description: ランキング
+  - name: Sync
+    description: 定期データ取得バッチ（自動化）
   - name: Reports
     description: AIレポート生成/出力
   - name: SavedAnalyses
@@ -534,6 +536,25 @@ paths:
                         type: array
                         items:
                           $ref: "#/components/schemas/RankingEntry"
+
+  # ------------------------------------------------------------------
+  # Sync（定期データ取得バッチ / 自動化）
+  # ------------------------------------------------------------------
+  /sync/run:
+    post:
+      tags: [Sync]
+      summary: 定期データ取得バッチの即時実行（手動トリガー）
+      description: >-
+        追跡対象アカウントの最新公開投稿を各SNS公式APIから再取得し、BuzzScore再計算とランキング
+        （急上昇/週間/月間）再構築を即時実行する。cronスケジュール（batch.sync.enabled=true時）と
+        同じ処理を待たずに実行できる。
+      responses:
+        "200":
+          description: 実行完了
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncSummary"
 
   # ------------------------------------------------------------------
   # Reports
@@ -1318,6 +1339,31 @@ components:
           format: float
         post:
           $ref: "#/components/schemas/Post"
+
+    SyncSummary:
+      type: object
+      description: 定期データ取得バッチ1回分の実行結果サマリー
+      properties:
+        trackedAccountCount:
+          type: integer
+          description: 追跡対象として処理したアカウント数
+        syncedPostCount:
+          type: integer
+          description: 新規作成または更新した投稿数
+        updatedRankingCount:
+          type: integer
+          description: 再計算して保存したランキングエントリ数
+        accountErrors:
+          type: array
+          items:
+            type: string
+          description: アカウント単位で発生したエラーメッセージ（他アカウントの処理は継続する）
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
 
     GenerateReportRequest:
       type: object

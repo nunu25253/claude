@@ -34,6 +34,11 @@ public class RankingRepositoryImpl implements RankingRepository {
     }
 
     @Override
+    public void deleteByType(RankingType type) {
+        jpaRepository.deleteByType(RankingEntity.RankingTypeEnum.valueOf(type.name()));
+    }
+
+    @Override
     public List<Ranking> findByFilters(RankingType type, String genre, Platform platform, int limit) {
         RankingEntity.RankingTypeEnum typeEnum = RankingEntity.RankingTypeEnum.valueOf(type.name());
         var entities = jpaRepository.findByFilters(typeEnum, genre, platformMapper.toEntity(platform),

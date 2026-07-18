@@ -43,6 +43,9 @@ public class SocialAccountEntity {
     @Column(name = "post_count")
     private Long postCount;
 
+    @Column(name = "tracking_enabled", nullable = false)
+    private boolean trackingEnabled;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
@@ -54,7 +57,7 @@ public class SocialAccountEntity {
 
     public SocialAccountEntity(UUID id, PlatformEnum platform, String externalAccountId, String username,
                                 String displayName, String profileUrl, Long followerCount, Long postCount,
-                                OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+                                boolean trackingEnabled, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.id = id;
         this.platform = platform;
         this.externalAccountId = externalAccountId;
@@ -63,6 +66,7 @@ public class SocialAccountEntity {
         this.profileUrl = profileUrl;
         this.followerCount = followerCount;
         this.postCount = postCount;
+        this.trackingEnabled = trackingEnabled;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -107,6 +111,10 @@ public class SocialAccountEntity {
 
     public Long getPostCount() {
         return postCount;
+    }
+
+    public boolean isTrackingEnabled() {
+        return trackingEnabled;
     }
 
     public OffsetDateTime getCreatedAt() {

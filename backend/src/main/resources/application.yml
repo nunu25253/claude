@@ -55,6 +55,17 @@ sns:
     bearer-token: ${X_BEARER_TOKEN:}
     api-base-url: ${X_API_BASE_URL:https://api.twitter.com/2}
 
+batch:
+  sync:
+    # 定期データ取得バッチ（自動化）。デフォルトはOFF。有効化すると、追跡対象アカウントの最新公開投稿を
+    # cronスケジュールで定期的に取得し、BuzzScore・ランキングを自動更新する（公式API/スタブへのアクセスが発生する）。
+    enabled: ${BATCH_SYNC_ENABLED:false}
+    cron: ${BATCH_SYNC_CRON:0 0 * * * *}
+    post-limit-per-account: ${BATCH_SYNC_POST_LIMIT:20}
+    delay-between-accounts-ms: ${BATCH_SYNC_DELAY_MS:500}
+    ranking-candidate-pool-size: ${BATCH_SYNC_RANKING_POOL_SIZE:200}
+    ranking-top-n: ${BATCH_SYNC_RANKING_TOP_N:20}
+
 storage:
   s3:
     endpoint: ${S3_ENDPOINT:}

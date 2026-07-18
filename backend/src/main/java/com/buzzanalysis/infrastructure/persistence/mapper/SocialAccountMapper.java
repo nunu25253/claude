@@ -18,7 +18,8 @@ public class SocialAccountMapper {
         return new SocialAccountEntity(
                 account.getId(), platformMapper.toEntity(account.getPlatform()), account.getExternalAccountId(),
                 account.getUsername(), account.getDisplayName(), account.getProfileUrl(),
-                account.getFollowerCount(), account.getPostCount(), account.getCreatedAt(), account.getUpdatedAt()
+                account.getFollowerCount(), account.getPostCount(), account.isTrackingEnabled(),
+                account.getCreatedAt(), account.getUpdatedAt()
         );
     }
 
@@ -26,7 +27,8 @@ public class SocialAccountMapper {
         return new SocialAccount(
                 entity.getId(), platformMapper.toDomain(entity.getPlatform()), entity.getExternalAccountId(),
                 entity.getUsername(), entity.getDisplayName(), entity.getProfileUrl(),
-                entity.getFollowerCount(), entity.getPostCount(), entity.getCreatedAt(), entity.getUpdatedAt()
+                entity.getFollowerCount(), entity.getPostCount(), entity.isTrackingEnabled(),
+                entity.getCreatedAt(), entity.getUpdatedAt()
         );
     }
 }

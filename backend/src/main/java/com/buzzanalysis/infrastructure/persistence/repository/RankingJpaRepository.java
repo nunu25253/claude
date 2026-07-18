@@ -22,4 +22,6 @@ public interface RankingJpaRepository extends JpaRepository<RankingEntity, java.
                                        @Param("genre") String genre,
                                        @Param("platform") PlatformEnum platform,
                                        org.springframework.data.domain.Pageable pageable);
+
+    void deleteByType(RankingEntity.RankingTypeEnum type);
 }

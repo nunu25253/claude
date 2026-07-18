@@ -78,6 +78,21 @@ public class InstagramService implements SocialPlatform {
         }
     }
 
+    @Override
+    public List<FetchedPostData> fetchRecentPosts(String usernameOrId, int limit) {
+        if (!properties.isConfigured()) {
+            log.info("Instagram access token not configured; returning stub recent posts for {}", usernameOrId);
+            return stubRecentPosts(usernameOrId, limit);
+        }
+        try {
+            // 本番では Business Discovery API の media{...} フィールド（公開投稿一覧）を呼び出す。
+            log.warn("Live Instagram Graph API call is not implemented in this environment; falling back to stub data.");
+            return stubRecentPosts(usernameOrId, limit);
+        } catch (Exception e) {
+            throw new ExternalApiException("Failed to fetch Instagram recent posts: " + usernameOrId, e);
+        }
+    }
+
     private String extractShortcode(String postUrlOrId) {
         Matcher matcher = SHORTCODE_PATTERN.matcher(postUrlOrId);
         if (matcher.find()) {
@@ -106,6 +121,21 @@ public class InstagramService implements SocialPlatform {
                 null,
                 PostType.REEL
         );
+    }
+
+    /** 同一アカウントの再取得で同じ投稿IDを返すよう、ユーザー名+連番で決定的な externalId を生成する。 */
+    private List<FetchedPostData> stubRecentPosts(String usernameOrId, int limit) {
+        List<FetchedPostData> posts = new java.util.ArrayList<>();
+        for (int i = 0; i < Math.max(0, limit); i++) {
+            String shortcode = usernameOrId + "-ig-" + i;
+            FetchedPostData base = stubPost(shortcode, "https://www.instagram.com/reel/" + shortcode + "/");
+            posts.add(new FetchedPostData(
+                    base.externalId(), base.url(), OffsetDateTime.now().minusDays(i + 1L), usernameOrId,
+                    base.caption(), base.hashtags(), base.likeCount(), base.commentCount(), base.viewCount(),
+                    base.shareCount(), base.videoDurationSeconds(), base.imageCount(), base.postType()
+            ));
+        }
+        return posts;
     }
 
     private FetchedAccountData stubAccount(String username) {

@@ -246,6 +246,26 @@
 }
 ```
 
+### 4.7-A 定期データ取得バッチ（Sync / 自動化）
+
+| メソッド | パス | 概要 |
+|---------|------|------|
+| POST | `/sync/run` | 追跡対象アカウントの最新公開投稿を各SNS公式APIから再取得し、BuzzScore再計算・ランキング再構築を即時実行する（手動トリガー）。 |
+
+同等の処理は `batch.sync.enabled=true` の場合、`batch.sync.cron`（デフォルト毎時0分）に従いサーバー側で自動実行される。AI分析（OpenAI呼び出し）はコスト抑制のためこのバッチでは行わず、公開メトリクスに基づくBuzzScore再計算のみを行う。
+
+**POST `/sync/run` レスポンス例（200 OK）**
+```json
+{
+  "trackedAccountCount": 12,
+  "syncedPostCount": 87,
+  "updatedRankingCount": 180,
+  "accountErrors": [],
+  "startedAt": "2026-07-18T05:00:00Z",
+  "finishedAt": "2026-07-18T05:00:04Z"
+}
+```
+
 ### 4.8 AIレポート（Reports）
 
 | メソッド | パス | 概要 |

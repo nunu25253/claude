@@ -1,5 +1,6 @@
 package com.buzzanalysis.domain.platform;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -32,4 +33,14 @@ public interface SocialPlatform {
      * @return 取得できた場合はアカウントデータ、存在しない場合は empty
      */
     Optional<FetchedAccountData> fetchAccount(String usernameOrId);
+
+    /**
+     * アカウントの最新の公開投稿一覧を取得する（定期データ取得バッチ／競合分析の自動更新で使用）。
+     * 取得できるのは公開されている投稿のみで、非公開データは含まない。
+     *
+     * @param usernameOrId ユーザー名、もしくはプラットフォーム固有のアカウントID
+     * @param limit         取得する最大件数
+     * @return 新しい順に並んだ投稿データ一覧（取得できなければ空リスト）
+     */
+    List<FetchedPostData> fetchRecentPosts(String usernameOrId, int limit);
 }

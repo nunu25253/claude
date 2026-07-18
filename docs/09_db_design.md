@@ -68,7 +68,7 @@
 | avatar_url | VARCHAR(500) | NULL | アイコン画像URL |
 | follower_count | BIGINT | NULL | フォロワー数（公開されている場合のみ） |
 | genre | VARCHAR(50) | NULL | ジャンル/カテゴリ |
-| is_tracked | BOOLEAN | NOT NULL, DEFAULT true | 追跡対象フラグ |
+| tracking_enabled | BOOLEAN | NOT NULL, DEFAULT true | 追跡対象フラグ（定期データ取得バッチの対象とするか。実装ではV3マイグレーションで追加） |
 | first_tracked_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | 初回登録日時 |
 | last_synced_at | TIMESTAMPTZ | NULL | 最終データ同期日時 |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | 作成日時 |
