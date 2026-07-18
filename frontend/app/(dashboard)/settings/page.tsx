@@ -1,0 +1,25 @@
+import { Card, CardHeader } from "@/components/ui/card";
+import { ProfileSettingsForm } from "@/components/dashboard/settings/profile-settings-form";
+import { NotificationSettingsForm } from "@/components/dashboard/settings/notification-settings-form";
+import { ApiKeySettingsPanel } from "@/components/dashboard/settings/api-key-settings";
+
+export default function SettingsPage() {
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader title="プロフィール" description="表示名・メールアドレスの変更" />
+        <ProfileSettingsForm />
+      </Card>
+
+      <Card>
+        <CardHeader title="APIキー" description="外部連携用のAPIキーを管理します" />
+        <ApiKeySettingsPanel />
+      </Card>
+
+      <Card>
+        <CardHeader title="通知設定" description="メール通知のオン・オフを切り替えます" />
+        <NotificationSettingsForm />
+      </Card>
+    </div>
+  );
+}

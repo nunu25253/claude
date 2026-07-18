@@ -1,0 +1,1407 @@
+openapi: 3.0.3
+info:
+  title: SNS AIバズ分析プラットフォーム API
+  description: >
+    Instagram / TikTok / X の公開投稿データ（公式API経由で取得可能な範囲）を分析し、
+    AIによるバズ理由分析・BuzzScore算出・競合分析・ランキング・レポート出力を提供するAPI。
+    非公開データ（インプレッション・リーチ・保存数等）は取得・提供対象外。
+  version: "1.0.0"
+  contact:
+    name: SNS AIバズ分析プラットフォーム開発チーム
+servers:
+  - url: https://api.example.com/api/v1
+    description: 本番環境
+  - url: http://localhost:8080/api/v1
+    description: ローカル開発環境
+
+tags:
+  - name: Auth
+    description: 認証
+  - name: Platforms
+    description: プラットフォームマスタ
+  - name: Posts
+    description: 投稿URL分析・投稿検索
+  - name: Search
+    description: 検索
+  - name: SocialAccounts
+    description: SNSアカウント・競合分析
+  - name: Trends
+    description: トレンド
+  - name: Rankings
+    description: ランキング
+  - name: Reports
+    description: AIレポート生成/出力
+  - name: SavedAnalyses
+    description: 保存済み分析
+  - name: Settings
+    description: 設定
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ------------------------------------------------------------------
+  # Auth
+  # ------------------------------------------------------------------
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: 新規ユーザー登録
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: 登録成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: ログイン（JWT発行）
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: ログイン成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokenResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: アクセストークン再発行
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        "200":
+          description: 再発行成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokenResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: ログアウト（リフレッシュトークン失効）
+      responses:
+        "204":
+          description: ログアウト成功
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: ログイン中ユーザー情報取得
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ------------------------------------------------------------------
+  # Platforms
+  # ------------------------------------------------------------------
+  /platforms:
+    get:
+      tags: [Platforms]
+      summary: 対応プラットフォーム一覧取得
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Platform"
+
+  # ------------------------------------------------------------------
+  # Posts / Analysis
+  # ------------------------------------------------------------------
+  /posts/analyze:
+    post:
+      tags: [Posts]
+      summary: 投稿URL分析（データ取得→AI分析→BuzzScore算出→改善案生成→類似投稿提案）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzePostUrlRequest"
+      responses:
+        "201":
+          description: 分析完了（同期応答）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostAnalysisResponse"
+        "202":
+          description: 分析受付（非同期処理中。PROCESSINGステータスで返却）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostAnalysisResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "422":
+          description: 投稿が非公開・削除済みなど処理不能
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+
+  /posts:
+    get:
+      tags: [Posts]
+      summary: 投稿検索（キーワード/ハッシュタグ/アカウント/プラットフォーム等）
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/SortParam"
+        - $ref: "#/components/parameters/QParam"
+        - $ref: "#/components/parameters/PlatformParam"
+        - $ref: "#/components/parameters/PostTypeParam"
+        - $ref: "#/components/parameters/GenreParam"
+        - $ref: "#/components/parameters/DateFromParam"
+        - $ref: "#/components/parameters/DateToParam"
+        - $ref: "#/components/parameters/MinBuzzScoreParam"
+        - $ref: "#/components/parameters/MaxBuzzScoreParam"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PageEnvelope"
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Post"
+
+  /posts/{postId}:
+    get:
+      tags: [Posts]
+      summary: 投稿詳細取得
+      parameters:
+        - $ref: "#/components/parameters/PostIdPath"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /posts/{postId}/analysis:
+    get:
+      tags: [Posts]
+      summary: 投稿のAI分析結果取得
+      parameters:
+        - $ref: "#/components/parameters/PostIdPath"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalysisResult"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /posts/{postId}/buzz-score:
+    get:
+      tags: [Posts]
+      summary: 投稿のBuzzScore内訳取得
+      parameters:
+        - $ref: "#/components/parameters/PostIdPath"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BuzzScore"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /posts/{postId}/similar:
+    get:
+      tags: [Posts]
+      summary: 類似投稿一覧取得
+      parameters:
+        - $ref: "#/components/parameters/PostIdPath"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
+
+  # ------------------------------------------------------------------
+  # Search
+  # ------------------------------------------------------------------
+  /search:
+    get:
+      tags: [Search]
+      summary: キーワード/ハッシュタグ/アカウント検索
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [keyword, hashtag, account]
+        - $ref: "#/components/parameters/QParam"
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/PlatformParam"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageEnvelope"
+
+  # ------------------------------------------------------------------
+  # Social Accounts / Competitors
+  # ------------------------------------------------------------------
+  /social-accounts:
+    post:
+      tags: [SocialAccounts]
+      summary: 分析対象アカウント（競合含む）を登録
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterSocialAccountRequest"
+      responses:
+        "201":
+          description: 登録成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SocialAccount"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    get:
+      tags: [SocialAccounts]
+      summary: 登録済みアカウント一覧取得
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/PlatformParam"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PageEnvelope"
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/SocialAccount"
+
+  /social-accounts/{accountId}:
+    get:
+      tags: [SocialAccounts]
+      summary: アカウント詳細取得
+      parameters:
+        - $ref: "#/components/parameters/AccountIdPath"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SocialAccount"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [SocialAccounts]
+      summary: アカウント追跡解除
+      parameters:
+        - $ref: "#/components/parameters/AccountIdPath"
+      responses:
+        "204":
+          description: 解除成功
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /social-accounts/{accountId}/posts:
+    get:
+      tags: [SocialAccounts]
+      summary: アカウントの投稿一覧取得
+      parameters:
+        - $ref: "#/components/parameters/AccountIdPath"
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/SortParam"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PageEnvelope"
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Post"
+
+  /competitors/{accountId}/analysis:
+    get:
+      tags: [SocialAccounts]
+      summary: 競合統計取得（平均いいね数/平均コメント数/投稿頻度/平均動画時間/平均文字数など）
+      parameters:
+        - $ref: "#/components/parameters/AccountIdPath"
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [WEEKLY, MONTHLY, ALL_TIME]
+            default: WEEKLY
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitorStats"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /competitors/{accountId}/ranking:
+    get:
+      tags: [SocialAccounts]
+      summary: アカウント内の伸びる投稿ランキング取得
+      parameters:
+        - $ref: "#/components/parameters/AccountIdPath"
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PageEnvelope"
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/RankingEntry"
+
+  /competitors/compare:
+    get:
+      tags: [SocialAccounts]
+      summary: 複数アカウントの統計比較取得
+      parameters:
+        - name: accountIds
+          in: query
+          required: true
+          description: カンマ区切りのアカウントID
+          schema:
+            type: string
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [WEEKLY, MONTHLY, ALL_TIME]
+            default: WEEKLY
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CompetitorStats"
+
+  # ------------------------------------------------------------------
+  # Trends
+  # ------------------------------------------------------------------
+  /trends:
+    get:
+      tags: [Trends]
+      summary: プラットフォーム/ジャンル横断のトレンド取得
+      parameters:
+        - $ref: "#/components/parameters/PlatformParam"
+        - $ref: "#/components/parameters/GenreParam"
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [DAILY, WEEKLY, MONTHLY]
+            default: WEEKLY
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
+
+  # ------------------------------------------------------------------
+  # Rankings
+  # ------------------------------------------------------------------
+  /rankings:
+    get:
+      tags: [Rankings]
+      summary: ランキング取得（急上昇/週間/月間/ジャンル別/SNS別）
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/RankingType"
+        - $ref: "#/components/parameters/PlatformParam"
+        - $ref: "#/components/parameters/GenreParam"
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PageEnvelope"
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/RankingEntry"
+
+  # ------------------------------------------------------------------
+  # Reports
+  # ------------------------------------------------------------------
+  /reports:
+    post:
+      tags: [Reports]
+      summary: AIレポート生成（PDF/Markdown/HTML）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateReportRequest"
+      responses:
+        "201":
+          description: 生成成功（同期完了）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+        "202":
+          description: 生成受付（非同期処理中）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    get:
+      tags: [Reports]
+      summary: 生成済みレポート一覧取得
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/SortParam"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PageEnvelope"
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Report"
+
+  /reports/{reportId}:
+    get:
+      tags: [Reports]
+      summary: レポート詳細取得
+      parameters:
+        - $ref: "#/components/parameters/ReportIdPath"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /reports/{reportId}/download:
+    get:
+      tags: [Reports]
+      summary: レポートファイルダウンロード
+      parameters:
+        - $ref: "#/components/parameters/ReportIdPath"
+      responses:
+        "302":
+          description: ストレージの署名付きURLへリダイレクト
+        "200":
+          description: レポートファイル（バイナリ）
+          content:
+            application/pdf: {}
+            text/markdown: {}
+            text/html: {}
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ------------------------------------------------------------------
+  # Saved Analyses
+  # ------------------------------------------------------------------
+  /saved-analyses:
+    post:
+      tags: [SavedAnalyses]
+      summary: 分析結果を保存
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveAnalysisRequest"
+      responses:
+        "201":
+          description: 保存成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedAnalysis"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    get:
+      tags: [SavedAnalyses]
+      summary: 保存済み分析一覧取得
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - name: folderName
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PageEnvelope"
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/SavedAnalysis"
+
+  /saved-analyses/{savedAnalysisId}:
+    patch:
+      tags: [SavedAnalyses]
+      summary: メモ・フォルダ名の更新
+      parameters:
+        - name: savedAnalysisId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                folderName:
+                  type: string
+                memo:
+                  type: string
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedAnalysis"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [SavedAnalyses]
+      summary: 保存済み分析の削除
+      parameters:
+        - name: savedAnalysisId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: 削除成功
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ------------------------------------------------------------------
+  # Settings
+  # ------------------------------------------------------------------
+  /settings:
+    get:
+      tags: [Settings]
+      summary: ユーザー設定取得
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSettings"
+    put:
+      tags: [Settings]
+      summary: ユーザー設定更新
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserSettings"
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserSettings"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    SizeParam:
+      name: size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    SortParam:
+      name: sort
+      in: query
+      description: "フィールド名,asc|desc 形式（例: buzzScore,desc）"
+      schema:
+        type: string
+    QParam:
+      name: q
+      in: query
+      schema:
+        type: string
+    PlatformParam:
+      name: platform
+      in: query
+      schema:
+        $ref: "#/components/schemas/PlatformCode"
+    PostTypeParam:
+      name: postType
+      in: query
+      schema:
+        $ref: "#/components/schemas/PostType"
+    GenreParam:
+      name: genre
+      in: query
+      schema:
+        type: string
+    DateFromParam:
+      name: dateFrom
+      in: query
+      schema:
+        type: string
+        format: date
+    DateToParam:
+      name: dateTo
+      in: query
+      schema:
+        type: string
+        format: date
+    MinBuzzScoreParam:
+      name: minBuzzScore
+      in: query
+      schema:
+        type: number
+    MaxBuzzScoreParam:
+      name: maxBuzzScore
+      in: query
+      schema:
+        type: number
+    PostIdPath:
+      name: postId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    AccountIdPath:
+      name: accountId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ReportIdPath:
+      name: reportId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: リクエスト不正
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: 未認証
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: リソースが見つからない
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Conflict:
+      description: 一意制約違反等の競合
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    TooManyRequests:
+      description: レート制限超過
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: 再試行可能までの秒数
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    BadGateway:
+      description: 外部SNS API/OpenAI APIとの連携エラー
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+        code:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              reason:
+                type: string
+
+    PageEnvelope:
+      type: object
+      properties:
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        sort:
+          type: string
+
+    PlatformCode:
+      type: string
+      enum: [INSTAGRAM, TIKTOK, X, YOUTUBE, PINTEREST, THREADS]
+
+    PostType:
+      type: string
+      enum: [REEL, IMAGE, VIDEO, CAROUSEL, TEXT]
+
+    RankingType:
+      type: string
+      enum: [TRENDING, WEEKLY, MONTHLY, GENRE, PLATFORM]
+
+    UserRole:
+      type: string
+      enum: [USER, ADMIN]
+
+    UserPlan:
+      type: string
+      enum: [FREE, PRO, ENTERPRISE]
+
+    ReportFormat:
+      type: string
+      enum: [PDF, MARKDOWN, HTML]
+
+    AnalysisStatus:
+      type: string
+      enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+
+    Platform:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          $ref: "#/components/schemas/PlatformCode"
+        name:
+          type: string
+        apiProvider:
+          type: string
+        isActive:
+          type: boolean
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        role:
+          $ref: "#/components/schemas/UserRole"
+        plan:
+          $ref: "#/components/schemas/UserPlan"
+        createdAt:
+          type: string
+          format: date-time
+
+    RegisterRequest:
+      type: object
+      required: [email, password, name]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 8
+        name:
+          type: string
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    AuthTokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+          description: アクセストークン有効期限（秒）
+        user:
+          $ref: "#/components/schemas/User"
+
+    Hashtag:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        normalizedName:
+          type: string
+
+    Post:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        socialAccountId:
+          type: string
+          format: uuid
+        platform:
+          $ref: "#/components/schemas/PlatformCode"
+        platformPostId:
+          type: string
+        postUrl:
+          type: string
+          format: uri
+        postType:
+          $ref: "#/components/schemas/PostType"
+        caption:
+          type: string
+        postedAt:
+          type: string
+          format: date-time
+        videoDurationSec:
+          type: integer
+          nullable: true
+        imageCount:
+          type: integer
+          nullable: true
+        likeCount:
+          type: integer
+          format: int64
+        commentCount:
+          type: integer
+          format: int64
+        viewCount:
+          type: integer
+          format: int64
+          nullable: true
+        shareCount:
+          type: integer
+          format: int64
+          nullable: true
+        engagementRate:
+          type: number
+          format: float
+          nullable: true
+        hashtags:
+          type: array
+          items:
+            type: string
+        fetchedAt:
+          type: string
+          format: date-time
+
+    AnalyzePostUrlRequest:
+      type: object
+      required: [postUrl]
+      properties:
+        postUrl:
+          type: string
+          format: uri
+          example: "https://www.instagram.com/reel/Cxxxxxxxxxx/"
+
+    SentimentAnalysis:
+      type: object
+      properties:
+        primaryEmotion:
+          type: string
+        score:
+          type: number
+          format: float
+
+    ImprovementSuggestion:
+      type: object
+      properties:
+        title:
+          type: string
+        detail:
+          type: string
+
+    AnalysisResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        postId:
+          type: string
+          format: uuid
+        aiModel:
+          type: string
+        status:
+          $ref: "#/components/schemas/AnalysisStatus"
+        summary:
+          type: string
+        targetAudience:
+          type: string
+        hookAnalysis:
+          type: string
+        ctaAnalysis:
+          type: string
+        sentimentAnalysis:
+          $ref: "#/components/schemas/SentimentAnalysis"
+        videoStructureAnalysis:
+          type: object
+          additionalProperties: true
+        carouselStructureAnalysis:
+          type: object
+          additionalProperties: true
+        titleAnalysis:
+          type: string
+        textAnalysis:
+          type: string
+        postingTimeAnalysis:
+          type: string
+        hashtagAnalysis:
+          type: object
+          additionalProperties: true
+        improvementSuggestions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImprovementSuggestion"
+        similarPosts:
+          type: array
+          items:
+            type: string
+            format: uuid
+        createdAt:
+          type: string
+          format: date-time
+
+    BuzzScore:
+      type: object
+      properties:
+        postId:
+          type: string
+          format: uuid
+        analysisResultId:
+          type: string
+          format: uuid
+        totalScore:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        engagementScore:
+          type: number
+          format: float
+        viewScore:
+          type: number
+          format: float
+        commentRateScore:
+          type: number
+          format: float
+        formatScore:
+          type: number
+          format: float
+        hashtagScore:
+          type: number
+          format: float
+        postingTimeScore:
+          type: number
+          format: float
+        textStructureScore:
+          type: number
+          format: float
+        aiInsightScore:
+          type: number
+          format: float
+        strategyVersion:
+          type: string
+        calculatedAt:
+          type: string
+          format: date-time
+
+    PostAnalysisResponse:
+      type: object
+      properties:
+        post:
+          $ref: "#/components/schemas/Post"
+        analysisResult:
+          $ref: "#/components/schemas/AnalysisResult"
+        buzzScore:
+          $ref: "#/components/schemas/BuzzScore"
+
+    SocialAccount:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        platform:
+          $ref: "#/components/schemas/PlatformCode"
+        platformAccountId:
+          type: string
+        username:
+          type: string
+        displayName:
+          type: string
+        profileUrl:
+          type: string
+          format: uri
+        avatarUrl:
+          type: string
+          format: uri
+        followerCount:
+          type: integer
+          format: int64
+          nullable: true
+        genre:
+          type: string
+          nullable: true
+        isTracked:
+          type: boolean
+        firstTrackedAt:
+          type: string
+          format: date-time
+
+    RegisterSocialAccountRequest:
+      type: object
+      required: [platform, username]
+      properties:
+        platform:
+          $ref: "#/components/schemas/PlatformCode"
+        username:
+          type: string
+        genre:
+          type: string
+
+    CompetitorStats:
+      type: object
+      properties:
+        socialAccount:
+          $ref: "#/components/schemas/SocialAccount"
+        periodType:
+          type: string
+          enum: [WEEKLY, MONTHLY, ALL_TIME]
+        periodStart:
+          type: string
+          format: date
+        periodEnd:
+          type: string
+          format: date
+        postCount:
+          type: integer
+        avgLikeCount:
+          type: number
+          format: float
+        avgCommentCount:
+          type: number
+          format: float
+        avgViewCount:
+          type: number
+          format: float
+        postingFrequencyPerWeek:
+          type: number
+          format: float
+        avgVideoDurationSec:
+          type: number
+          format: float
+        avgCaptionLength:
+          type: number
+          format: float
+        dominantPostType:
+          $ref: "#/components/schemas/PostType"
+        dominantGenre:
+          type: string
+        topPostingHour:
+          type: integer
+          minimum: 0
+          maximum: 23
+
+    RankingEntry:
+      type: object
+      properties:
+        rankPosition:
+          type: integer
+        score:
+          type: number
+          format: float
+        post:
+          $ref: "#/components/schemas/Post"
+
+    GenerateReportRequest:
+      type: object
+      required: [analysisResultId, format]
+      properties:
+        analysisResultId:
+          type: string
+          format: uuid
+        format:
+          $ref: "#/components/schemas/ReportFormat"
+        title:
+          type: string
+
+    Report:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        analysisResultId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        format:
+          $ref: "#/components/schemas/ReportFormat"
+        fileUrl:
+          type: string
+          format: uri
+          nullable: true
+        status:
+          type: string
+          enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+        generatedAt:
+          type: string
+          format: date-time
+
+    SaveAnalysisRequest:
+      type: object
+      required: [analysisResultId]
+      properties:
+        analysisResultId:
+          type: string
+          format: uuid
+        folderName:
+          type: string
+        memo:
+          type: string
+
+    SavedAnalysis:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        analysisResultId:
+          type: string
+          format: uuid
+        folderName:
+          type: string
+          nullable: true
+        memo:
+          type: string
+          nullable: true
+        savedAt:
+          type: string
+          format: date-time
+
+    UserSettings:
+      type: object
+      properties:
+        notificationEmailEnabled:
+          type: boolean
+        defaultPlatform:
+          $ref: "#/components/schemas/PlatformCode"
+        locale:
+          type: string
+          example: ja
+        timezone:
+          type: string
+          example: Asia/Tokyo
