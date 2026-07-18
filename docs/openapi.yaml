@@ -33,6 +33,8 @@ tags:
     description: ユーザー条件分析・一致率算出（AIマーケティングOS Phase6）
   - name: RankingScore
     description: 総合ランキングスコア算出（AIマーケティングOS Phase7）
+  - name: Commonality
+    description: 共通点分析（AIマーケティングOS Phase8）
   - name: Search
     description: 検索
   - name: SocialAccounts
@@ -480,6 +482,27 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/RankingScoreResult"
+
+  /commonality/analyze:
+    post:
+      tags: [Commonality]
+      summary: 投稿群の共通点分析（AIマーケティングOS Phase8）
+      description: >-
+        投稿ID配列(最大100件)から、共通ハッシュタグ/動画時間/投稿時間/コンテンツ形式(統計)と
+        共通タイトル/フック/CTA/構成/ターゲット(AI、最大30件のスニペットからサンプリング)を抽出する。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommonalityAnalysisRequest"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommonalityAnalysisResult"
 
   # ------------------------------------------------------------------
   # Social Accounts / Competitors
@@ -1529,6 +1552,51 @@ components:
             type: number
             format: float
           description: Strategyごとの内訳スコア(matchRate, buzzScore, likeRate, freshness, videoDuration)
+
+    CommonalityAnalysisRequest:
+      type: object
+      required: [postIds]
+      properties:
+        postIds:
+          type: array
+          maxItems: 100
+          items:
+            type: string
+            format: uuid
+
+    CommonalityAnalysisResult:
+      type: object
+      description: 投稿群の共通点分析結果(AIマーケティングOS Phase8)
+      properties:
+        totalPostCount:
+          type: integer
+        aiSampleSize:
+          type: integer
+          description: AIプロンプトに実際に含めたサンプル数(最大30)
+        commonHashtags:
+          type: array
+          items:
+            type: string
+        commonVideoDurationSeconds:
+          type: integer
+          nullable: true
+        commonPostingHour:
+          type: integer
+          nullable: true
+        commonContentFormat:
+          type: string
+          nullable: true
+          enum: [SHORT_VIDEO, LONG_VIDEO, SINGLE_IMAGE, MULTI_IMAGE_CAROUSEL, TEXT_ONLY]
+        commonTitlePattern:
+          type: string
+        commonHookPattern:
+          type: string
+        commonCtaPattern:
+          type: string
+        commonStructurePattern:
+          type: string
+        commonTargetPattern:
+          type: string
 
     AnalyzePostUrlRequest:
       type: object
