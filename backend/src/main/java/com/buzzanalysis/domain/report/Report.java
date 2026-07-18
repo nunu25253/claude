@@ -13,6 +13,7 @@ public final class Report {
 
     private final UUID id;
     private final UUID postId;
+    private final UUID userId;
     private final ReportFormat format;
     private final String title;
     private final String storageKey;
@@ -22,6 +23,7 @@ public final class Report {
     private Report(Builder b) {
         this.id = b.id != null ? b.id : UUID.randomUUID();
         this.postId = Objects.requireNonNull(b.postId, "postId must not be null");
+        this.userId = b.userId;
         this.format = Objects.requireNonNull(b.format, "format must not be null");
         this.title = b.title;
         this.storageKey = Objects.requireNonNull(b.storageKey, "storageKey must not be null");
@@ -37,6 +39,7 @@ public final class Report {
     public static final class Builder {
         private UUID id;
         private UUID postId;
+        private UUID userId;
         private ReportFormat format;
         private String title;
         private String storageKey;
@@ -50,6 +53,12 @@ public final class Report {
 
         public Builder postId(UUID postId) {
             this.postId = postId;
+            return this;
+        }
+
+        /** レポートを生成したユーザー。既存(移行前)データとの互換のためnull許容。 */
+        public Builder userId(UUID userId) {
+            this.userId = userId;
             return this;
         }
 
@@ -89,6 +98,10 @@ public final class Report {
 
     public UUID getPostId() {
         return postId;
+    }
+
+    public UUID getUserId() {
+        return userId;
     }
 
     public ReportFormat getFormat() {

@@ -39,6 +39,12 @@ public class User {
         this.updatedAt = OffsetDateTime.now();
     }
 
+    /** 表示名を更新する。メールアドレスはログインIDを兼ねるため不変とし、本メソッドの対象外とする。 */
+    public void updateDisplayName(String newDisplayName) {
+        this.displayName = newDisplayName;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
     public UUID getId() {
         return id;
     }

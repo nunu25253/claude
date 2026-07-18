@@ -21,6 +21,9 @@ public class ReportEntity {
     @Column(name = "post_id", nullable = false)
     private UUID postId;
 
+    @Column(name = "user_id")
+    private UUID userId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private ReportFormatEnum format;
@@ -40,10 +43,11 @@ public class ReportEntity {
     protected ReportEntity() {
     }
 
-    public ReportEntity(UUID id, UUID postId, ReportFormatEnum format, String title, String storageKey,
+    public ReportEntity(UUID id, UUID postId, UUID userId, ReportFormatEnum format, String title, String storageKey,
                          long contentSizeBytes, OffsetDateTime generatedAt) {
         this.id = id;
         this.postId = postId;
+        this.userId = userId;
         this.format = format;
         this.title = title;
         this.storageKey = storageKey;
@@ -61,6 +65,10 @@ public class ReportEntity {
 
     public UUID getPostId() {
         return postId;
+    }
+
+    public UUID getUserId() {
+        return userId;
     }
 
     public ReportFormatEnum getFormat() {

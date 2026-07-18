@@ -36,4 +36,9 @@ public class ReportRepositoryImpl implements ReportRepository {
     public List<Report> findByPostId(UUID postId) {
         return jpaRepository.findByPostId(postId).stream().map(mapper::toDomain).toList();
     }
+
+    @Override
+    public List<Report> findByUserIdOrderByGeneratedAtDesc(UUID userId) {
+        return jpaRepository.findByUserIdOrderByGeneratedAtDesc(userId).stream().map(mapper::toDomain).toList();
+    }
 }

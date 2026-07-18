@@ -11,7 +11,8 @@ public class ReportMapper {
 
     public ReportEntity toEntity(Report report) {
         return new ReportEntity(
-                report.getId(), report.getPostId(), ReportEntity.ReportFormatEnum.valueOf(report.getFormat().name()),
+                report.getId(), report.getPostId(), report.getUserId(),
+                ReportEntity.ReportFormatEnum.valueOf(report.getFormat().name()),
                 report.getTitle(), report.getStorageKey(), report.getContentSizeBytes(), report.getGeneratedAt()
         );
     }
@@ -20,6 +21,7 @@ public class ReportMapper {
         return Report.builder()
                 .id(entity.getId())
                 .postId(entity.getPostId())
+                .userId(entity.getUserId())
                 .format(ReportFormat.valueOf(entity.getFormat().name()))
                 .title(entity.getTitle())
                 .storageKey(entity.getStorageKey())

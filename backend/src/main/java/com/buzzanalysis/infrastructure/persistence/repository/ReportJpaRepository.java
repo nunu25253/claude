@@ -10,4 +10,6 @@ import java.util.UUID;
 public interface ReportJpaRepository extends JpaRepository<ReportEntity, UUID> {
 
     List<ReportEntity> findByPostId(UUID postId);
+
+    List<ReportEntity> findByUserIdOrderByGeneratedAtDesc(UUID userId);
 }

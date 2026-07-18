@@ -1,8 +1,10 @@
 package com.buzzanalysis.presentation.controller;
 
+import com.buzzanalysis.application.trend.HashtagTrendApplicationService;
 import com.buzzanalysis.application.trend.TrendAnalysisApplicationService;
 import com.buzzanalysis.application.trend.dto.TrendAnalysisRequest;
 import com.buzzanalysis.application.trend.dto.TrendReportDto;
+import com.buzzanalysis.application.trend.dto.TrendResponseDto;
 import com.buzzanalysis.domain.platform.Platform;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,9 +29,21 @@ import java.util.List;
 public class TrendController {
 
     private final TrendAnalysisApplicationService trendAnalysisApplicationService;
+    private final HashtagTrendApplicationService hashtagTrendApplicationService;
 
-    public TrendController(TrendAnalysisApplicationService trendAnalysisApplicationService) {
+    public TrendController(TrendAnalysisApplicationService trendAnalysisApplicationService,
+                            HashtagTrendApplicationService hashtagTrendApplicationService) {
         this.trendAnalysisApplicationService = trendAnalysisApplicationService;
+        this.hashtagTrendApplicationService = hashtagTrendApplicationService;
+    }
+
+    @Operation(summary = "急上昇ハッシュタグ・投稿の取得",
+            description = "platform/genre省略時は絞り込みなし。直近7日間とその前21日間の比較でハッシュタグの伸び率を算出する。")
+    @GetMapping
+    public ResponseEntity<TrendResponseDto> getTrends(
+            @RequestParam(required = false) Platform platform,
+            @RequestParam(required = false) String genre) {
+        return ResponseEntity.ok(hashtagTrendApplicationService.getTrends(platform, genre));
     }
 
     @Operation(summary = "トレンド分析の実行",

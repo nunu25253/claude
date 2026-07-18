@@ -3,6 +3,7 @@ package com.buzzanalysis.application.report;
 import com.buzzanalysis.application.report.command.GenerateReportCommand;
 import com.buzzanalysis.application.report.command.ReportGenerationContext;
 import com.buzzanalysis.application.report.dto.ReportDto;
+import com.buzzanalysis.application.report.dto.ReportHistoryItemDto;
 import com.buzzanalysis.domain.analysis.AnalysisResult;
 import com.buzzanalysis.domain.analysis.AnalysisResultRepository;
 import com.buzzanalysis.domain.common.exception.BusinessRuleViolationException;
@@ -17,8 +18,10 @@ import com.buzzanalysis.domain.score.BuzzScoreRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -53,7 +56,7 @@ public class ReportGenerationApplicationService {
     }
 
     @Transactional
-    public ReportDto generateReport(UUID postId, ReportFormat format) {
+    public ReportDto generateReport(UUID userId, UUID postId, ReportFormat format) {
         GenerateReportCommand command = commandsByFormat.get(format);
         if (command == null) {
             throw new BusinessRuleViolationException("Unsupported report format: " + format);
@@ -74,6 +77,7 @@ public class ReportGenerationApplicationService {
 
         Report report = Report.builder()
                 .postId(postId)
+                .userId(userId)
                 .format(format)
                 .title("Buzz Analysis Report - " + post.getAuthorName())
                 .storageKey(key)
@@ -83,5 +87,19 @@ public class ReportGenerationApplicationService {
 
         String downloadUrl = storagePort.generateAccessUrl(key);
         return ReportDto.from(saved, downloadUrl);
+    }
+
+    /** ログイン中ユーザーが生成したレポートの履歴一覧（新しい順）。 */
+    @Transactional(readOnly = true)
+    public List<ReportHistoryItemDto> getHistory(UUID userId) {
+        List<Report> reports = reportRepository.findByUserIdOrderByGeneratedAtDesc(userId);
+        List<ReportHistoryItemDto> history = new ArrayList<>();
+        for (Report report : reports) {
+            Optional<Post> post = postRepository.findById(report.getPostId());
+            String caption = post.map(Post::getCaption).orElse(null);
+            String downloadUrl = storagePort.generateAccessUrl(report.getStorageKey());
+            history.add(ReportHistoryItemDto.from(report, caption, downloadUrl));
+        }
+        return history;
     }
 }
