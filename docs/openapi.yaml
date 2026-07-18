@@ -45,6 +45,8 @@ tags:
     description: 画像生成プロンプト（AIマーケティングOS Phase13）
   - name: Evaluations
     description: 投稿評価AI（AIマーケティングOS Phase14）
+  - name: Rag
+    description: RAG（AIマーケティングOS Phase16）
   - name: Search
     description: 検索
   - name: Competitors
@@ -746,6 +748,46 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ContentEvaluation"
+
+  /rag/index:
+    post:
+      tags: [Rag]
+      summary: テキストのRAG索引登録（AIマーケティングOS Phase16）
+      description: >-
+        分析結果・評価・トレンドサマリー等のテキストを明示的にRAG検索対象として索引登録する。
+        自動索引化は行わない(索引化するかどうかは呼び出し側の判断に委ねる)。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RagIndexRequest"
+      responses:
+        "200":
+          description: 索引登録成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RagDocument"
+
+  /rag/query:
+    post:
+      tags: [Rag]
+      summary: RAG質問応答（AIマーケティングOS Phase16）
+      description: 索引済みドキュメントの中から類似度上位(既定5件、上限20件)を取得し、それらを根拠にAIが回答する。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RagQueryRequest"
+      responses:
+        "200":
+          description: 回答成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RagQueryResult"
 
   # ------------------------------------------------------------------
   # Social Accounts / Competitors
@@ -2232,6 +2274,62 @@ components:
         createdAt:
           type: string
           format: date-time
+
+    RagIndexRequest:
+      type: object
+      required: [sourceType, contentText]
+      properties:
+        sourceType:
+          type: string
+          enum: [ANALYSIS_RESULT, EVALUATION, TREND_REPORT, PROPOSAL, OTHER]
+        sourceId:
+          type: string
+          format: uuid
+          nullable: true
+        contentText:
+          type: string
+
+    RagDocument:
+      type: object
+      description: RAG索引化された1件のテキストドキュメント（AIマーケティングOS Phase16）
+      properties:
+        id:
+          type: string
+          format: uuid
+        sourceType:
+          type: string
+          enum: [ANALYSIS_RESULT, EVALUATION, TREND_REPORT, PROPOSAL, OTHER]
+        sourceId:
+          type: string
+          format: uuid
+          nullable: true
+        contentText:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    RagQueryRequest:
+      type: object
+      required: [question]
+      properties:
+        question:
+          type: string
+        topK:
+          type: integer
+          nullable: true
+          description: 省略時は既定値5、上限20
+
+    RagQueryResult:
+      type: object
+      properties:
+        answer:
+          type: string
+        sources:
+          type: array
+          description: 回答生成の根拠として取得したドキュメント一覧（類似度降順）
+          items:
+            $ref: "#/components/schemas/RagDocument"
 
     CompetitorStatsPhase9:
       type: object

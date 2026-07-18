@@ -421,6 +421,24 @@
 **インデックス**:
 - `INDEX idx_trend_reports_platform_created_at (platform, created_at DESC)`（最新レポート取得用）
 
+## 23. rag_documents（RAG索引ドキュメント。AIマーケティングOS Phase16で追加）
+
+実装は `backend/src/main/resources/db/migration/V14__rag_documents.sql`。Phase3の`embeddings`テーブル（投稿専用）とは別に、分析結果・投稿評価・トレンドサマリー等の多様なテキストを明示的に索引登録するための新規テーブル。`pgvector`拡張・`VectorType`（Hibernateカスタム型）・HNSWインデックスといったPhase3/4のインフラパターンを再利用しつつ、テーブル自体は新設する（既存の`embeddings`テーブルをポリモーフィックに拡張すると、Phase3/4の既存動作に影響するリスクがあるため。理由は`docs/phases/phase16_rag.md`参照）。`source_id`はポリモーフィックな参照のためDB外部キー制約は付けない（Phase13の`image_prompt_sets`と同方針）。
+
+| カラム名 | 型 | 制約 | 説明 |
+|----------|----|------|------|
+| id | UUID | PK | ドキュメントID |
+| source_type | VARCHAR(30) | NOT NULL | `ANALYSIS_RESULT` / `EVALUATION` / `TREND_REPORT` / `PROPOSAL` / `OTHER` |
+| source_id | UUID | NULL許容 | 参照先の既存集約ID（FK制約なし。既存集約に紐付かない任意テキストの場合はNULL） |
+| content_text | TEXT | NOT NULL | 索引化された本文 |
+| vector | vector(1536) | NOT NULL | Embeddingベクトル（text-embedding-3-small想定） |
+| model | VARCHAR(100) | NOT NULL | 使用モデル名 |
+| dimensions | INTEGER | NOT NULL | ベクトル次元数 |
+| created_at | TIMESTAMPTZ | NOT NULL | 索引登録日時 |
+
+**インデックス**:
+- `INDEX idx_rag_documents_vector_hnsw`（HNSW、コサイン距離。Phase4と同方針）
+
 ## 外部キー制約一覧（サマリー）
 
 | 子テーブル | 列 | 親テーブル | ON DELETE |
