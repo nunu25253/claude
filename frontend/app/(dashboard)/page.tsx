@@ -10,20 +10,13 @@ import { QueryState } from "@/components/dashboard/query-state";
 import { formatCompactNumber } from "@/lib/utils";
 
 export default function HomePage() {
-  // サマリーKPI用に保存済み分析一覧を取得（総分析数・平均BuzzScoreの算出に利用）
+  // サマリーKPI用に保存済み分析一覧を取得（総分析数の算出に利用）
   const savedQuery = useSavedAnalyses();
   // 急上昇投稿プレビュー用にトレンドランキングを取得
   const trendingQuery = useRankings({ type: "trending" });
 
   const savedAnalyses = savedQuery.data ?? [];
   const totalAnalyses = savedAnalyses.length;
-  const avgBuzzScore =
-    totalAnalyses > 0
-      ? Math.round(
-          savedAnalyses.reduce((sum, item) => sum + item.analysis.buzzScore.total, 0) /
-            totalAnalyses,
-        )
-      : 0;
   const recentAnalyses = [...savedAnalyses]
     .sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime())
     .slice(0, 5);
@@ -32,7 +25,6 @@ export default function HomePage() {
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="総分析数" icon="🧠" value={formatCompactNumber(totalAnalyses)} />
-        <KpiCard label="平均BuzzScore" icon="🔥" value={totalAnalyses > 0 ? `${avgBuzzScore}` : "-"} />
         <KpiCard
           label="急上昇投稿数"
           icon="📈"
@@ -67,7 +59,7 @@ export default function HomePage() {
           >
             <div className="space-y-2">
               {recentAnalyses.map((item) => (
-                <PostCard key={item.id} post={{ ...item.post, buzzScore: item.analysis.buzzScore.total }} />
+                <PostCard key={item.id} post={item.post} />
               ))}
             </div>
           </QueryState>

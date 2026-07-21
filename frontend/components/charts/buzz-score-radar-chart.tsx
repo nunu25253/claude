@@ -7,19 +7,33 @@ import {
   RadarChart,
   ResponsiveContainer,
 } from "recharts";
-import type { BuzzScoreBreakdown } from "@/lib/types";
 
 interface BuzzScoreRadarChartProps {
-  breakdown: BuzzScoreBreakdown;
+  breakdown: Record<string, number>;
 }
 
+// バックエンドのBuzzScoreStrategy実装(engagementRate/viewCount/commentRate/postFormat/hashtag/
+// postTiming/contentStructure/aiAnalysis)に対応する日本語ラベル。未知のキーは英語名のまま表示する。
+const METRIC_LABELS: Record<string, string> = {
+  engagementRate: "エンゲージメント率",
+  viewCount: "再生数",
+  commentRate: "コメント率",
+  postFormat: "投稿形式",
+  hashtag: "ハッシュタグ",
+  postTiming: "投稿時間",
+  contentStructure: "構成",
+  aiAnalysis: "AI分析",
+};
+
 export function BuzzScoreRadarChart({ breakdown }: BuzzScoreRadarChartProps) {
-  const data = [
-    { metric: "エンゲージメント", value: breakdown.engagementScore },
-    { metric: "伸び速度", value: breakdown.velocityScore },
-    { metric: "拡散性", value: breakdown.shareabilityScore },
-    { metric: "視聴維持", value: breakdown.retentionScore },
-  ];
+  const data = Object.entries(breakdown).map(([key, value]) => ({
+    metric: METRIC_LABELS[key] ?? key,
+    value,
+  }));
+
+  if (data.length === 0) {
+    return null;
+  }
 
   return (
     <ResponsiveContainer width="100%" height={260}>

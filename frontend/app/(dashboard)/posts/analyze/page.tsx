@@ -11,7 +11,7 @@ export default function AnalyzePostPage() {
   const analyzeMutation = useAnalyzePost();
 
   const handleSubmit = (url: string) => {
-    analyzeMutation.mutate({ url });
+    analyzeMutation.mutate({ postUrl: url });
   };
 
   return (

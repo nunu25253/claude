@@ -6,7 +6,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { QueryState } from "@/components/dashboard/query-state";
 import { PlatformBadge } from "@/components/ui/badge";
-import { BuzzScoreBadge } from "@/components/dashboard/buzz-score-badge";
 import { AnalysisResult } from "@/components/dashboard/analysis/analysis-result";
 import { formatDateTime } from "@/lib/utils";
 
@@ -43,7 +42,6 @@ export default function SavedPage() {
             return (
               <Card key={item.id}>
                 <div className="flex items-center gap-4">
-                  <BuzzScoreBadge score={item.analysis.buzzScore.total} size="sm" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <PlatformBadge platform={item.post.platform} />
@@ -52,7 +50,7 @@ export default function SavedPage() {
                       </span>
                     </div>
                     <p className="mt-0.5 text-xs text-slate-400">
-                      @{item.post.accountHandle} ・ 保存日 {formatDateTime(item.savedAt)}
+                      @{item.post.accountHandle ?? item.post.authorName} ・ 保存日 {formatDateTime(item.savedAt)}
                     </p>
                     {item.memo && <p className="mt-1 text-xs text-slate-500">メモ: {item.memo}</p>}
                   </div>
@@ -76,7 +74,13 @@ export default function SavedPage() {
                 {isExpanded && (
                   <div className="mt-5 border-t border-slate-100 pt-5">
                     <AnalysisResult
-                      result={{ post: item.post, analysis: item.analysis }}
+                      result={{
+                        post: item.post,
+                        analysis: item.analysis,
+                        // 保存済み分析の一覧APIはBuzzScore/類似投稿を返さないため空値で補う。
+                        buzzScore: { postId: item.post.id, totalScore: 0, breakdown: {} },
+                        similarPosts: [],
+                      }}
                       hideSaveAction
                     />
                   </div>

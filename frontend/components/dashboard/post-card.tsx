@@ -37,14 +37,14 @@ export function PostCard({ post, rank, footer }: PostCardProps) {
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
           <PlatformBadge platform={post.platform} />
-          <span className="truncate text-xs text-slate-400">@{post.accountHandle}</span>
+          <span className="truncate text-xs text-slate-400">@{post.accountHandle ?? post.authorName ?? "unknown"}</span>
         </div>
         <p className="mt-1 line-clamp-2 text-sm text-slate-700">{post.caption || "(キャプションなし)"}</p>
         <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-400">
           <span>❤️ {formatCompactNumber(post.likeCount)}</span>
           <span>💬 {formatCompactNumber(post.commentCount)}</span>
           <span>🔁 {formatCompactNumber(post.shareCount)}</span>
-          <span>{formatDateTime(post.postedAt)}</span>
+          <span>{formatDateTime(post.postedAt ?? post.publishedAt)}</span>
         </div>
         {footer}
       </div>

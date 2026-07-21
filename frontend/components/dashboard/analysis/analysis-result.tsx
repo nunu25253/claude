@@ -5,14 +5,9 @@ import { useRouter } from "next/navigation";
 import type { AnalyzePostResponse } from "@/lib/types";
 import { useCreateSavedAnalysis } from "@/lib/hooks/use-saved-analyses";
 import { Button } from "@/components/ui/button";
+import { Card, CardHeader } from "@/components/ui/card";
 import { OverviewSection } from "./overview-section";
 import { InsightListCard } from "./insight-list-card";
-import { SentimentSection } from "./sentiment-section";
-import { VideoStructureSection } from "./video-structure-section";
-import { CarouselStructureSection } from "./carousel-structure-section";
-import { TitleCaptionSection } from "./title-caption-section";
-import { PostingTimeSection } from "./posting-time-section";
-import { HashtagAnalysisSection } from "./hashtag-analysis-section";
 import { SimilarPostsSection } from "./similar-posts-section";
 
 export function AnalysisResult({
@@ -23,7 +18,7 @@ export function AnalysisResult({
   /** 保存済み一覧など、すでに保存済みであることが自明な文脈では保存ボタンを非表示にする */
   hideSaveAction?: boolean;
 }) {
-  const { post, analysis } = result;
+  const { post, analysis, buzzScore, similarPosts } = result;
   const [saved, setSaved] = useState(false);
   const saveMutation = useCreateSavedAnalysis();
   const router = useRouter();
@@ -58,35 +53,49 @@ export function AnalysisResult({
       </div>
 
       {/* 概要 + BuzzScore */}
-      <OverviewSection post={post} analysis={analysis} />
+      <OverviewSection post={post} buzzScore={buzzScore} />
+
+      {analysis.genre && (
+        <Card>
+          <CardHeader title="🏷️ ジャンル" description={analysis.subGenre} />
+          <p className="text-sm text-slate-700">{analysis.genre}</p>
+        </Card>
+      )}
 
       {/* 伸びた理由 / ターゲット層 / フック / CTA */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <InsightListCard title="伸びた理由" icon="💡" items={analysis.viralReasons} />
-        <InsightListCard title="ターゲット層" icon="🎯" items={analysis.targetAudience} />
-        <InsightListCard title="冒頭フック分析" icon="🪝" items={analysis.hooks} />
-        <InsightListCard title="CTA分析" icon="📣" items={analysis.callToActions} />
+        <InsightListCard title="伸びた理由" icon="💡" text={analysis.whyItWentViral} />
+        <InsightListCard title="ターゲット層" icon="🎯" text={analysis.targetAudience} />
+        <InsightListCard title="冒頭フック分析" icon="🪝" text={analysis.hook} />
+        <InsightListCard title="CTA分析" icon="📣" text={analysis.callToAction} />
       </div>
 
-      <SentimentSection sentiment={analysis.sentiment} />
+      <InsightListCard title="感情分析" icon="😊" text={analysis.sentimentAnalysis} />
 
-      {analysis.videoStructure && <VideoStructureSection segments={analysis.videoStructure} />}
-      {analysis.carouselStructure && (
-        <CarouselStructureSection slides={analysis.carouselStructure} />
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <InsightListCard title="タイトル分析" icon="📝" text={analysis.titleAnalysis} />
+        <InsightListCard title="文章分析" icon="✍️" text={analysis.textAnalysis} />
+      </div>
+
+      {analysis.videoStructureAnalysis && (
+        <InsightListCard title="動画構成分析" icon="🎬" text={analysis.videoStructureAnalysis} />
+      )}
+      {analysis.carouselStructureAnalysis && (
+        <InsightListCard title="カルーセル構成分析" icon="🖼️" text={analysis.carouselStructureAnalysis} />
       )}
 
-      <TitleCaptionSection
-        titleAnalysis={analysis.titleAnalysis}
-        captionAnalysis={analysis.captionAnalysis}
-      />
+      <InsightListCard title="投稿時間分析" icon="⏰" text={analysis.postingTimeAnalysis} />
 
-      <PostingTimeSection postingTimeAnalysis={analysis.postingTimeAnalysis} />
+      <InsightListCard title="ハッシュタグ分析" icon="🏷️" text={analysis.hashtagAnalysis} />
 
-      <HashtagAnalysisSection items={analysis.hashtagAnalysis} />
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <InsightListCard title="強み" icon="✅" text={analysis.strengths} />
+        <InsightListCard title="弱み" icon="⚠️" text={analysis.weaknesses} />
+      </div>
 
-      <InsightListCard title="改善案" icon="🛠️" items={analysis.improvementSuggestions} />
+      <InsightListCard title="改善案" icon="🛠️" text={analysis.improvementSuggestions} />
 
-      <SimilarPostsSection posts={analysis.similarPosts} />
+      <SimilarPostsSection posts={similarPosts} />
     </div>
   );
 }

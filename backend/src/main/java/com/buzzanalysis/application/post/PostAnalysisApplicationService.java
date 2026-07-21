@@ -27,6 +27,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -83,7 +84,11 @@ public class PostAnalysisApplicationService {
 
         BuzzScoreInput scoreInput = new BuzzScoreInput(post, aiOutput.sentimentScore(), aiOutput.viralPotentialHint());
         BuzzScoreCalculator.CalculationResult calculation = buzzScoreCalculator.calculate(scoreInput);
-        BuzzScore buzzScore = BuzzScore.of(post.getId(), calculation.totalScore(), calculation.breakdown());
+        UUID existingBuzzScoreId = buzzScoreRepository.findByPostId(post.getId()).map(BuzzScore::getId).orElse(null);
+        BuzzScore buzzScore = existingBuzzScoreId != null
+                ? new BuzzScore(existingBuzzScoreId, post.getId(), calculation.totalScore(), calculation.breakdown(),
+                        OffsetDateTime.now())
+                : BuzzScore.of(post.getId(), calculation.totalScore(), calculation.breakdown());
         buzzScoreRepository.save(buzzScore);
 
         eventPublisher.publishEvent(new AnalysisCompletedEvent(post.getId(), analysisResult.getId(), calculation.totalScore()));
@@ -125,7 +130,11 @@ public class PostAnalysisApplicationService {
     }
 
     private AnalysisResult buildAnalysisResult(UUID postId, AiPostAnalysisPort.AiAnalysisOutput out) {
+        // analysis_results.post_id にはUNIQUE制約があるため、既存レコードがあればそのIDを引き継いで
+        // 更新する（同じ投稿を再分析すると制約違反になってしまうため）。
+        UUID existingId = analysisResultRepository.findByPostId(postId).map(AnalysisResult::getId).orElse(null);
         return AnalysisResult.builder()
+                .id(existingId)
                 .postId(postId)
                 .genre(out.genre())
                 .subGenre(out.subGenre())

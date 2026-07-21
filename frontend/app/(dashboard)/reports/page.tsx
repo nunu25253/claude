@@ -67,7 +67,7 @@ export default function ReportsPage() {
                     </span>
                   </div>
                   <p className="mt-0.5 text-xs text-slate-400">
-                    BuzzScore {Math.round(item.analysis.buzzScore.total)} ・ 保存日 {formatDateTime(item.savedAt)}
+                    保存日 {formatDateTime(item.savedAt)}
                   </p>
                   {lastResult?.postId === item.post.id && (
                     <p className="mt-1 text-xs text-brand-600">{lastResult.message}</p>

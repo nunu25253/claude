@@ -1,19 +1,24 @@
 import type { Genre, Platform } from "./common";
 
-// 投稿の基本メタデータ（SNSから取得した生データ）
+// 投稿の基本メタデータ（SNSから取得した生データ）。
+// accountId/accountName/accountHandle/thumbnailUrl/genre/buzzScore等は/trendsのように
+// フロントエンド向けに整形して返すエンドポイントのみ埋まる（/posts/analyze・/rankings等のバックエンドの
+// 生PostDtoにはこれらが無く、代わりにauthorName/publishedAtが返る）。両対応のため両方optionalにしてある。
 export interface Post {
   id: string;
   url: string;
   platform: Platform;
   genre?: Genre;
-  accountId: string;
-  accountName: string;
-  accountHandle: string;
+  accountId?: string;
+  accountName?: string;
+  accountHandle?: string;
   accountAvatarUrl?: string;
+  authorName?: string; // 生PostDtoの投稿者名(accountName/accountHandleが無い場合のフォールバック)
   thumbnailUrl?: string;
   caption: string;
   hashtags: string[];
-  postedAt: string; // ISO8601
+  postedAt?: string; // ISO8601
+  publishedAt?: string; // 生PostDtoのフィールド名(postedAtが無い場合のフォールバック)
   likeCount: number;
   commentCount: number;
   shareCount: number;
@@ -25,91 +30,50 @@ export interface Post {
   buzzScore?: number; // 0-100
 }
 
-// BuzzScore の内訳（レーダーチャート等での可視化用）
-export interface BuzzScoreBreakdown {
-  total: number; // 0-100
-  engagementScore: number;
-  velocityScore: number; // 伸びる速度
-  shareabilityScore: number;
-  retentionScore: number; // 動画視聴維持率などから算出
+// BuzzScoreの算出結果。内訳(breakdown)はStrategyパターンで算出される評価項目ごとのスコアで、
+// 項目の種類・数はバックエンドの実装に依存するため固定フィールドにせずRecordで受ける。
+export interface BuzzScoreResult {
+  postId: string;
+  totalScore: number; // 0-100
+  breakdown: Record<string, number>;
 }
 
-// 感情分析結果
-export interface SentimentAnalysis {
-  overallSentiment: "POSITIVE" | "NEUTRAL" | "NEGATIVE" | "MIXED";
-  positiveRatio: number; // 0-1
-  negativeRatio: number;
-  neutralRatio: number;
-  emotionTags: string[]; // 例: ["共感", "驚き", "癒やし"]
-}
-
-// 動画構成の1シーン
-export interface VideoStructureSegment {
-  order: number;
-  startSeconds: number;
-  endSeconds: number;
-  label: string; // 例: "フック", "本編導入", "オチ"
-  description: string;
-}
-
-// カルーセル1枚ごとの構成
-export interface CarouselStructureSlide {
-  order: number;
-  role: string; // 例: "表紙", "問題提起", "解決策", "CTA"
-  description: string;
-}
-
-// ハッシュタグ分析結果
-export interface HashtagAnalysisItem {
-  tag: string;
-  postCount: number; // このタグを使った投稿数（母数）
-  avgEngagementRate: number;
-  isRecommended: boolean;
-}
-
-// AIによる投稿分析結果本体
+// AIによる投稿分析結果本体。バックエンドのAnalysisResultDtoに対応する
+// (各項目はAIが生成した自然文であり、配列や構造化オブジェクトではない)。
 export interface PostAnalysis {
   id: string;
   postId: string;
-  buzzScore: BuzzScoreBreakdown;
-  viralReasons: string[]; // 伸びた理由
-  targetAudience: string[]; // ターゲット層
-  hooks: string[]; // 冒頭のフック分析
-  callToActions: string[]; // CTA分析
-  sentiment: SentimentAnalysis;
-  videoStructure?: VideoStructureSegment[];
-  carouselStructure?: CarouselStructureSlide[];
-  titleAnalysis: {
-    summary: string;
-    strengths: string[];
-    weaknesses: string[];
-  };
-  captionAnalysis: {
-    summary: string;
-    tone: string;
-    readabilityScore: number; // 0-100
-  };
-  postingTimeAnalysis: {
-    postedAt: string;
-    isOptimalTiming: boolean;
-    recommendedTimeWindows: string[]; // 例: ["19:00-21:00", "土日午前"]
-    comment: string;
-  };
-  hashtagAnalysis: HashtagAnalysisItem[];
-  improvementSuggestions: string[]; // 改善案
-  similarPosts: Post[]; // 類似の伸びている投稿提案
-  createdAt: string;
+  genre?: string;
+  subGenre?: string;
+  whyItWentViral: string; // 伸びた理由
+  targetAudience: string; // ターゲット層
+  postPurpose?: string;
+  hook: string; // 冒頭のフック分析
+  callToAction: string; // CTA分析
+  postStructureAnalysis?: string;
+  sentimentAnalysis: string; // 感情分析
+  videoStructureAnalysis?: string; // 動画構成分析(動画投稿でない場合は「対象外です」等の文言)
+  carouselStructureAnalysis?: string; // カルーセル構成分析(カルーセル投稿でない場合は同上)
+  titleAnalysis: string;
+  textAnalysis: string; // 文章(キャプション)分析
+  postingTimeAnalysis: string; // 投稿時間分析
+  hashtagAnalysis: string;
+  strengths: string;
+  weaknesses: string;
+  improvementSuggestions: string; // 改善案
 }
 
-// 投稿分析リクエスト（URL入力フォーム）
+// 投稿分析リクエスト（URL入力フォーム）。バックエンドのAnalyzePostRequestに合わせフィールド名はpostUrl。
 export interface AnalyzePostRequest {
-  url: string;
+  postUrl: string;
 }
 
-// 分析APIのレスポンス（投稿データ + AI分析結果）
+// 分析APIのレスポンス（投稿データ + AI分析結果 + BuzzScore + 類似投稿）
 export interface AnalyzePostResponse {
   post: Post;
   analysis: PostAnalysis;
+  buzzScore: BuzzScoreResult;
+  similarPosts: Post[];
 }
 
 export interface PostSearchParams {
