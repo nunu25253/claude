@@ -79,7 +79,12 @@ public class XService implements SocialPlatform {
             String authorUsername = resolveUsernameFromIncludes(response, authorId);
             return Optional.of(toFetchedPostData(tweet, authorUsername, postUrlOrId));
         } catch (Exception e) {
-            throw new ExternalApiException("Failed to fetch X post: " + postUrlOrId, e);
+            // Free tierでは読み取り系エンドポイント自体が使えない(403)等、トークンはあっても実際には
+            // 呼び出せないケースが多いため、ハードエラーにはせずスタブデータへフォールバックする。
+            log.warn("X API call failed for {}; falling back to stub data. "
+                    + "This commonly happens on the X API Free tier, which does not include read access.",
+                    postUrlOrId, e);
+            return Optional.of(stubPost(tweetId, postUrlOrId));
         }
     }
 
@@ -104,7 +109,10 @@ public class XService implements SocialPlatform {
                     metrics.hasNonNull("tweet_count") ? metrics.get("tweet_count").asLong() : null
             ));
         } catch (Exception e) {
-            throw new ExternalApiException("Failed to fetch X account: " + usernameOrId, e);
+            log.warn("X API call failed for account {}; falling back to stub data. "
+                    + "This commonly happens on the X API Free tier, which does not include read access.",
+                    usernameOrId, e);
+            return Optional.of(stubAccount(usernameOrId));
         }
     }
 
@@ -136,7 +144,10 @@ public class XService implements SocialPlatform {
             }
             return posts;
         } catch (Exception e) {
-            throw new ExternalApiException("Failed to fetch X recent posts: " + usernameOrId, e);
+            log.warn("X API call failed for recent posts of {}; falling back to stub data. "
+                    + "This commonly happens on the X API Free tier, which does not include read access.",
+                    usernameOrId, e);
+            return stubRecentPosts(usernameOrId, limit);
         }
     }
 

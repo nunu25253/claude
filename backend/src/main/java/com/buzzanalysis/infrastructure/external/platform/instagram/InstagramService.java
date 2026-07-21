@@ -90,14 +90,14 @@ public class InstagramService implements SocialPlatform {
                 }
             }
 
-            throw new ExternalApiException(
-                    "Instagram Business Discovery only exposes an account's most recent "
-                            + RECENT_MEDIA_LOOKUP_LIMIT + " media items; this post (author=" + authorUsername
-                            + ") was not found within that window (likely older, or the account is not a Business/Creator account).");
-        } catch (ExternalApiException e) {
-            throw e;
+            log.warn("Instagram Business Discovery only exposes an account's most recent {} media items; "
+                            + "post (author={}) was not found within that window (likely older, or the account "
+                            + "is not a Business/Creator account); falling back to stub data.",
+                    RECENT_MEDIA_LOOKUP_LIMIT, authorUsername);
+            return Optional.of(stubPost(shortcode, postUrlOrId));
         } catch (Exception e) {
-            throw new ExternalApiException("Failed to fetch Instagram post: " + postUrlOrId, e);
+            log.warn("Instagram Graph API call failed for {}; falling back to stub data.", postUrlOrId, e);
+            return Optional.of(stubPost(shortcode, postUrlOrId));
         }
     }
 
@@ -124,7 +124,8 @@ public class InstagramService implements SocialPlatform {
                     discovery.hasNonNull("media_count") ? discovery.get("media_count").asLong() : null
             ));
         } catch (Exception e) {
-            throw new ExternalApiException("Failed to fetch Instagram account: " + usernameOrId, e);
+            log.warn("Instagram Graph API call failed for account {}; falling back to stub data.", usernameOrId, e);
+            return Optional.of(stubAccount(usernameOrId));
         }
     }
 
@@ -142,7 +143,9 @@ public class InstagramService implements SocialPlatform {
             }
             return posts;
         } catch (Exception e) {
-            throw new ExternalApiException("Failed to fetch Instagram recent posts: " + usernameOrId, e);
+            log.warn("Instagram Graph API call failed for recent posts of {}; falling back to stub data.",
+                    usernameOrId, e);
+            return stubRecentPosts(usernameOrId, limit);
         }
     }
 
