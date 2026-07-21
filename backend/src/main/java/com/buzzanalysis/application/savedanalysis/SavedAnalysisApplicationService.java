@@ -1,43 +1,70 @@
 package com.buzzanalysis.application.savedanalysis;
 
+import com.buzzanalysis.application.post.dto.AnalysisResultDto;
+import com.buzzanalysis.application.post.dto.BuzzScoreDto;
+import com.buzzanalysis.application.post.dto.PostDto;
 import com.buzzanalysis.application.savedanalysis.dto.SaveAnalysisCommand;
-import com.buzzanalysis.application.savedanalysis.dto.SavedAnalysisDto;
+import com.buzzanalysis.application.savedanalysis.dto.SavedAnalysisDetailDto;
+import com.buzzanalysis.domain.analysis.AnalysisResultRepository;
 import com.buzzanalysis.domain.common.exception.BusinessRuleViolationException;
 import com.buzzanalysis.domain.common.exception.EntityNotFoundException;
+import com.buzzanalysis.domain.post.Post;
 import com.buzzanalysis.domain.post.PostRepository;
 import com.buzzanalysis.domain.savedanalysis.SavedAnalysis;
 import com.buzzanalysis.domain.savedanalysis.SavedAnalysisRepository;
+import com.buzzanalysis.domain.score.BuzzScoreRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
  * 保存済み分析（ブックマーク）ユースケース。
+ * {@link SavedAnalysis}自体は投稿ID(postId)のみを保持するブックマークだが、フロントエンドが
+ * 分析結果画面をそのまま表示できるよう、一覧・保存のレスポンスには投稿本体・AI分析結果・BuzzScoreを
+ * 都度リポジトリから引いて合成する（{@code POST /posts/analyze}のレスポンスと同じ形に揃える）。
  */
 @Service
 public class SavedAnalysisApplicationService {
 
+    private static final Logger log = LoggerFactory.getLogger(SavedAnalysisApplicationService.class);
+
     private final SavedAnalysisRepository savedAnalysisRepository;
     private final PostRepository postRepository;
+    private final AnalysisResultRepository analysisResultRepository;
+    private final BuzzScoreRepository buzzScoreRepository;
 
-    public SavedAnalysisApplicationService(SavedAnalysisRepository savedAnalysisRepository, PostRepository postRepository) {
+    public SavedAnalysisApplicationService(SavedAnalysisRepository savedAnalysisRepository,
+                                            PostRepository postRepository,
+                                            AnalysisResultRepository analysisResultRepository,
+                                            BuzzScoreRepository buzzScoreRepository) {
         this.savedAnalysisRepository = savedAnalysisRepository;
         this.postRepository = postRepository;
+        this.analysisResultRepository = analysisResultRepository;
+        this.buzzScoreRepository = buzzScoreRepository;
     }
 
     @Transactional(readOnly = true)
-    public List<SavedAnalysisDto> list(UUID userId) {
-        return savedAnalysisRepository.findByUserId(userId).stream().map(SavedAnalysisDto::from).toList();
+    public List<SavedAnalysisDetailDto> list(UUID userId) {
+        List<SavedAnalysisDetailDto> result = new ArrayList<>();
+        for (SavedAnalysis saved : savedAnalysisRepository.findByUserId(userId)) {
+            enrich(saved).ifPresent(result::add);
+        }
+        return result;
     }
 
     @Transactional
-    public SavedAnalysisDto save(SaveAnalysisCommand command) {
+    public SavedAnalysisDetailDto save(SaveAnalysisCommand command) {
         postRepository.findById(command.postId())
                 .orElseThrow(() -> EntityNotFoundException.of("Post", command.postId()));
         SavedAnalysis entity = SavedAnalysis.createNew(command.userId(), command.postId(), command.note());
-        return SavedAnalysisDto.from(savedAnalysisRepository.save(entity));
+        SavedAnalysis saved = savedAnalysisRepository.save(entity);
+        return enrich(saved).orElseThrow(() -> EntityNotFoundException.of("Post", command.postId()));
     }
 
     @Transactional
@@ -48,5 +75,22 @@ public class SavedAnalysisApplicationService {
             throw new BusinessRuleViolationException("You are not allowed to delete this saved analysis");
         }
         savedAnalysisRepository.deleteById(id);
+    }
+
+    /** 投稿が削除済みで参照できない場合はempty（一覧からは除外し、保存直後ならエラーとして扱う）。 */
+    private Optional<SavedAnalysisDetailDto> enrich(SavedAnalysis saved) {
+        Optional<Post> post = postRepository.findById(saved.getPostId());
+        if (post.isEmpty()) {
+            log.warn("Saved analysis {} references a post that no longer exists: postId={}",
+                    saved.getId(), saved.getPostId());
+            return Optional.empty();
+        }
+        AnalysisResultDto analysisDto = analysisResultRepository.findByPostId(saved.getPostId())
+                .map(AnalysisResultDto::from).orElse(null);
+        BuzzScoreDto buzzScoreDto = buzzScoreRepository.findByPostId(saved.getPostId())
+                .map(BuzzScoreDto::from).orElse(null);
+        return Optional.of(new SavedAnalysisDetailDto(
+                saved.getId(), saved.getNote(), saved.getCreatedAt(),
+                PostDto.from(post.get()), analysisDto, buzzScoreDto));
     }
 }

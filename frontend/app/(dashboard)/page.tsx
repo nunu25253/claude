@@ -18,7 +18,7 @@ export default function HomePage() {
   const savedAnalyses = savedQuery.data ?? [];
   const totalAnalyses = savedAnalyses.length;
   const recentAnalyses = [...savedAnalyses]
-    .sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime())
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
 
   return (

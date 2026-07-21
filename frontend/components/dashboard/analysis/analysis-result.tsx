@@ -25,7 +25,7 @@ export function AnalysisResult({
 
   const handleSave = async () => {
     try {
-      await saveMutation.mutateAsync({ postId: post.id, analysisId: analysis.id });
+      await saveMutation.mutateAsync({ postId: post.id });
       setSaved(true);
     } catch {
       // エラーは saveMutation.isError 経由でボタン付近に表示する

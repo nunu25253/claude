@@ -50,17 +50,19 @@ export default function SavedPage() {
                       </span>
                     </div>
                     <p className="mt-0.5 text-xs text-slate-400">
-                      @{item.post.accountHandle ?? item.post.authorName} ・ 保存日 {formatDateTime(item.savedAt)}
+                      @{item.post.accountHandle ?? item.post.authorName} ・ 保存日 {formatDateTime(item.createdAt)}
                     </p>
-                    {item.memo && <p className="mt-1 text-xs text-slate-500">メモ: {item.memo}</p>}
+                    {item.note && <p className="mt-1 text-xs text-slate-500">メモ: {item.note}</p>}
                   </div>
                   <div className="flex shrink-0 gap-2">
-                    <Button
-                      variant="secondary"
-                      onClick={() => setExpandedId(isExpanded ? null : item.id)}
-                    >
-                      {isExpanded ? "閉じる" : "詳細を見る"}
-                    </Button>
+                    {item.analysis && item.buzzScore && (
+                      <Button
+                        variant="secondary"
+                        onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                      >
+                        {isExpanded ? "閉じる" : "詳細を見る"}
+                      </Button>
+                    )}
                     <Button
                       variant="danger"
                       onClick={() => handleDelete(item.id)}
@@ -71,14 +73,14 @@ export default function SavedPage() {
                   </div>
                 </div>
 
-                {isExpanded && (
+                {isExpanded && item.analysis && item.buzzScore && (
                   <div className="mt-5 border-t border-slate-100 pt-5">
                     <AnalysisResult
                       result={{
                         post: item.post,
                         analysis: item.analysis,
-                        // 保存済み分析の一覧APIはBuzzScore/類似投稿を返さないため空値で補う。
-                        buzzScore: { postId: item.post.id, totalScore: 0, breakdown: {} },
+                        buzzScore: item.buzzScore,
+                        // 保存済み分析の一覧APIは類似投稿を返さないため空値で補う。
                         similarPosts: [],
                       }}
                       hideSaveAction

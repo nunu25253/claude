@@ -2,7 +2,7 @@ package com.buzzanalysis.presentation.controller;
 
 import com.buzzanalysis.application.savedanalysis.SavedAnalysisApplicationService;
 import com.buzzanalysis.application.savedanalysis.dto.SaveAnalysisCommand;
-import com.buzzanalysis.application.savedanalysis.dto.SavedAnalysisDto;
+import com.buzzanalysis.application.savedanalysis.dto.SavedAnalysisDetailDto;
 import com.buzzanalysis.presentation.dto.request.SaveAnalysisRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -35,16 +35,16 @@ public class SavedAnalysisController {
 
     @Operation(summary = "保存済み分析一覧取得")
     @GetMapping
-    public ResponseEntity<List<SavedAnalysisDto>> list(Authentication authentication) {
+    public ResponseEntity<List<SavedAnalysisDetailDto>> list(Authentication authentication) {
         UUID userId = currentUserId(authentication);
         return ResponseEntity.ok(savedAnalysisApplicationService.list(userId));
     }
 
     @Operation(summary = "分析結果を保存")
     @PostMapping
-    public ResponseEntity<SavedAnalysisDto> save(Authentication authentication, @Valid @RequestBody SaveAnalysisRequest request) {
+    public ResponseEntity<SavedAnalysisDetailDto> save(Authentication authentication, @Valid @RequestBody SaveAnalysisRequest request) {
         UUID userId = currentUserId(authentication);
-        SavedAnalysisDto saved = savedAnalysisApplicationService.save(
+        SavedAnalysisDetailDto saved = savedAnalysisApplicationService.save(
                 new SaveAnalysisCommand(userId, request.postId(), request.note()));
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }

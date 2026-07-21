@@ -1179,59 +1179,21 @@ paths:
     get:
       tags: [SavedAnalyses]
       summary: 保存済み分析一覧取得
-      parameters:
-        - $ref: "#/components/parameters/PageParam"
-        - $ref: "#/components/parameters/SizeParam"
-        - name: folderName
-          in: query
-          schema:
-            type: string
+      description: >-
+        ページングは無く配列をそのまま返す。各要素は投稿本体・AI分析結果・BuzzScoreを
+        合成して返す(POST /posts/analyzeのレスポンスと同じ形)。投稿が未分析の場合は
+        analysis/buzzScoreがnullになる。参照先の投稿が削除済みの場合はその要素を除外する。
       responses:
         "200":
           description: 取得成功
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: "#/components/schemas/PageEnvelope"
-                  - type: object
-                    properties:
-                      content:
-                        type: array
-                        items:
-                          $ref: "#/components/schemas/SavedAnalysis"
+                type: array
+                items:
+                  $ref: "#/components/schemas/SavedAnalysis"
 
   /saved-analyses/{savedAnalysisId}:
-    patch:
-      tags: [SavedAnalyses]
-      summary: メモ・フォルダ名の更新
-      parameters:
-        - name: savedAnalysisId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                folderName:
-                  type: string
-                memo:
-                  type: string
-      responses:
-        "200":
-          description: 更新成功
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SavedAnalysis"
-        "404":
-          $ref: "#/components/responses/NotFound"
     delete:
       tags: [SavedAnalyses]
       summary: 保存済み分析の削除
@@ -2809,15 +2771,14 @@ components:
 
     SaveAnalysisRequest:
       type: object
-      required: [analysisResultId]
+      required: [postId]
       properties:
-        analysisResultId:
+        postId:
           type: string
           format: uuid
-        folderName:
+        note:
           type: string
-        memo:
-          type: string
+          maxLength: 1000
 
     SavedAnalysis:
       type: object
@@ -2825,21 +2786,22 @@ components:
         id:
           type: string
           format: uuid
-        userId:
-          type: string
-          format: uuid
-        analysisResultId:
-          type: string
-          format: uuid
-        folderName:
+        note:
           type: string
           nullable: true
-        memo:
-          type: string
-          nullable: true
-        savedAt:
+        createdAt:
           type: string
           format: date-time
+        post:
+          $ref: "#/components/schemas/Post"
+        analysis:
+          allOf:
+            - $ref: "#/components/schemas/AnalysisResult"
+          nullable: true
+        buzzScore:
+          allOf:
+            - $ref: "#/components/schemas/BuzzScore"
+          nullable: true
 
     ProfileSettings:
       type: object
