@@ -6,6 +6,7 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ProposalGenerationForm } from "@/components/dashboard/proposals/proposal-generation-form";
 import { ProposalCard } from "@/components/dashboard/proposals/proposal-card";
+import { AnalyzedPostsList } from "@/components/dashboard/proposals/analyzed-posts-list";
 import { useGenerateProposals } from "@/lib/hooks/use-proposals";
 
 export default function ProposalsPage() {
@@ -44,6 +45,8 @@ export default function ProposalsPage() {
             ))}
           </div>
         ))}
+
+      <AnalyzedPostsList />
     </div>
   );
 }
