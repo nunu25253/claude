@@ -1,7 +1,9 @@
 package com.buzzanalysis.infrastructure.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -38,14 +40,24 @@ public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final CorsProperties corsProperties;
+    private final RateLimitProperties rateLimitProperties;
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
 
-    public SecurityConfig(JwtTokenProvider jwtTokenProvider, CorsProperties corsProperties) {
+    public SecurityConfig(JwtTokenProvider jwtTokenProvider, CorsProperties corsProperties,
+                           RateLimitProperties rateLimitProperties, StringRedisTemplate redisTemplate,
+                           ObjectMapper objectMapper) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.corsProperties = corsProperties;
+        this.rateLimitProperties = rateLimitProperties;
+        this.redisTemplate = redisTemplate;
+        this.objectMapper = objectMapper;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        RateLimitFilter rateLimitFilter = new RateLimitFilter(redisTemplate, rateLimitProperties, objectMapper);
+        JwtAuthenticationFilter jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtTokenProvider);
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -53,7 +65,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_PATHS).permitAll()
                         .anyRequest().authenticated())
-                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(rateLimitFilter, JwtAuthenticationFilter.class);
         return http.build();
     }
 

@@ -2,6 +2,7 @@ package com.buzzanalysis.domain.post;
 
 import com.buzzanalysis.domain.platform.Platform;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,6 +15,9 @@ public interface PostRepository {
     Post save(Post post);
 
     Optional<Post> findById(UUID id);
+
+    /** 複数IDをまとめて取得する（一覧画面でのN+1回避用）。 */
+    List<Post> findByIdIn(List<UUID> ids);
 
     Optional<Post> findByPlatformAndExternalId(Platform platform, String externalId);
 

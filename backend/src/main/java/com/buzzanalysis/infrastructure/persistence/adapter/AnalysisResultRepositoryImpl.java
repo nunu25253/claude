@@ -6,6 +6,7 @@ import com.buzzanalysis.infrastructure.persistence.mapper.AnalysisResultMapper;
 import com.buzzanalysis.infrastructure.persistence.repository.AnalysisResultJpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -29,6 +30,11 @@ public class AnalysisResultRepositoryImpl implements AnalysisResultRepository {
     @Override
     public Optional<AnalysisResult> findByPostId(UUID postId) {
         return jpaRepository.findByPostId(postId).map(mapper::toDomain);
+    }
+
+    @Override
+    public List<AnalysisResult> findByPostIdIn(List<UUID> postIds) {
+        return jpaRepository.findByPostIdIn(postIds).stream().map(mapper::toDomain).toList();
     }
 
     @Override

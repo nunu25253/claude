@@ -91,6 +91,19 @@ services:
     networks:
       - buzz-network
 
+  # SMTP互換のテスト用メールキャッチャー。パスワードリセットメールはここに届き、実際には
+  # 外部に送信されない。http://localhost:8025 のWeb UIで受信メールを確認できる。
+  # 本番では環境変数(MAIL_HOST等)で実際のSMTPサーバーに差し替える。
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: buzz-mailhog
+    restart: unless-stopped
+    ports:
+      - "${MAIL_SMTP_PORT:-1025}:1025" # SMTP
+      - "${MAIL_UI_PORT:-8025}:8025"   # Web UI
+    networks:
+      - buzz-network
+
   backend:
     build:
       context: ./backend
@@ -104,6 +117,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      mailhog:
+        condition: service_started
     environment:
       SPRING_PROFILES_ACTIVE: docker
       DB_HOST: postgres
@@ -115,6 +130,10 @@ services:
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production-please-0123456789abcdef}
       JWT_ISSUER: ${JWT_ISSUER:-buzz-analysis-platform}
+      MAIL_HOST: mailhog
+      MAIL_PORT: 1025
+      MAIL_RESET_LINK_BASE_URL: ${MAIL_RESET_LINK_BASE_URL:-http://localhost:3000/reset-password}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-no-reply@buzz-analysis.local}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
       OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}

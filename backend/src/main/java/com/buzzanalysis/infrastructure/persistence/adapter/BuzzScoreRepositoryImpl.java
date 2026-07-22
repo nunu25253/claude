@@ -6,6 +6,7 @@ import com.buzzanalysis.infrastructure.persistence.mapper.BuzzScoreMapper;
 import com.buzzanalysis.infrastructure.persistence.repository.BuzzScoreJpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -29,5 +30,10 @@ public class BuzzScoreRepositoryImpl implements BuzzScoreRepository {
     @Override
     public Optional<BuzzScore> findByPostId(UUID postId) {
         return jpaRepository.findByPostId(postId).map(mapper::toDomain);
+    }
+
+    @Override
+    public List<BuzzScore> findByPostIdIn(List<UUID> postIds) {
+        return jpaRepository.findByPostIdIn(postIds).stream().map(mapper::toDomain).toList();
     }
 }

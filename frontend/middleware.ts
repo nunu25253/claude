@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 // token.ts の DEFAULT_TOKEN_KEY と同じ値（env未設定時のフォールバック）
 const DEFAULT_TOKEN_KEY = "sns_buzz_auth_token";
 
-const PUBLIC_PATHS = ["/login", "/register"];
+const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"];
 
 /**
  * ダッシュボード配下は未ログインの場合 /login にリダイレクトする簡易ガード。

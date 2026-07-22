@@ -55,6 +55,11 @@ public class PostRepositoryImpl implements PostRepository {
     }
 
     @Override
+    public List<Post> findByIdIn(List<UUID> ids) {
+        return jpaRepository.findAllById(ids).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
     public Optional<Post> findByPlatformAndExternalId(Platform platform, String externalId) {
         return jpaRepository.findByPlatformAndExternalId(platformMapper.toEntity(platform), externalId)
                 .map(mapper::toDomain);

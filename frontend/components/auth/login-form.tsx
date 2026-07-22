@@ -69,6 +69,12 @@ export function LoginForm() {
         />
       </FormField>
 
+      <p className="text-right text-sm">
+        <Link href="/forgot-password" className="font-medium text-brand-600 hover:underline">
+          パスワードをお忘れですか？
+        </Link>
+      </p>
+
       {submitError && (
         <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
           {submitError}

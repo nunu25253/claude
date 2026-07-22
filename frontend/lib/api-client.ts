@@ -1,8 +1,50 @@
 import { ApiError, type ApiErrorBody } from "./types/common";
-import { getToken } from "./auth/token";
+import { clearToken, getRefreshToken, getToken, setRefreshToken, setToken } from "./auth/token";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api/v1";
+
+interface RefreshResponse {
+  accessToken: string;
+  refreshToken: string;
+}
+
+// 複数のリクエストが同時に401/403を受け取っても /auth/refresh を1回しか呼ばないよう、
+// 進行中のリフレッシュ処理を共有する（同時に呼ぶとリフレッシュトークンの二重消費で
+// 片方が失敗する競合が起こりうるため）。
+let inFlightRefresh: Promise<boolean> | null = null;
+
+async function refreshAccessToken(): Promise<boolean> {
+  if (inFlightRefresh) return inFlightRefresh;
+
+  inFlightRefresh = (async () => {
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) return false;
+    try {
+      const res = await fetch(new URL("auth/refresh", `${API_BASE_URL}/`).toString(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
+      });
+      if (!res.ok) {
+        clearToken();
+        return false;
+      }
+      const data = (await res.json()) as RefreshResponse;
+      setToken(data.accessToken);
+      setRefreshToken(data.refreshToken);
+      return true;
+    } catch {
+      return false;
+    }
+  })();
+
+  try {
+    return await inFlightRefresh;
+  } finally {
+    inFlightRefresh = null;
+  }
+}
 
 export interface RequestOptions {
   /** クエリパラメータ。undefined の値は自動的に除外される */
@@ -63,21 +105,41 @@ async function request<T>(
     }
   }
 
-  let res: Response;
-  try {
-    res = await fetch(buildUrl(path, options.params), {
+  const doFetch = () =>
+    fetch(buildUrl(path, options.params), {
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: options.signal,
       cache: "no-store",
     });
+
+  let res: Response;
+  try {
+    res = await doFetch();
   } catch {
     // バックエンドに到達できない場合（起動していない・ネットワーク断など）
     throw new ApiError(0, {
       message:
         "サーバーに接続できませんでした。バックエンドAPIが起動しているか確認してください。",
     });
+  }
+
+  // アクセストークン失効時は一度だけリフレッシュして同じリクエストをやり直す。
+  // login/register/refresh自体（skipAuth）はここでの再試行対象にしない。
+  if ((res.status === 401 || res.status === 403) && !options.skipAuth && getToken()) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      headers["Authorization"] = `Bearer ${getToken()}`;
+      try {
+        res = await doFetch();
+      } catch {
+        throw new ApiError(0, {
+          message:
+            "サーバーに接続できませんでした。バックエンドAPIが起動しているか確認してください。",
+        });
+      }
+    }
   }
 
   if (!res.ok) {

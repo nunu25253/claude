@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -43,8 +44,9 @@ public class PostController {
     @Operation(summary = "投稿URL分析",
             description = "投稿URLを受け取り、公開データ取得→AI分析→BuzzScore算出→改善案・類似投稿提案を返す")
     @PostMapping("/analyze")
-    public ResponseEntity<AnalyzePostResult> analyze(@Valid @RequestBody AnalyzePostRequest request) {
-        AnalyzePostResult result = postAnalysisApplicationService.analyze(new AnalyzePostCommand(request.postUrl()));
+    public ResponseEntity<AnalyzePostResult> analyze(Authentication authentication, @Valid @RequestBody AnalyzePostRequest request) {
+        UUID userId = UUID.fromString(authentication.getName());
+        AnalyzePostResult result = postAnalysisApplicationService.analyze(new AnalyzePostCommand(request.postUrl(), userId));
         return ResponseEntity.ok(result);
     }
 

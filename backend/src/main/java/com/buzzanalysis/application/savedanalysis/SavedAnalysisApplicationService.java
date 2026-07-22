@@ -18,10 +18,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 保存済み分析（ブックマーク）ユースケース。
@@ -49,13 +51,37 @@ public class SavedAnalysisApplicationService {
         this.buzzScoreRepository = buzzScoreRepository;
     }
 
+    /**
+     * 保存済み分析一覧を返す。件数分のfindByIdをループで叩くN+1クエリになっていたため、
+     * 投稿ID一覧をまとめてバッチ取得しメモリ上で結合する（保存件数によらずクエリ回数は3回で済む）。
+     */
     @Transactional(readOnly = true)
     public List<SavedAnalysisDetailDto> list(UUID userId) {
-        List<SavedAnalysisDetailDto> result = new ArrayList<>();
-        for (SavedAnalysis saved : savedAnalysisRepository.findByUserId(userId)) {
-            enrich(saved).ifPresent(result::add);
-        }
-        return result;
+        List<SavedAnalysis> savedList = savedAnalysisRepository.findByUserId(userId);
+        List<UUID> postIds = savedList.stream().map(SavedAnalysis::getPostId).distinct().toList();
+
+        Map<UUID, Post> postsByPostId = postRepository.findByIdIn(postIds).stream()
+                .collect(Collectors.toMap(Post::getId, Function.identity()));
+        Map<UUID, AnalysisResultDto> analysesByPostId = analysisResultRepository.findByPostIdIn(postIds).stream()
+                .collect(Collectors.toMap(a -> a.getPostId(), AnalysisResultDto::from));
+        Map<UUID, BuzzScoreDto> buzzScoresByPostId = buzzScoreRepository.findByPostIdIn(postIds).stream()
+                .collect(Collectors.toMap(b -> b.getPostId(), BuzzScoreDto::from));
+
+        return savedList.stream()
+                .filter(saved -> {
+                    boolean exists = postsByPostId.containsKey(saved.getPostId());
+                    if (!exists) {
+                        log.warn("Saved analysis {} references a post that no longer exists: postId={}",
+                                saved.getId(), saved.getPostId());
+                    }
+                    return exists;
+                })
+                .map(saved -> new SavedAnalysisDetailDto(
+                        saved.getId(), saved.getNote(), saved.getCreatedAt(),
+                        PostDto.from(postsByPostId.get(saved.getPostId())),
+                        analysesByPostId.get(saved.getPostId()),
+                        buzzScoresByPostId.get(saved.getPostId())))
+                .toList();
     }
 
     @Transactional

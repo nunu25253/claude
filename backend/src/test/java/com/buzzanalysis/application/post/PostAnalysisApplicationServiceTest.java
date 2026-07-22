@@ -14,15 +14,19 @@ import com.buzzanalysis.domain.post.Post;
 import com.buzzanalysis.domain.post.PostRepository;
 import com.buzzanalysis.domain.post.PostSearchResult;
 import com.buzzanalysis.domain.post.PostType;
+import com.buzzanalysis.domain.common.exception.BusinessRuleViolationException;
 import com.buzzanalysis.domain.score.BuzzScore;
 import com.buzzanalysis.domain.score.BuzzScoreCalculator;
 import com.buzzanalysis.domain.score.BuzzScoreRepository;
+import com.buzzanalysis.infrastructure.quota.UsageQuotaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.OffsetDateTime;
@@ -42,6 +46,9 @@ import static org.mockito.Mockito.when;
  * 同じ投稿URLを2回分析すると duplicate key で500になるバグが発覚したための回帰テスト）。
  */
 @ExtendWith(MockitoExtension.class)
+// 利用上限超過テストはsetUp()の大半のスタブ(投稿取得等)を使う前にanalyze()が例外を投げるため、
+// 未使用スタブの厳格チェック(UnnecessaryStubbingException)を無効化する。
+@MockitoSettings(strictness = Strictness.LENIENT)
 class PostAnalysisApplicationServiceTest {
 
     @Mock
@@ -62,21 +69,27 @@ class PostAnalysisApplicationServiceTest {
     private ApplicationEventPublisher eventPublisher;
     @Mock
     private SocialPlatform xClient;
+    @Mock
+    private UsageQuotaService usageQuotaService;
 
     private PostAnalysisApplicationService service;
     private UUID postId;
+    private UUID requestingUserId;
     private Post existingPost;
 
     @BeforeEach
     void setUp() {
         service = new PostAnalysisApplicationService(platformFactory, socialAccountRepository, postRepository,
-                analysisResultRepository, buzzScoreRepository, aiPostAnalysisPort, buzzScoreCalculator, eventPublisher);
+                analysisResultRepository, buzzScoreRepository, aiPostAnalysisPort, buzzScoreCalculator, eventPublisher,
+                usageQuotaService);
 
         postId = UUID.randomUUID();
+        requestingUserId = UUID.randomUUID();
         existingPost = new Post(postId, UUID.randomUUID(), Platform.X, "12345", "https://x.com/user/status/12345",
                 OffsetDateTime.now(), "user", "caption", List.of(), 100L, 10L, 1000L, 5L, null, null,
                 PostType.TEXT, OffsetDateTime.now(), OffsetDateTime.now());
 
+        when(usageQuotaService.tryConsume(any())).thenReturn(true);
         when(platformFactory.detectPlatformFromUrl(any())).thenReturn(Platform.X);
         when(platformFactory.resolve(Platform.X)).thenReturn(xClient);
         when(xClient.fetchPost(any())).thenReturn(Optional.of(fetchedPost()));
@@ -101,7 +114,7 @@ class PostAnalysisApplicationServiceTest {
         when(buzzScoreRepository.findByPostId(postId)).thenReturn(Optional.of(
                 new BuzzScore(existingBuzzScoreId, postId, 50.0, Map.of(), OffsetDateTime.now())));
 
-        AnalyzePostResult result = service.analyze(new AnalyzePostCommand("https://x.com/user/status/12345"));
+        AnalyzePostResult result = service.analyze(new AnalyzePostCommand("https://x.com/user/status/12345", requestingUserId));
 
         ArgumentCaptor<AnalysisResult> analysisCaptor = ArgumentCaptor.forClass(AnalysisResult.class);
         ArgumentCaptor<BuzzScore> buzzScoreCaptor = ArgumentCaptor.forClass(BuzzScore.class);
@@ -119,7 +132,7 @@ class PostAnalysisApplicationServiceTest {
         when(analysisResultRepository.findByPostId(postId)).thenReturn(Optional.empty());
         when(buzzScoreRepository.findByPostId(postId)).thenReturn(Optional.empty());
 
-        service.analyze(new AnalyzePostCommand("https://x.com/user/status/12345"));
+        service.analyze(new AnalyzePostCommand("https://x.com/user/status/12345", requestingUserId));
 
         ArgumentCaptor<AnalysisResult> analysisCaptor = ArgumentCaptor.forClass(AnalysisResult.class);
         ArgumentCaptor<BuzzScore> buzzScoreCaptor = ArgumentCaptor.forClass(BuzzScore.class);
@@ -128,6 +141,16 @@ class PostAnalysisApplicationServiceTest {
 
         assertThat(analysisCaptor.getValue().getId()).isNotNull();
         assertThat(buzzScoreCaptor.getValue().getId()).isNotNull();
+    }
+
+    @Test
+    void analyze_throwsBusinessRuleViolation_whenDailyUsageQuotaExceeded() {
+        when(usageQuotaService.tryConsume(requestingUserId)).thenReturn(false);
+
+        org.junit.jupiter.api.Assertions.assertThrows(BusinessRuleViolationException.class,
+                () -> service.analyze(new AnalyzePostCommand("https://x.com/user/status/12345", requestingUserId)));
+
+        org.mockito.Mockito.verifyNoInteractions(platformFactory);
     }
 
     private FetchedPostData fetchedPost() {

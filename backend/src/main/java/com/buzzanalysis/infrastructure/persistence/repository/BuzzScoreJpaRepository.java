@@ -3,6 +3,7 @@ package com.buzzanalysis.infrastructure.persistence.repository;
 import com.buzzanalysis.infrastructure.persistence.entity.BuzzScoreEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -10,4 +11,6 @@ import java.util.UUID;
 public interface BuzzScoreJpaRepository extends JpaRepository<BuzzScoreEntity, UUID> {
 
     Optional<BuzzScoreEntity> findByPostId(UUID postId);
+
+    List<BuzzScoreEntity> findByPostIdIn(List<UUID> postIds);
 }

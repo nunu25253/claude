@@ -67,10 +67,10 @@ class SavedAnalysisApplicationServiceTest {
     void list_includesPostAnalysisAndBuzzScore_whenPostWasAnalyzed() {
         SavedAnalysis saved = new SavedAnalysis(UUID.randomUUID(), userId, postId, "memo", OffsetDateTime.now());
         when(savedAnalysisRepository.findByUserId(userId)).thenReturn(List.of(saved));
-        when(postRepository.findById(postId)).thenReturn(Optional.of(existingPost));
-        when(analysisResultRepository.findByPostId(postId)).thenReturn(Optional.of(
+        when(postRepository.findByIdIn(List.of(postId))).thenReturn(List.of(existingPost));
+        when(analysisResultRepository.findByPostIdIn(List.of(postId))).thenReturn(List.of(
                 AnalysisResult.builder().id(UUID.randomUUID()).postId(postId).genre("エンタメ").build()));
-        when(buzzScoreRepository.findByPostId(postId)).thenReturn(Optional.of(
+        when(buzzScoreRepository.findByPostIdIn(List.of(postId))).thenReturn(List.of(
                 new BuzzScore(UUID.randomUUID(), postId, 80.0, Map.of("engagementRate", 10.0), OffsetDateTime.now())));
 
         List<SavedAnalysisDetailDto> result = service.list(userId);
@@ -87,9 +87,9 @@ class SavedAnalysisApplicationServiceTest {
     void list_returnsNullAnalysisAndBuzzScore_whenPostWasNeverAnalyzed() {
         SavedAnalysis saved = new SavedAnalysis(UUID.randomUUID(), userId, postId, null, OffsetDateTime.now());
         when(savedAnalysisRepository.findByUserId(userId)).thenReturn(List.of(saved));
-        when(postRepository.findById(postId)).thenReturn(Optional.of(existingPost));
-        when(analysisResultRepository.findByPostId(postId)).thenReturn(Optional.empty());
-        when(buzzScoreRepository.findByPostId(postId)).thenReturn(Optional.empty());
+        when(postRepository.findByIdIn(List.of(postId))).thenReturn(List.of(existingPost));
+        when(analysisResultRepository.findByPostIdIn(List.of(postId))).thenReturn(List.of());
+        when(buzzScoreRepository.findByPostIdIn(List.of(postId))).thenReturn(List.of());
 
         List<SavedAnalysisDetailDto> result = service.list(userId);
 
@@ -102,11 +102,34 @@ class SavedAnalysisApplicationServiceTest {
     void list_excludesEntry_whenReferencedPostNoLongerExists() {
         SavedAnalysis saved = new SavedAnalysis(UUID.randomUUID(), userId, postId, null, OffsetDateTime.now());
         when(savedAnalysisRepository.findByUserId(userId)).thenReturn(List.of(saved));
-        when(postRepository.findById(postId)).thenReturn(Optional.empty());
+        when(postRepository.findByIdIn(List.of(postId))).thenReturn(List.of());
+        when(analysisResultRepository.findByPostIdIn(List.of(postId))).thenReturn(List.of());
+        when(buzzScoreRepository.findByPostIdIn(List.of(postId))).thenReturn(List.of());
 
         List<SavedAnalysisDetailDto> result = service.list(userId);
 
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    void list_neverCallsPerItemLookups_evenWithMultipleSavedEntries() {
+        UUID postId2 = UUID.randomUUID();
+        Post post2 = new Post(postId2, UUID.randomUUID(), Platform.X, "67890", "https://x.com/user/status/67890",
+                OffsetDateTime.now(), "user2", "caption2", List.of(), 50L, 5L, 500L, 2L, null, null,
+                PostType.TEXT, OffsetDateTime.now(), OffsetDateTime.now());
+        SavedAnalysis saved1 = new SavedAnalysis(UUID.randomUUID(), userId, postId, null, OffsetDateTime.now());
+        SavedAnalysis saved2 = new SavedAnalysis(UUID.randomUUID(), userId, postId2, null, OffsetDateTime.now());
+        when(savedAnalysisRepository.findByUserId(userId)).thenReturn(List.of(saved1, saved2));
+        when(postRepository.findByIdIn(any())).thenReturn(List.of(existingPost, post2));
+        when(analysisResultRepository.findByPostIdIn(any())).thenReturn(List.of());
+        when(buzzScoreRepository.findByPostIdIn(any())).thenReturn(List.of());
+
+        List<SavedAnalysisDetailDto> result = service.list(userId);
+
+        assertThat(result).hasSize(2);
+        org.mockito.Mockito.verify(postRepository, org.mockito.Mockito.never()).findById(any());
+        org.mockito.Mockito.verify(analysisResultRepository, org.mockito.Mockito.never()).findByPostId(any());
+        org.mockito.Mockito.verify(buzzScoreRepository, org.mockito.Mockito.never()).findByPostId(any());
     }
 
     @Test

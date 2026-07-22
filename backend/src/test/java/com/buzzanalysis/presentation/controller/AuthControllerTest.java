@@ -1,6 +1,7 @@
 package com.buzzanalysis.presentation.controller;
 
 import com.buzzanalysis.application.auth.AuthApplicationService;
+import com.buzzanalysis.application.auth.PasswordResetApplicationService;
 import com.buzzanalysis.application.auth.dto.AuthResult;
 import com.buzzanalysis.application.auth.dto.LoginCommand;
 import com.buzzanalysis.application.auth.dto.RegisterCommand;
@@ -38,6 +39,9 @@ class AuthControllerTest {
 
     @MockBean
     private AuthApplicationService authApplicationService;
+
+    @MockBean
+    private PasswordResetApplicationService passwordResetApplicationService;
 
     @Test
     void register_returns201WithAuthResult() throws Exception {

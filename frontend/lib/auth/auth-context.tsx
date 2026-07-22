@@ -15,7 +15,7 @@ import type {
   RegisterRequest,
   User,
 } from "@/lib/types";
-import { clearToken, getToken, setToken } from "./token";
+import { clearToken, getToken, setRefreshToken, setToken } from "./token";
 
 const USER_STORAGE_KEY = "sns_buzz_auth_user";
 
@@ -67,6 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (payload: LoginRequest) => {
     const res = await authApi.login(payload);
     setToken(res.accessToken);
+    setRefreshToken(res.refreshToken);
     const loggedInUser: User = { id: res.userId, email: res.email, displayName: res.displayName };
     storeUser(loggedInUser);
     setUser(loggedInUser);
@@ -75,6 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = useCallback(async (payload: RegisterRequest) => {
     const res = await authApi.register(payload);
     setToken(res.accessToken);
+    setRefreshToken(res.refreshToken);
     const registeredUser: User = { id: res.userId, email: res.email, displayName: res.displayName };
     storeUser(registeredUser);
     setUser(registeredUser);

@@ -10,6 +10,7 @@ import com.buzzanalysis.domain.account.SocialAccountRepository;
 import com.buzzanalysis.domain.analysis.AnalysisCompletedEvent;
 import com.buzzanalysis.domain.analysis.AnalysisResult;
 import com.buzzanalysis.domain.analysis.AnalysisResultRepository;
+import com.buzzanalysis.domain.common.exception.BusinessRuleViolationException;
 import com.buzzanalysis.domain.common.exception.EntityNotFoundException;
 import com.buzzanalysis.domain.platform.FetchedAccountData;
 import com.buzzanalysis.domain.platform.FetchedPostData;
@@ -23,6 +24,7 @@ import com.buzzanalysis.domain.score.BuzzScore;
 import com.buzzanalysis.domain.score.BuzzScoreCalculator;
 import com.buzzanalysis.domain.score.BuzzScoreInput;
 import com.buzzanalysis.domain.score.BuzzScoreRepository;
+import com.buzzanalysis.infrastructure.quota.UsageQuotaService;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +49,7 @@ public class PostAnalysisApplicationService {
     private final AiPostAnalysisPort aiPostAnalysisPort;
     private final BuzzScoreCalculator buzzScoreCalculator;
     private final ApplicationEventPublisher eventPublisher;
+    private final UsageQuotaService usageQuotaService;
 
     public PostAnalysisApplicationService(PlatformFactory platformFactory,
                                            SocialAccountRepository socialAccountRepository,
@@ -55,7 +58,8 @@ public class PostAnalysisApplicationService {
                                            BuzzScoreRepository buzzScoreRepository,
                                            AiPostAnalysisPort aiPostAnalysisPort,
                                            BuzzScoreCalculator buzzScoreCalculator,
-                                           ApplicationEventPublisher eventPublisher) {
+                                           ApplicationEventPublisher eventPublisher,
+                                           UsageQuotaService usageQuotaService) {
         this.platformFactory = platformFactory;
         this.socialAccountRepository = socialAccountRepository;
         this.postRepository = postRepository;
@@ -64,10 +68,15 @@ public class PostAnalysisApplicationService {
         this.aiPostAnalysisPort = aiPostAnalysisPort;
         this.buzzScoreCalculator = buzzScoreCalculator;
         this.eventPublisher = eventPublisher;
+        this.usageQuotaService = usageQuotaService;
     }
 
     @Transactional
     public AnalyzePostResult analyze(AnalyzePostCommand command) {
+        if (!usageQuotaService.tryConsume(command.requestingUserId())) {
+            throw new BusinessRuleViolationException("本日の投稿分析の利用回数上限に達しました。明日以降に再度お試しください。");
+        }
+
         Platform platform = platformFactory.detectPlatformFromUrl(command.postUrl());
         SocialPlatform client = platformFactory.resolve(platform);
 

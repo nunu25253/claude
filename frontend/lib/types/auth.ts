@@ -16,6 +16,15 @@ export interface RegisterRequest {
   displayName: string;
 }
 
+export interface PasswordResetRequestRequest {
+  email: string;
+}
+
+export interface PasswordResetConfirmRequest {
+  token: string;
+  newPassword: string;
+}
+
 // バックエンド(AuthResult)のレスポンス構造に合わせたフラットな形。
 // ネストした user オブジェクトは返らないため、呼び出し側で User に組み立てる。
 export interface AuthResponse {

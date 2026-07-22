@@ -40,6 +40,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webflux' // WebClient for OpenAI / SNS API calls
     implementation 'org.springframework.boot:spring-boot-starter-cache'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-mail' // パスワードリセットメール送信
 
     // --- DB / Migration ---
     // pgvector用のカスタムHibernate型(VectorType)がorg.postgresql.util.PGobjectをコンパイル時に
