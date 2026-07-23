@@ -61,7 +61,8 @@ public class CommonalityAnalysisApplicationService {
     @Transactional(readOnly = true)
     public CommonalityAnalysisResultDto analyze(List<UUID> postIds, UUID requestingUserId) {
         if (!usageQuotaService.tryConsume(requestingUserId)) {
-            throw new BusinessRuleViolationException("本日のAI機能の利用回数上限に達しました。明日以降に再度お試しください。");
+            throw new BusinessRuleViolationException("本日のAI機能の利用回数上限に達しました。明日以降に再度お試しください。",
+                    UsageQuotaService.EXCEEDED_ERROR_CODE);
         }
         List<UUID> targetIds = postIds.size() > MAX_POSTS ? postIds.subList(0, MAX_POSTS) : postIds;
 

@@ -51,7 +51,8 @@ public class ImagePromptGenerationApplicationService {
     @Transactional
     public ImagePromptSetDto generateForScript(UUID scriptId, UUID requestingUserId) {
         if (!usageQuotaService.tryConsume(requestingUserId)) {
-            throw new BusinessRuleViolationException("本日のAI機能の利用回数上限に達しました。明日以降に再度お試しください。");
+            throw new BusinessRuleViolationException("本日のAI機能の利用回数上限に達しました。明日以降に再度お試しください。",
+                    UsageQuotaService.EXCEEDED_ERROR_CODE);
         }
         VideoScript script = videoScriptRepository.findById(scriptId)
                 .orElseThrow(() -> EntityNotFoundException.of("VideoScript", scriptId));
@@ -62,7 +63,8 @@ public class ImagePromptGenerationApplicationService {
     @Transactional
     public ImagePromptSetDto generateForCarousel(UUID carouselId, UUID requestingUserId) {
         if (!usageQuotaService.tryConsume(requestingUserId)) {
-            throw new BusinessRuleViolationException("本日のAI機能の利用回数上限に達しました。明日以降に再度お試しください。");
+            throw new BusinessRuleViolationException("本日のAI機能の利用回数上限に達しました。明日以降に再度お試しください。",
+                    UsageQuotaService.EXCEEDED_ERROR_CODE);
         }
         Carousel carousel = carouselRepository.findById(carouselId)
                 .orElseThrow(() -> EntityNotFoundException.of("Carousel", carouselId));

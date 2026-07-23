@@ -46,7 +46,8 @@ public class CarouselGenerationApplicationService {
     @Transactional
     public CarouselDto generate(CarouselGenerationRequest request, UUID requestingUserId) {
         if (!usageQuotaService.tryConsume(requestingUserId)) {
-            throw new BusinessRuleViolationException("本日のAI機能の利用回数上限に達しました。明日以降に再度お試しください。");
+            throw new BusinessRuleViolationException("本日のAI機能の利用回数上限に達しました。明日以降に再度お試しください。",
+                    UsageQuotaService.EXCEEDED_ERROR_CODE);
         }
         ContentProposal proposal = contentProposalRepository.findById(request.proposalId())
                 .orElseThrow(() -> EntityNotFoundException.of("ContentProposal", request.proposalId()));

@@ -10,13 +10,22 @@ public record ErrorResponse(
         String error,
         String message,
         String path,
-        Map<String, String> fieldErrors
+        Map<String, String> fieldErrors,
+        String code
 ) {
     public static ErrorResponse of(int status, String error, String message, String path) {
-        return new ErrorResponse(OffsetDateTime.now(), status, error, message, path, null);
+        return new ErrorResponse(OffsetDateTime.now(), status, error, message, path, null, null);
+    }
+
+    /**
+     * codeは、フロントエンドがメッセージ文字列に頼らず特定の業務ルール違反を判別するための
+     * 任意識別子(例: AI_USAGE_QUOTA_EXCEEDED)。
+     */
+    public static ErrorResponse of(int status, String error, String message, String path, String code) {
+        return new ErrorResponse(OffsetDateTime.now(), status, error, message, path, null, code);
     }
 
     public static ErrorResponse ofValidation(int status, String error, String message, String path, Map<String, String> fieldErrors) {
-        return new ErrorResponse(OffsetDateTime.now(), status, error, message, path, fieldErrors);
+        return new ErrorResponse(OffsetDateTime.now(), status, error, message, path, fieldErrors, null);
     }
 }

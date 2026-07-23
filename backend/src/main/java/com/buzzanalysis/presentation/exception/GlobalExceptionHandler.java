@@ -39,7 +39,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessRuleViolationException.class)
     public ResponseEntity<ErrorResponse> handleBusinessRule(BusinessRuleViolationException e, HttpServletRequest request) {
         return ResponseEntity.badRequest()
-                .body(ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), "Bad Request", e.getMessage(), request.getRequestURI()));
+                .body(ErrorResponse.of(HttpStatus.BAD_REQUEST.value(), "Bad Request", e.getMessage(),
+                        request.getRequestURI(), e.getErrorCode()));
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)

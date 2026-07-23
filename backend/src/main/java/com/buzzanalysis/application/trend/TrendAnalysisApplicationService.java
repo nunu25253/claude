@@ -75,7 +75,8 @@ public class TrendAnalysisApplicationService {
     @Transactional
     public TrendReportDto analyze(TrendAnalysisRequest request, UUID requestingUserId) {
         if (requestingUserId != null && !usageQuotaService.tryConsume(requestingUserId)) {
-            throw new BusinessRuleViolationException("本日のAI機能の利用回数上限に達しました。明日以降に再度お試しください。");
+            throw new BusinessRuleViolationException("本日のAI機能の利用回数上限に達しました。明日以降に再度お試しください。",
+                    UsageQuotaService.EXCEEDED_ERROR_CODE);
         }
         int recentWindowDays = request.recentWindowDays() == null || request.recentWindowDays() <= 0
                 ? DEFAULT_RECENT_WINDOW_DAYS : request.recentWindowDays();

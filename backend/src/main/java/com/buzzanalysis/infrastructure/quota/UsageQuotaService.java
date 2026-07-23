@@ -19,6 +19,12 @@ import java.util.UUID;
 @Service
 public class UsageQuotaService {
 
+    /**
+     * 利用上限超過時にBusinessRuleViolationExceptionへ付与するerrorCode。
+     * フロントエンドはこのコードでアップセルCTAの表示を判定する(メッセージ文字列には依存しない)。
+     */
+    public static final String EXCEEDED_ERROR_CODE = "AI_USAGE_QUOTA_EXCEEDED";
+
     private static final String KEY_PREFIX = "quota:openai:";
     private static final Duration KEY_TTL = Duration.ofHours(25);
 

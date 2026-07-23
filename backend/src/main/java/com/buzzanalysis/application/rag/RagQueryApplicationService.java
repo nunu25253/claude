@@ -42,7 +42,8 @@ public class RagQueryApplicationService {
     @Transactional(readOnly = true)
     public RagQueryResultDto query(RagQueryRequest request, UUID requestingUserId) {
         if (!usageQuotaService.tryConsume(requestingUserId)) {
-            throw new BusinessRuleViolationException("本日のAI機能の利用回数上限に達しました。明日以降に再度お試しください。");
+            throw new BusinessRuleViolationException("本日のAI機能の利用回数上限に達しました。明日以降に再度お試しください。",
+                    UsageQuotaService.EXCEEDED_ERROR_CODE);
         }
         int topK = resolveTopK(request.topK());
 

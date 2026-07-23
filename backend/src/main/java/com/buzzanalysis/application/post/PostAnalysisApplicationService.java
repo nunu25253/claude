@@ -90,7 +90,8 @@ public class PostAnalysisApplicationService {
                     "メールアドレスの確認が完了していません。登録時に送信された確認メールのリンクからご確認ください。");
         }
         if (!usageQuotaService.tryConsume(command.requestingUserId())) {
-            throw new BusinessRuleViolationException("本日の投稿分析の利用回数上限に達しました。明日以降に再度お試しください。");
+            throw new BusinessRuleViolationException("本日の投稿分析の利用回数上限に達しました。明日以降に再度お試しください。",
+                    UsageQuotaService.EXCEEDED_ERROR_CODE);
         }
 
         Platform platform = platformFactory.detectPlatformFromUrl(command.postUrl());
