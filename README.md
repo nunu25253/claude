@@ -140,6 +140,8 @@ docker compose up -d --build
 | postgres | localhost:5432 | DB（Flywayにより自動でスキーマ作成＋サンプルデータ投入） |
 | redis | localhost:6379 | キャッシュ |
 | MinIO コンソール | http://localhost:9001 | S3互換ストレージ管理画面（初期ユーザー: `.env`の`S3_ACCESS_KEY`/`S3_SECRET_KEY`） |
+| MailHog | http://localhost:8025 | 送信メール確認用のテストSMTPキャッチャー(パスワードリセット・メール確認・しきい値アラート等) |
+| Zipkin | http://localhost:9411 | 分散トレーシングUI。リクエスト単位でHTTP呼び出し・OpenAI/SNS公式APIへの外部呼び出しを1画面で追跡できる |
 
 起動確認:
 

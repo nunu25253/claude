@@ -180,15 +180,25 @@ management:
     # 落ちるのを防ぐ。
     mail:
       enabled: false
+  tracing:
+    sampling:
+      # 開発時は全リクエストをトレースする。本番でトレーシング基盤への負荷・コストを抑えたい場合は
+      # 0.0-1.0の範囲でサンプリング率を下げる(例: 0.1 = 10%のみトレース)。
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+  zipkin:
+    tracing:
+      # docker-composeで起動するZipkin(http://localhost:9411 でUI閲覧可)へスパンを送信する。
+      endpoint: ${ZIPKIN_ENDPOINT:http://localhost:9411/api/v2/spans}
 
 logging:
   level:
     com.buzzanalysis: INFO
   pattern:
-    # requestId(相関ID)を含めることで、1リクエストにまたがる全ログ行を1つのIDで追跡できるようにする
-    # (RequestIdFilterがMDCに設定する)。本番障害調査の効率化が目的。
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [reqId=%X{requestId:-none}] %logger{36} - %msg%n%wEx"
-    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [reqId=%X{requestId:-none}] %logger{36} - %msg%n%wEx"
+    # requestId(相関ID)に加えてtraceId/spanIdも含める。requestIdは1リクエスト内のログを、
+    # traceId/spanIdはZipkin UI上の分散トレースとログを突き合わせるのに使う
+    # (RequestIdFilterがMDCに設定するrequestIdとは別に、Micrometer Tracingがtraced/spanIdを自動設定する)。
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [reqId=%X{requestId:-none},traceId=%X{traceId:-none},spanId=%X{spanId:-none}] %logger{36} - %msg%n%wEx"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [reqId=%X{requestId:-none},traceId=%X{traceId:-none},spanId=%X{spanId:-none}] %logger{36} - %msg%n%wEx"
 
 ---
 spring:

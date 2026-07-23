@@ -48,6 +48,12 @@ dependencies {
     // OpenAI障害時に各リクエストがタイムアウトいっぱいまで待たされ続けてアプリ全体が詰まる問題への対応。
     implementation "io.github.resilience4j:resilience4j-spring-boot3:${resilience4jVersion}"
 
+    // --- 分散トレーシング(Micrometer Tracing + Zipkin) ---
+    // 本番障害調査を1画面(Zipkin UI)で追えるようにする。Brave実装でトレースID/スパンIDを
+    // HTTPリクエスト・WebClient呼び出し(OpenAI/SNS公式API)にまたがって自動伝播する。
+    implementation 'io.micrometer:micrometer-tracing-bridge-brave'
+    implementation 'io.zipkin.reporter2:zipkin-reporter-brave'
+
     // --- DB / Migration ---
     // pgvector用のカスタムHibernate型(VectorType)がorg.postgresql.util.PGobjectをコンパイル時に
     // 参照するため、runtimeOnlyではなくimplementationにしている。
