@@ -4,12 +4,13 @@ import { useState } from "react";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
 import { EmailVerificationBanner } from "./email-verification-banner";
+import { OnboardingTour } from "@/components/dashboard/onboarding-tour";
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-slate-50">
+    <div className="flex h-dvh overflow-hidden bg-slate-50 dark:bg-slate-950">
       {/* デスクトップ用の常設サイドバー */}
       <aside className="hidden w-64 shrink-0 lg:block">
         <Sidebar />
@@ -36,6 +37,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
+
+      <OnboardingTour />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useCompetitorStats } from "@/lib/hooks/use-competitors";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -85,10 +86,17 @@ function CompetitorStatsView({
   return (
     <div className="space-y-6">
       <Card className="flex flex-wrap items-center gap-4">
-        <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-2xl">
+        <div className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-2xl">
           {stats.account.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={stats.account.avatarUrl} alt="" className="h-full w-full object-cover" />
+            // 外部SNSアバターは任意のドメインから配信されるため unoptimized で表示する。
+            <Image
+              src={stats.account.avatarUrl}
+              alt={`${stats.account.displayName}のプロフィール画像`}
+              fill
+              unoptimized
+              className="object-cover"
+              sizes="56px"
+            />
           ) : (
             "👤"
           )}

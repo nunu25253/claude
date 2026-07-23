@@ -12,13 +12,16 @@ export function KpiCard({ label, value, icon, trend }: KpiCardProps) {
   return (
     <Card className="flex items-center gap-4">
       {icon && (
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-xl">
+        <div
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-xl dark:bg-brand-950"
+          aria-hidden
+        >
           {icon}
         </div>
       )}
       <div>
         <p className="text-sm text-slate-500">{label}</p>
-        <p className="text-2xl font-bold text-slate-900">{value}</p>
+        <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{value}</p>
         {trend && (
           <p
             className={cn(

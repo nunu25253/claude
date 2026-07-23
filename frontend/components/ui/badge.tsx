@@ -8,7 +8,11 @@ export function Badge({
   className?: string;
   children: React.ReactNode;
 }) {
-  return <span className={cn("badge bg-slate-100 text-slate-600", className)}>{children}</span>;
+  return (
+    <span className={cn("badge bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300", className)}>
+      {children}
+    </span>
+  );
 }
 
 const PLATFORM_STYLE: Record<Platform, { label: string; className: string }> = {

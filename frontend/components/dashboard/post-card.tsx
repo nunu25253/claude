@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { PlatformBadge } from "@/components/ui/badge";
 import { BuzzScoreBadge } from "./buzz-score-badge";
 import type { Post } from "@/lib/types";
@@ -11,21 +12,24 @@ interface PostCardProps {
 
 export function PostCard({ post, rank, footer }: PostCardProps) {
   return (
-    <div className="flex gap-3 rounded-xl border border-slate-100 p-3 transition hover:border-brand-200 hover:bg-brand-50/30">
+    <div className="flex gap-3 rounded-xl border border-slate-100 p-3 transition hover:border-brand-200 hover:bg-brand-50/30 dark:border-slate-800 dark:hover:border-brand-800 dark:hover:bg-brand-950/30">
       {rank !== undefined && (
         <div className="flex w-7 shrink-0 items-center justify-center text-sm font-bold text-slate-400">
           {rank}
         </div>
       )}
 
-      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-slate-100">
+      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800">
         {post.thumbnailUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- 外部SNSサムネイルのため next/image のドメイン許可設定を都度増やさず img で表示
-          <img
+          // 外部SNSサムネイルは任意のドメインから配信されるため next/image のドメイン許可設定を
+          // 都度増やさず unoptimized で表示する(遅延読み込み・レイアウトシフト防止は適用される)。
+          <Image
             src={post.thumbnailUrl}
-            alt=""
-            className="h-full w-full object-cover"
-            loading="lazy"
+            alt={`${post.authorName ?? post.accountHandle ?? "投稿"}のサムネイル`}
+            fill
+            unoptimized
+            className="object-cover"
+            sizes="64px"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-xl text-slate-300">
@@ -39,7 +43,7 @@ export function PostCard({ post, rank, footer }: PostCardProps) {
           <PlatformBadge platform={post.platform} />
           <span className="truncate text-xs text-slate-400">@{post.accountHandle ?? post.authorName ?? "unknown"}</span>
         </div>
-        <p className="mt-1 line-clamp-2 text-sm text-slate-700">{post.caption || "(キャプションなし)"}</p>
+        <p className="mt-1 line-clamp-2 text-sm text-slate-700 dark:text-slate-300">{post.caption || "(キャプションなし)"}</p>
         <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-400">
           <span>❤️ {formatCompactNumber(post.likeCount)}</span>
           <span>💬 {formatCompactNumber(post.commentCount)}</span>

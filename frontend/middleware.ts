@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 const DEFAULT_TOKEN_KEY = "sns_buzz_auth_token";
 
 // ログイン不要でアクセスできるパス
-const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email"];
+const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email", "/welcome"];
 // ログイン済みならダッシュボードへ戻すパス(/verify-email は登録直後の
 // ログイン済みユーザーもアクセスするため対象外とする)
 const AUTH_ONLY_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"];
@@ -37,8 +37,10 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * 静的ファイル・APIルート等を除いた全パスに適用
+     * 静的ファイル・APIルート・OGP/favicon等のメタデータルートを除いた全パスに適用。
+     * これらを除外しないとSNSクローラーやブラウザタブアイコン取得が/loginへリダイレクトされ、
+     * OGPプレビューやfaviconが機能しなくなる。
      */
-    "/((?!_next/static|_next/image|favicon.ico|api).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon|opengraph-image|twitter-image|robots.txt|sitemap.xml|api).*)",
   ],
 };

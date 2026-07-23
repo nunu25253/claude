@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { PlatformBadge } from "@/components/ui/badge";
 import { BuzzScoreBadge } from "@/components/dashboard/buzz-score-badge";
@@ -10,10 +11,17 @@ export function OverviewSection({ post, buzzScore }: { post: Post; buzzScore: Bu
     <Card>
       <div className="flex flex-col gap-6 md:flex-row">
         <div className="flex gap-4 md:w-1/2">
-          <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+          <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-slate-100">
             {post.thumbnailUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={post.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+              // 外部SNSサムネイルは任意のドメインから配信されるため unoptimized で表示する。
+              <Image
+                src={post.thumbnailUrl}
+                alt={`${post.authorName ?? post.accountHandle ?? "投稿"}のサムネイル`}
+                fill
+                unoptimized
+                className="object-cover"
+                sizes="96px"
+              />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-3xl text-slate-300">
                 🖼️

@@ -29,7 +29,7 @@ export function EmailVerificationBanner() {
   };
 
   return (
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-200">
       <p>
         メールアドレスがまだ確認されていません。一部の機能(投稿分析など)をご利用いただくには、確認メールのリンクからご確認ください。
       </p>

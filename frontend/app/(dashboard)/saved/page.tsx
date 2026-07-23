@@ -8,6 +8,36 @@ import { QueryState } from "@/components/dashboard/query-state";
 import { PlatformBadge } from "@/components/ui/badge";
 import { AnalysisResult } from "@/components/dashboard/analysis/analysis-result";
 import { formatDateTime } from "@/lib/utils";
+import { downloadCsv, toCsv } from "@/lib/csv";
+import type { SavedAnalysis } from "@/lib/types";
+
+function buildSavedAnalysesCsv(items: SavedAnalysis[]): string {
+  const headers = [
+    "保存日",
+    "プラットフォーム",
+    "アカウント",
+    "キャプション",
+    "投稿URL",
+    "いいね数",
+    "コメント数",
+    "シェア数",
+    "BuzzScore",
+    "メモ",
+  ];
+  const rows = items.map((item) => [
+    formatDateTime(item.createdAt),
+    item.post.platform,
+    item.post.accountHandle ?? item.post.authorName ?? "",
+    item.post.caption ?? "",
+    item.post.url ?? "",
+    item.post.likeCount ?? 0,
+    item.post.commentCount ?? 0,
+    item.post.shareCount ?? 0,
+    item.buzzScore?.totalScore ?? "",
+    item.note ?? "",
+  ]);
+  return toCsv(headers, rows);
+}
 
 export default function SavedPage() {
   const savedQuery = useSavedAnalyses();
@@ -25,8 +55,22 @@ export default function SavedPage() {
     }
   };
 
+  const handleExportCsv = () => {
+    if (!savedQuery.data || savedQuery.data.length === 0) return;
+    const csv = buildSavedAnalysesCsv(savedQuery.data);
+    const today = new Date().toISOString().slice(0, 10);
+    downloadCsv(`saved-analyses-${today}.csv`, csv);
+  };
+
   return (
     <div className="space-y-4">
+      {(savedQuery.data?.length ?? 0) > 0 && (
+        <div className="flex justify-end">
+          <Button variant="secondary" onClick={handleExportCsv}>
+            CSVエクスポート
+          </Button>
+        </div>
+      )}
       <QueryState
         isLoading={savedQuery.isLoading}
         isError={savedQuery.isError}
