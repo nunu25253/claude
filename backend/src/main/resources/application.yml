@@ -41,6 +41,13 @@ spring:
           auth: ${MAIL_SMTP_AUTH:false}
           starttls:
             enable: ${MAIL_SMTP_STARTTLS:false}
+          # SMTPサーバーが応答不能/低速な場合でも一定時間で諦めるためのタイムアウト(ミリ秒)。
+          # 未設定だとJavaMail既定のタイムアウト(実質無制限に近い)になり、送信自体は
+          # @Asyncでリクエストスレッドから切り離しているとはいえ、専用スレッドプールが
+          # 詰まり続けるおそれがあるため必ず設定する。
+          connectiontimeout: ${MAIL_SMTP_CONNECTION_TIMEOUT_MS:5000}
+          timeout: ${MAIL_SMTP_TIMEOUT_MS:5000}
+          writetimeout: ${MAIL_SMTP_WRITE_TIMEOUT_MS:5000}
 
 server:
   port: ${SERVER_PORT:8080}
@@ -167,6 +174,10 @@ storage:
   provider: ${STORAGE_PROVIDER:local}
   local:
     base-dir: ${STORAGE_LOCAL_BASE_DIR:./data/reports}
+    # S3の署名付きURLと同じ考え方で、ダウンロードURLに有効期限(分)を持たせる。
+    presigned-url-expiration-minutes: ${STORAGE_LOCAL_PRESIGNED_URL_EXPIRATION_MINUTES:60}
+    # ダウンロードURLの署名に使うHMAC鍵。JWT_SECRET同様、本番では必ず環境変数で上書きすること。
+    signing-secret: ${STORAGE_LOCAL_SIGNING_SECRET:change-this-secret-in-production-please-0123456789abcdef}
   s3:
     endpoint: ${S3_ENDPOINT:}
     region: ${S3_REGION:ap-northeast-1}

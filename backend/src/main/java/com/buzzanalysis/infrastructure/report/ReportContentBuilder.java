@@ -15,12 +15,18 @@ import java.util.stream.Collectors;
 /**
  * レポートのMarkdown本文を組み立てる共通ロジック。PDF/HTML出力もこのMarkdownをベースに生成することで、
  * 3つの {@code GenerateReportCommand} 実装間でコンテンツの一貫性を保つ。
+ *
+ * <p><b>セキュリティ上重要:</b> ここで埋め込む投稿者名・URL・ハッシュタグ等はSNS公開投稿由来の
+ * 第三者制御可能な文字列である。{@link HtmlRenderer} は既定では生HTML(例: {@code <script>})を
+ * そのまま出力してしまうため、{@code escapeHtml(true)} を指定し常にエスケープする
+ * （見出し/強調/表など自前のMarkdown記法はASTノードとして解釈されるため影響を受けない）。
+ * これを外すと、悪意のある投稿を分析しただけで保存型XSSが成立する。</p>
  */
 @Component
 public class ReportContentBuilder {
 
     private final Parser markdownParser = Parser.builder().build();
-    private final HtmlRenderer htmlRenderer = HtmlRenderer.builder().build();
+    private final HtmlRenderer htmlRenderer = HtmlRenderer.builder().escapeHtml(true).build();
 
     public String buildMarkdown(ReportGenerationContext context) {
         Post post = context.post();

@@ -5,12 +5,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 /**
  * {@link JavaMailSender} を使ったパスワードリセットメール送信の実装。
  * ローカル開発ではdocker-compose上のMailHog（SMTP互換のテスト用メールキャッチャー）宛に送信し、
  * 本番ではSPRING_MAIL_HOST等の環境変数で実際のSMTPサーバーに差し替える想定。
+ *
+ * <p>各メソッドは{@code @Async("mailTaskExecutor")}でリクエストスレッドから切り離して実行する。
+ * SMTP送信は同期呼び出しのままだと接続先の遅延・障害がそのまま新規登録/パスワードリセット等の
+ * APIレスポンスをブロックしてしまう(タイムアウト設定も{@code application.yml}側で別途行う)。</p>
  */
 @Component
 public class SmtpMailSenderAdapter implements MailSenderPort {
@@ -26,6 +31,7 @@ public class SmtpMailSenderAdapter implements MailSenderPort {
     }
 
     @Override
+    @Async("mailTaskExecutor")
     public void sendPasswordResetEmail(String toEmail, String rawToken) {
         String resetLink = properties.getResetLinkBaseUrl() + "?token=" + rawToken;
         SimpleMailMessage message = new SimpleMailMessage();
@@ -50,6 +56,7 @@ public class SmtpMailSenderAdapter implements MailSenderPort {
     }
 
     @Override
+    @Async("mailTaskExecutor")
     public void sendEmailVerificationEmail(String toEmail, String rawToken) {
         String verificationLink = properties.getVerificationLinkBaseUrl() + "?token=" + rawToken;
         SimpleMailMessage message = new SimpleMailMessage();
@@ -73,6 +80,7 @@ public class SmtpMailSenderAdapter implements MailSenderPort {
     }
 
     @Override
+    @Async("mailTaskExecutor")
     public void sendThresholdAlertEmail(String toEmail, String postCaption, double currentScore, double threshold) {
         String caption = (postCaption == null || postCaption.isBlank()) ? "(キャプションなし)" : postCaption;
         SimpleMailMessage message = new SimpleMailMessage();

@@ -14,6 +14,7 @@ import com.buzzanalysis.infrastructure.scheduling.BillingRenewalProperties;
 import com.buzzanalysis.infrastructure.security.CorsProperties;
 import com.buzzanalysis.infrastructure.security.JwtProperties;
 import com.buzzanalysis.infrastructure.security.RateLimitProperties;
+import com.buzzanalysis.infrastructure.storage.LocalStorageProperties;
 import com.buzzanalysis.infrastructure.storage.S3Properties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +28,7 @@ import org.springframework.context.annotation.Configuration;
         OpenAiProperties.class,
         JwtProperties.class,
         S3Properties.class,
+        LocalStorageProperties.class,
         BatchSyncProperties.class,
         BatchTrendProperties.class,
         BatchAlertProperties.class,

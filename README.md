@@ -137,6 +137,13 @@ X_BEARER_TOKEN=
 
 # JWT署名鍵（本番相当で動かす場合は必ず変更してください）
 JWT_SECRET=change-this-secret-in-production-please-0123456789abcdef
+
+# storage.provider=local（既定）時、AIレポートのダウンロードURLに署名するHMAC鍵。
+# JWT_SECRETと同様、本番相当で動かす場合は必ず変更してください
+# （変更しないと、既定値を知っている第三者がダウンロードURLを偽造できてしまいます）。
+STORAGE_LOCAL_SIGNING_SECRET=change-this-secret-in-production-please-0123456789abcdef
+# ダウンロードURLの有効期限（分）。既定60分。
+# STORAGE_LOCAL_PRESIGNED_URL_EXPIRATION_MINUTES=60
 ```
 
 ### 2. Docker Composeで一式起動（推奨）
