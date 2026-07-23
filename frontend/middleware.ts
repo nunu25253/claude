@@ -12,6 +12,35 @@ const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-passwor
 // ログイン済みユーザーもアクセスするため対象外とする)
 const AUTH_ONLY_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"];
 
+// ブラウザから直接叩くバックエンドのオリジンをCSPのconnect-srcに許可する必要があるため、
+// APIベースURLからオリジン部分だけを抜き出す(パス部分/api/v1は不要)。
+function apiOrigin(): string {
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api/v1";
+  try {
+    return new URL(base).origin;
+  } catch {
+    return "";
+  }
+}
+
+// リクエスト毎にnonceを生成しscript-src/style-srcの'unsafe-inline'を排除する。
+// script-srcは'strict-dynamic'を併用し、nonce付きスクリプトが動的に読み込むスクリプトも
+// 許可することで、Next.js自身がハイドレーション用に注入するインラインスクリプトを
+// (x-nonceリクエストヘッダー経由で)個別許可せず自動的に通す。
+function buildCspHeader(nonce: string): string {
+  return [
+    "default-src 'self'",
+    // SNS投稿のサムネイル/アバターは外部ドメインの画像を表示するためhttps全般を許可する
+    "img-src 'self' https: data:",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'"}`,
+    `style-src 'self' 'nonce-${nonce}'`,
+    `connect-src 'self' ${apiOrigin()}`.trim(),
+    "object-src 'none'",
+    "base-uri 'self'",
+    "frame-ancestors 'none'",
+  ].join("; ");
+}
+
 /**
  * ダッシュボード配下は未ログインの場合 /login にリダイレクトする簡易ガード。
  * JWTの中身の検証はバックエンド側に委ね、ここでは「Cookieの有無」のみをチェックする。
@@ -33,7 +62,15 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  return NextResponse.next();
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const cspHeader = buildCspHeader(nonce);
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  response.headers.set("Content-Security-Policy", cspHeader);
+  return response;
 }
 
 export const config = {

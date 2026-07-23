@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -45,15 +46,20 @@ const THEME_INIT_SCRIPT = `
 })();
 `;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // middleware.tsがリクエスト毎に生成しx-nonceヘッダーで転送したnonce。
+  // CSPのscript-srcをnonceベースに厳格化した(unsafe-inline廃止)ため、
+  // インラインスクリプトにはこのnonceを付与する必要がある。
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html lang="ja" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="antialiased">
         <Providers>{children}</Providers>
