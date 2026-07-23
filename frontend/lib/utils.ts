@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]): string {
   return clsx(inputs);
 }
 
-/** 1200 -> "1.2K" のような日本語圏でも読みやすい概数表記に変換 */
+/** 12000 -> "1.2万" のような日本語の万単位の概数表記に変換(ja-JPロケールの挙動) */
 export function formatCompactNumber(value: number | undefined | null): string {
   if (value === undefined || value === null || Number.isNaN(value)) return "-";
   return new Intl.NumberFormat("ja-JP", {
