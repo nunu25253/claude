@@ -2,6 +2,7 @@ import { apiClient, toQueryParams } from "../api-client";
 import type {
   AnalyzePostRequest,
   AnalyzePostResponse,
+  BuzzScoreHistoryPoint,
   Page,
   Post,
   PostSearchParams,
@@ -13,4 +14,7 @@ export const postsApi = {
 
   search: (params: PostSearchParams) =>
     apiClient.get<Page<Post>>("/posts/search", { params: toQueryParams(params) }),
+
+  buzzScoreHistory: (postId: string) =>
+    apiClient.get<BuzzScoreHistoryPoint[]>(`/posts/${postId}/buzz-score-history`),
 };

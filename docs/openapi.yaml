@@ -220,6 +220,24 @@ paths:
         "502":
           $ref: "#/components/responses/BadGateway"
 
+  /posts/{postId}/buzz-score-history:
+    get:
+      tags: [Posts]
+      summary: 投稿のBuzzScore推移(履歴)取得。POST /posts/analyzeで再分析するたびに1件追記される
+      parameters:
+        - $ref: "#/components/parameters/PostIdPath"
+      responses:
+        "200":
+          description: 取得成功(計算日時の昇順)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BuzzScoreHistoryPoint"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /posts:
     get:
       tags: [Posts]
@@ -2541,6 +2559,18 @@ components:
         createdAt:
           type: string
           format: date-time
+
+    BuzzScoreHistoryPoint:
+      type: object
+      properties:
+        calculatedAt:
+          type: string
+          format: date-time
+        totalScore:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
 
     BuzzScore:
       type: object

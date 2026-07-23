@@ -15,3 +15,11 @@ export function usePostSearch(params: PostSearchParams, enabled = true) {
     enabled,
   });
 }
+
+export function useBuzzScoreHistory(postId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["posts", postId, "buzz-score-history"],
+    queryFn: () => postsApi.buzzScoreHistory(postId),
+    enabled,
+  });
+}

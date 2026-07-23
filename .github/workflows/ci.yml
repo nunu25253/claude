@@ -105,6 +105,15 @@ jobs:
           done
           echo "stack did not become healthy in time"; docker compose logs; exit 1
 
+      - name: Verify frontend API types match backend OpenAPI contract
+        working-directory: frontend
+        run: |
+          npm run generate:api-types
+          if ! git diff --exit-code -- lib/types/generated/api.ts; then
+            echo "::error::lib/types/generated/api.ts is out of date. Run 'npm run generate:api-types' (with the backend running) and commit the result."
+            exit 1
+          fi
+
       - name: Run E2E tests
         working-directory: frontend
         env:

@@ -1,4 +1,5 @@
 import type { Genre, Platform } from "./common";
+import type { components } from "./generated/api";
 
 // 投稿の基本メタデータ（SNSから取得した生データ）。
 // accountId/accountName/accountHandle/thumbnailUrl/genre/buzzScore等は/trendsのように
@@ -75,6 +76,9 @@ export interface AnalyzePostResponse {
   buzzScore: BuzzScoreResult;
   similarPosts: Post[];
 }
+
+// BuzzScore推移(履歴)の1点分。生成された型を一次ソースとし、実際には必ず値が入る前提でRequiredを被せる。
+export type BuzzScoreHistoryPoint = Required<components["schemas"]["BuzzScoreHistoryPointDto"]>;
 
 export interface PostSearchParams {
   keyword?: string;

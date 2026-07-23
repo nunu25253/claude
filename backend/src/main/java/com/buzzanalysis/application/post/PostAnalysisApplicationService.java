@@ -22,6 +22,8 @@ import com.buzzanalysis.domain.post.PostRepository;
 import com.buzzanalysis.domain.post.PostSearchCriteria;
 import com.buzzanalysis.domain.score.BuzzScore;
 import com.buzzanalysis.domain.score.BuzzScoreCalculator;
+import com.buzzanalysis.domain.score.BuzzScoreHistoryEntry;
+import com.buzzanalysis.domain.score.BuzzScoreHistoryRepository;
 import com.buzzanalysis.domain.score.BuzzScoreInput;
 import com.buzzanalysis.domain.score.BuzzScoreRepository;
 import com.buzzanalysis.domain.user.User;
@@ -48,6 +50,7 @@ public class PostAnalysisApplicationService {
     private final PostRepository postRepository;
     private final AnalysisResultRepository analysisResultRepository;
     private final BuzzScoreRepository buzzScoreRepository;
+    private final BuzzScoreHistoryRepository buzzScoreHistoryRepository;
     private final AiPostAnalysisPort aiPostAnalysisPort;
     private final BuzzScoreCalculator buzzScoreCalculator;
     private final ApplicationEventPublisher eventPublisher;
@@ -59,6 +62,7 @@ public class PostAnalysisApplicationService {
                                            PostRepository postRepository,
                                            AnalysisResultRepository analysisResultRepository,
                                            BuzzScoreRepository buzzScoreRepository,
+                                           BuzzScoreHistoryRepository buzzScoreHistoryRepository,
                                            AiPostAnalysisPort aiPostAnalysisPort,
                                            BuzzScoreCalculator buzzScoreCalculator,
                                            ApplicationEventPublisher eventPublisher,
@@ -69,6 +73,7 @@ public class PostAnalysisApplicationService {
         this.postRepository = postRepository;
         this.analysisResultRepository = analysisResultRepository;
         this.buzzScoreRepository = buzzScoreRepository;
+        this.buzzScoreHistoryRepository = buzzScoreHistoryRepository;
         this.aiPostAnalysisPort = aiPostAnalysisPort;
         this.buzzScoreCalculator = buzzScoreCalculator;
         this.eventPublisher = eventPublisher;
@@ -110,6 +115,9 @@ public class PostAnalysisApplicationService {
                         OffsetDateTime.now())
                 : BuzzScore.of(post.getId(), calculation.totalScore(), calculation.breakdown());
         buzzScoreRepository.save(buzzScore);
+        // buzz_scoresは最新値のみ保持(再分析でUPSERT)するため、時系列比較用に履歴テーブルへも追記する。
+        buzzScoreHistoryRepository.save(
+                BuzzScoreHistoryEntry.of(post.getId(), calculation.totalScore(), calculation.breakdown(), buzzScore.getCalculatedAt()));
 
         eventPublisher.publishEvent(new AnalysisCompletedEvent(post.getId(), analysisResult.getId(), calculation.totalScore()));
 

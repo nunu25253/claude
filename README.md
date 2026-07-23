@@ -187,6 +187,20 @@ npm run dev
 
 http://localhost:3000 で確認できます。
 
+#### バックエンドAPIの型定義について
+
+`frontend/lib/types/generated/api.ts` はバックエンド起動中に以下のコマンドで生成される、
+springdoc-openapiが実装(Controller/DTO)から自動生成したOpenAPI契約由来のTypeScript型です。
+`docs/openapi.yaml`の手動同期や型の手書きコピーによるフロント/バックエンドの契約ドリフトを防ぐため、
+バックエンドのリクエスト/レスポンスDTOを変更した場合は必ず再生成してコミットしてください
+(CIで`generate:api-types`の再実行結果と差分がないか検証しています)。
+
+```bash
+# バックエンドを起動した状態で実行
+cd frontend
+npm run generate:api-types
+```
+
 ---
 
 ## サンプルデータ / 動作確認
@@ -337,6 +351,7 @@ cd frontend && npm run build && npx tsc --noEmit && npx eslint .
 |---|---|
 | `backend` | `gradle test` / `gradle build`（JDK 21）。Testcontainersを使ったリポジトリ統合テストも、GitHub Actionsランナーには標準でDockerが利用可能なため実行されます。 |
 | `frontend` | `npm run typecheck` / `npm run lint` / `npm run build`（Node.js 20） |
+| `e2e` | Docker Composeで一式起動し、主要導線のPlaywrightテストに加えて`frontend/lib/types/generated/api.ts`がバックエンドの実際のOpenAPI契約と一致しているか(契約ドリフトの検出)を検証 |
 | `validate-configs` | `docs/openapi.yaml` のOpenAPI仕様検証、`docker-compose.yml` の構文検証 |
 
 > **補足**: 本開発環境（サンドボックス）はネットワーク制限により `gradlew`（Gradle Wrapper）を生成・コミットできていません（`services.gradle.org` に到達不可のため）。GitHub Actions上では`gradle/actions/setup-gradle`でGradle本体を直接セットアップして`gradle`コマンドを実行しています。インターネット接続のある環境であれば `cd backend && gradle wrapper --gradle-version 8.14.3` でWrapperを生成しコミットすることで、以降は通常どおり`./gradlew`が使えます。

@@ -9,6 +9,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { OverviewSection } from "./overview-section";
 import { InsightListCard } from "./insight-list-card";
 import { SimilarPostsSection } from "./similar-posts-section";
+import { BuzzScoreHistorySection } from "./buzz-score-history-section";
 
 export function AnalysisResult({
   result,
@@ -54,6 +55,9 @@ export function AnalysisResult({
 
       {/* 概要 + BuzzScore */}
       <OverviewSection post={post} buzzScore={buzzScore} />
+
+      {/* BuzzScore推移(2回目以降の再分析があれば表示) */}
+      <BuzzScoreHistorySection postId={post.id} />
 
       {analysis.genre && (
         <Card>

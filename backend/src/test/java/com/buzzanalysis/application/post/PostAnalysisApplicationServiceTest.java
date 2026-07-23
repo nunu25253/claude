@@ -17,6 +17,7 @@ import com.buzzanalysis.domain.post.PostType;
 import com.buzzanalysis.domain.common.exception.BusinessRuleViolationException;
 import com.buzzanalysis.domain.score.BuzzScore;
 import com.buzzanalysis.domain.score.BuzzScoreCalculator;
+import com.buzzanalysis.domain.score.BuzzScoreHistoryRepository;
 import com.buzzanalysis.domain.score.BuzzScoreRepository;
 import com.buzzanalysis.domain.user.Role;
 import com.buzzanalysis.domain.user.User;
@@ -65,6 +66,8 @@ class PostAnalysisApplicationServiceTest {
     @Mock
     private BuzzScoreRepository buzzScoreRepository;
     @Mock
+    private BuzzScoreHistoryRepository buzzScoreHistoryRepository;
+    @Mock
     private AiPostAnalysisPort aiPostAnalysisPort;
     @Mock
     private BuzzScoreCalculator buzzScoreCalculator;
@@ -85,8 +88,8 @@ class PostAnalysisApplicationServiceTest {
     @BeforeEach
     void setUp() {
         service = new PostAnalysisApplicationService(platformFactory, socialAccountRepository, postRepository,
-                analysisResultRepository, buzzScoreRepository, aiPostAnalysisPort, buzzScoreCalculator, eventPublisher,
-                usageQuotaService, userRepository);
+                analysisResultRepository, buzzScoreRepository, buzzScoreHistoryRepository, aiPostAnalysisPort,
+                buzzScoreCalculator, eventPublisher, usageQuotaService, userRepository);
 
         postId = UUID.randomUUID();
         requestingUserId = UUID.randomUUID();
@@ -110,6 +113,7 @@ class PostAnalysisApplicationServiceTest {
                 .thenReturn(new BuzzScoreCalculator.CalculationResult(80.0, Map.of()));
         when(analysisResultRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(buzzScoreRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(buzzScoreHistoryRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(postRepository.search(any())).thenReturn(new PostSearchResult(List.of(), 0, 6, 0));
     }
 
@@ -149,6 +153,25 @@ class PostAnalysisApplicationServiceTest {
 
         assertThat(analysisCaptor.getValue().getId()).isNotNull();
         assertThat(buzzScoreCaptor.getValue().getId()).isNotNull();
+    }
+
+    @Test
+    void analyze_appendsBuzzScoreHistoryEntry_onEveryAnalysis() {
+        when(analysisResultRepository.findByPostId(postId)).thenReturn(Optional.of(
+                AnalysisResult.builder().id(UUID.randomUUID()).postId(postId).genre("old genre").build()));
+        when(buzzScoreRepository.findByPostId(postId)).thenReturn(Optional.of(
+                new BuzzScore(UUID.randomUUID(), postId, 50.0, Map.of(), OffsetDateTime.now())));
+
+        service.analyze(new AnalyzePostCommand("https://x.com/user/status/12345", requestingUserId));
+
+        ArgumentCaptor<com.buzzanalysis.domain.score.BuzzScoreHistoryEntry> historyCaptor =
+                ArgumentCaptor.forClass(com.buzzanalysis.domain.score.BuzzScoreHistoryEntry.class);
+        org.mockito.Mockito.verify(buzzScoreHistoryRepository).save(historyCaptor.capture());
+
+        assertThat(historyCaptor.getValue().getPostId()).isEqualTo(postId);
+        assertThat(historyCaptor.getValue().getTotalScore()).isEqualTo(80.0);
+        // buzz_scoresはUPSERT(既存IDを引き継ぐ)だが、履歴は毎回新しいIDで追記されること
+        assertThat(historyCaptor.getValue().getId()).isNotNull();
     }
 
     @Test

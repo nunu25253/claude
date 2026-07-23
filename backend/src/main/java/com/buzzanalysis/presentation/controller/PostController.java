@@ -1,9 +1,11 @@
 package com.buzzanalysis.presentation.controller;
 
+import com.buzzanalysis.application.post.BuzzScoreHistoryApplicationService;
 import com.buzzanalysis.application.post.PostAnalysisApplicationService;
 import com.buzzanalysis.application.post.PostSearchApplicationService;
 import com.buzzanalysis.application.post.dto.AnalyzePostCommand;
 import com.buzzanalysis.application.post.dto.AnalyzePostResult;
+import com.buzzanalysis.application.post.dto.BuzzScoreHistoryPointDto;
 import com.buzzanalysis.application.post.dto.PostSearchQuery;
 import com.buzzanalysis.application.post.dto.PostSearchResultDto;
 import com.buzzanalysis.domain.platform.Platform;
@@ -18,12 +20,14 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 /** 投稿分析・検索API。 */
@@ -34,11 +38,14 @@ public class PostController {
 
     private final PostAnalysisApplicationService postAnalysisApplicationService;
     private final PostSearchApplicationService postSearchApplicationService;
+    private final BuzzScoreHistoryApplicationService buzzScoreHistoryApplicationService;
 
     public PostController(PostAnalysisApplicationService postAnalysisApplicationService,
-                           PostSearchApplicationService postSearchApplicationService) {
+                           PostSearchApplicationService postSearchApplicationService,
+                           BuzzScoreHistoryApplicationService buzzScoreHistoryApplicationService) {
         this.postAnalysisApplicationService = postAnalysisApplicationService;
         this.postSearchApplicationService = postSearchApplicationService;
+        this.buzzScoreHistoryApplicationService = buzzScoreHistoryApplicationService;
     }
 
     @Operation(summary = "投稿URL分析",
@@ -65,5 +72,12 @@ public class PostController {
         PostSearchQuery query = new PostSearchQuery(keyword, hashtag, accountId, platform,
                 pageable.getPageNumber(), pageable.getPageSize(), sortBy, ascending);
         return ResponseEntity.ok(postSearchApplicationService.search(query));
+    }
+
+    @Operation(summary = "投稿のBuzzScore推移取得",
+            description = "指定投稿を再分析するたびに記録される履歴を計算日時の昇順で返す")
+    @GetMapping("/{postId}/buzz-score-history")
+    public ResponseEntity<List<BuzzScoreHistoryPointDto>> buzzScoreHistory(@PathVariable UUID postId) {
+        return ResponseEntity.ok(buzzScoreHistoryApplicationService.getHistory(postId));
     }
 }
