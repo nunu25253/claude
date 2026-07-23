@@ -10,4 +10,6 @@ import java.util.UUID;
 public interface SavedAnalysisJpaRepository extends JpaRepository<SavedAnalysisEntity, UUID> {
 
     List<SavedAnalysisEntity> findByUserId(UUID userId);
+
+    List<SavedAnalysisEntity> findByAlertThresholdIsNotNullAndAlertTriggeredAtIsNull();
 }

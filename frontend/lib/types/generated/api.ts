@@ -529,6 +529,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/saved-analyses/{id}/alert-threshold": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * BuzzScoreしきい値アラートの設定
+         * @description 指定したBuzzScore以上になった時点で1度だけメール通知する。thresholdにnullを指定すると解除する
+         */
+        patch: operations["setAlertThreshold"];
+        trace?: never;
+    };
     "/api/v1/trends": {
         parameters: {
             query?: never;
@@ -1069,6 +1089,10 @@ export interface components {
             post?: components["schemas"]["PostDto"];
             analysis?: components["schemas"]["AnalysisResultDto"];
             buzzScore?: components["schemas"]["BuzzScoreDto"];
+            /** Format: double */
+            alertThreshold?: number;
+            /** Format: date-time */
+            alertTriggeredAt?: string;
         };
         ReportDto: {
             /** Format: uuid */
@@ -1323,6 +1347,10 @@ export interface components {
         };
         EmailVerificationConfirmRequest: {
             token: string;
+        };
+        SetAlertThresholdRequest: {
+            /** Format: double */
+            threshold?: number;
         };
         TrendHashtagDto: {
             tag?: string;
@@ -2216,6 +2244,32 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    setAlertThreshold: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetAlertThresholdRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SavedAnalysisDetailDto"];
+                };
             };
         };
     };

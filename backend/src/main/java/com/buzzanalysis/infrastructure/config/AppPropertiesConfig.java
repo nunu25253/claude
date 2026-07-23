@@ -6,6 +6,7 @@ import com.buzzanalysis.infrastructure.external.platform.tiktok.TikTokApiPropert
 import com.buzzanalysis.infrastructure.external.platform.x.XApiProperties;
 import com.buzzanalysis.infrastructure.mail.PasswordResetMailProperties;
 import com.buzzanalysis.infrastructure.quota.UsageQuotaProperties;
+import com.buzzanalysis.infrastructure.scheduling.BatchAlertProperties;
 import com.buzzanalysis.infrastructure.scheduling.BatchSyncProperties;
 import com.buzzanalysis.infrastructure.scheduling.BatchTrendProperties;
 import com.buzzanalysis.infrastructure.security.CorsProperties;
@@ -26,6 +27,7 @@ import org.springframework.context.annotation.Configuration;
         S3Properties.class,
         BatchSyncProperties.class,
         BatchTrendProperties.class,
+        BatchAlertProperties.class,
         CorsProperties.class,
         UsageQuotaProperties.class,
         RateLimitProperties.class,

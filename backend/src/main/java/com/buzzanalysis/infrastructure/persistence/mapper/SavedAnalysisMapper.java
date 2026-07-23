@@ -9,10 +9,12 @@ import org.springframework.stereotype.Component;
 public class SavedAnalysisMapper {
 
     public SavedAnalysisEntity toEntity(SavedAnalysis entity) {
-        return new SavedAnalysisEntity(entity.getId(), entity.getUserId(), entity.getPostId(), entity.getNote(), entity.getCreatedAt());
+        return new SavedAnalysisEntity(entity.getId(), entity.getUserId(), entity.getPostId(), entity.getNote(),
+                entity.getCreatedAt(), entity.getAlertThreshold(), entity.getAlertTriggeredAt());
     }
 
     public SavedAnalysis toDomain(SavedAnalysisEntity entity) {
-        return new SavedAnalysis(entity.getId(), entity.getUserId(), entity.getPostId(), entity.getNote(), entity.getCreatedAt());
+        return new SavedAnalysis(entity.getId(), entity.getUserId(), entity.getPostId(), entity.getNote(),
+                entity.getCreatedAt(), entity.getAlertThreshold(), entity.getAlertTriggeredAt());
     }
 }

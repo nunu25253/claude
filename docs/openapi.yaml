@@ -1228,6 +1228,36 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /saved-analyses/{savedAnalysisId}/alert-threshold:
+    patch:
+      tags: [SavedAnalyses]
+      summary: BuzzScoreしきい値アラートの設定
+      description: >-
+        対象投稿のBuzzScoreがthreshold以上になった時点で1度だけメール通知する。
+        thresholdにnullを指定すると解除する。しきい値を変更すると再度アーム状態(未通知)に戻る。
+      parameters:
+        - name: savedAnalysisId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetAlertThresholdRequest"
+      responses:
+        "200":
+          description: 設定成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedAnalysis"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   # ------------------------------------------------------------------
   # Settings
   # プロフィール(表示名)・通知設定・APIキーはそれぞれ独立したリソースとして分離している
@@ -2831,6 +2861,26 @@ components:
         buzzScore:
           allOf:
             - $ref: "#/components/schemas/BuzzScore"
+          nullable: true
+        alertThreshold:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          nullable: true
+        alertTriggeredAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    SetAlertThresholdRequest:
+      type: object
+      properties:
+        threshold:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
           nullable: true
 
     ProfileSettings:

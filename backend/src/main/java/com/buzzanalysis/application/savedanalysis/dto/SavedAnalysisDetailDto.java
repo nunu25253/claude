@@ -19,6 +19,8 @@ public record SavedAnalysisDetailDto(
         OffsetDateTime createdAt,
         PostDto post,
         AnalysisResultDto analysis,
-        BuzzScoreDto buzzScore
+        BuzzScoreDto buzzScore,
+        Double alertThreshold,
+        OffsetDateTime alertTriggeredAt
 ) {
 }

@@ -80,7 +80,8 @@ public class SavedAnalysisApplicationService {
                         saved.getId(), saved.getNote(), saved.getCreatedAt(),
                         PostDto.from(postsByPostId.get(saved.getPostId())),
                         analysesByPostId.get(saved.getPostId()),
-                        buzzScoresByPostId.get(saved.getPostId())))
+                        buzzScoresByPostId.get(saved.getPostId()),
+                        saved.getAlertThreshold(), saved.getAlertTriggeredAt()))
                 .toList();
     }
 
@@ -103,6 +104,19 @@ public class SavedAnalysisApplicationService {
         savedAnalysisRepository.deleteById(id);
     }
 
+    /** BuzzScoreのしきい値アラートを設定(nullで解除)する。所有者本人のみ変更可能。 */
+    @Transactional
+    public SavedAnalysisDetailDto setAlertThreshold(UUID id, UUID requestingUserId, Double threshold) {
+        SavedAnalysis existing = savedAnalysisRepository.findById(id)
+                .orElseThrow(() -> EntityNotFoundException.of("SavedAnalysis", id));
+        if (!existing.getUserId().equals(requestingUserId)) {
+            throw new BusinessRuleViolationException("You are not allowed to update this saved analysis");
+        }
+        existing.setAlertThreshold(threshold);
+        SavedAnalysis saved = savedAnalysisRepository.save(existing);
+        return enrich(saved).orElseThrow(() -> EntityNotFoundException.of("Post", saved.getPostId()));
+    }
+
     /** 投稿が削除済みで参照できない場合はempty（一覧からは除外し、保存直後ならエラーとして扱う）。 */
     private Optional<SavedAnalysisDetailDto> enrich(SavedAnalysis saved) {
         Optional<Post> post = postRepository.findById(saved.getPostId());
@@ -117,6 +131,7 @@ public class SavedAnalysisApplicationService {
                 .map(BuzzScoreDto::from).orElse(null);
         return Optional.of(new SavedAnalysisDetailDto(
                 saved.getId(), saved.getNote(), saved.getCreatedAt(),
-                PostDto.from(post.get()), analysisDto, buzzScoreDto));
+                PostDto.from(post.get()), analysisDto, buzzScoreDto,
+                saved.getAlertThreshold(), saved.getAlertTriggeredAt()));
     }
 }

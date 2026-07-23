@@ -41,4 +41,11 @@ public class SavedAnalysisRepositoryImpl implements SavedAnalysisRepository {
     public void deleteById(UUID id) {
         jpaRepository.deleteById(id);
     }
+
+    @Override
+    public List<SavedAnalysis> findPendingAlerts() {
+        return jpaRepository.findByAlertThresholdIsNotNullAndAlertTriggeredAtIsNull().stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
 }

@@ -70,6 +70,8 @@ app:
     reset-link-base-url: ${MAIL_RESET_LINK_BASE_URL:http://localhost:3000/reset-password}
     # メールアドレス確認メールに載せるリンクの遷移先(フロントエンドのメール確認ページ)。
     verification-link-base-url: ${MAIL_VERIFICATION_LINK_BASE_URL:http://localhost:3000/verify-email}
+    # しきい値アラートメールに載せるリンクの遷移先(フロントエンドの保存済み分析一覧ページ)。
+    saved-analyses-url: ${MAIL_SAVED_ANALYSES_URL:http://localhost:3000/saved}
     from-address: ${MAIL_FROM_ADDRESS:no-reply@buzz-analysis.local}
 
 openai:
@@ -113,6 +115,11 @@ batch:
     cron: ${BATCH_TREND_CRON:0 0 3 * * *}
     recent-window-days: ${BATCH_TREND_RECENT_WINDOW_DAYS:7}
     baseline-window-days: ${BATCH_TREND_BASELINE_WINDOW_DAYS:21}
+  alert:
+    # 保存済み分析に設定されたBuzzScoreしきい値の超過チェック・メール通知バッチ。デフォルトはOFF。
+    # 蓄積済みデータのみを参照する(外部SNS APIへのアクセスは発生しない)。
+    enabled: ${BATCH_ALERT_ENABLED:false}
+    cron: ${BATCH_ALERT_CRON:0 0 * * * *}
 
 storage:
   # local: ファイルシステムにレポートを保存する既定値(Docker/MinIOなしでも動作する)。

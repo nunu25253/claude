@@ -65,7 +65,7 @@ class SavedAnalysisApplicationServiceTest {
 
     @Test
     void list_includesPostAnalysisAndBuzzScore_whenPostWasAnalyzed() {
-        SavedAnalysis saved = new SavedAnalysis(UUID.randomUUID(), userId, postId, "memo", OffsetDateTime.now());
+        SavedAnalysis saved = new SavedAnalysis(UUID.randomUUID(), userId, postId, "memo", OffsetDateTime.now(), null, null);
         when(savedAnalysisRepository.findByUserId(userId)).thenReturn(List.of(saved));
         when(postRepository.findByIdIn(List.of(postId))).thenReturn(List.of(existingPost));
         when(analysisResultRepository.findByPostIdIn(List.of(postId))).thenReturn(List.of(
@@ -85,7 +85,7 @@ class SavedAnalysisApplicationServiceTest {
 
     @Test
     void list_returnsNullAnalysisAndBuzzScore_whenPostWasNeverAnalyzed() {
-        SavedAnalysis saved = new SavedAnalysis(UUID.randomUUID(), userId, postId, null, OffsetDateTime.now());
+        SavedAnalysis saved = new SavedAnalysis(UUID.randomUUID(), userId, postId, null, OffsetDateTime.now(), null, null);
         when(savedAnalysisRepository.findByUserId(userId)).thenReturn(List.of(saved));
         when(postRepository.findByIdIn(List.of(postId))).thenReturn(List.of(existingPost));
         when(analysisResultRepository.findByPostIdIn(List.of(postId))).thenReturn(List.of());
@@ -100,7 +100,7 @@ class SavedAnalysisApplicationServiceTest {
 
     @Test
     void list_excludesEntry_whenReferencedPostNoLongerExists() {
-        SavedAnalysis saved = new SavedAnalysis(UUID.randomUUID(), userId, postId, null, OffsetDateTime.now());
+        SavedAnalysis saved = new SavedAnalysis(UUID.randomUUID(), userId, postId, null, OffsetDateTime.now(), null, null);
         when(savedAnalysisRepository.findByUserId(userId)).thenReturn(List.of(saved));
         when(postRepository.findByIdIn(List.of(postId))).thenReturn(List.of());
         when(analysisResultRepository.findByPostIdIn(List.of(postId))).thenReturn(List.of());
@@ -117,8 +117,8 @@ class SavedAnalysisApplicationServiceTest {
         Post post2 = new Post(postId2, UUID.randomUUID(), Platform.X, "67890", "https://x.com/user/status/67890",
                 OffsetDateTime.now(), "user2", "caption2", List.of(), 50L, 5L, 500L, 2L, null, null,
                 PostType.TEXT, OffsetDateTime.now(), OffsetDateTime.now());
-        SavedAnalysis saved1 = new SavedAnalysis(UUID.randomUUID(), userId, postId, null, OffsetDateTime.now());
-        SavedAnalysis saved2 = new SavedAnalysis(UUID.randomUUID(), userId, postId2, null, OffsetDateTime.now());
+        SavedAnalysis saved1 = new SavedAnalysis(UUID.randomUUID(), userId, postId, null, OffsetDateTime.now(), null, null);
+        SavedAnalysis saved2 = new SavedAnalysis(UUID.randomUUID(), userId, postId2, null, OffsetDateTime.now(), null, null);
         when(savedAnalysisRepository.findByUserId(userId)).thenReturn(List.of(saved1, saved2));
         when(postRepository.findByIdIn(any())).thenReturn(List.of(existingPost, post2));
         when(analysisResultRepository.findByPostIdIn(any())).thenReturn(List.of());
@@ -143,5 +143,32 @@ class SavedAnalysisApplicationServiceTest {
 
         assertThat(result.post().id()).isEqualTo(postId);
         assertThat(result.note()).isEqualTo("memo");
+    }
+
+    @Test
+    void setAlertThreshold_updatesThreshold_whenRequestedByOwner() {
+        UUID savedId = UUID.randomUUID();
+        SavedAnalysis saved = new SavedAnalysis(savedId, userId, postId, null, OffsetDateTime.now(), null, null);
+        when(savedAnalysisRepository.findById(savedId)).thenReturn(Optional.of(saved));
+        when(savedAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(postRepository.findById(postId)).thenReturn(Optional.of(existingPost));
+        when(analysisResultRepository.findByPostId(postId)).thenReturn(Optional.empty());
+        when(buzzScoreRepository.findByPostId(postId)).thenReturn(Optional.empty());
+
+        SavedAnalysisDetailDto result = service.setAlertThreshold(savedId, userId, 85.0);
+
+        assertThat(result.alertThreshold()).isEqualTo(85.0);
+    }
+
+    @Test
+    void setAlertThreshold_throwsBusinessRuleViolation_whenRequestedByNonOwner() {
+        UUID savedId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+        SavedAnalysis saved = new SavedAnalysis(savedId, userId, postId, null, OffsetDateTime.now(), null, null);
+        when(savedAnalysisRepository.findById(savedId)).thenReturn(Optional.of(saved));
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                com.buzzanalysis.domain.common.exception.BusinessRuleViolationException.class,
+                () -> service.setAlertThreshold(savedId, otherUserId, 85.0));
     }
 }

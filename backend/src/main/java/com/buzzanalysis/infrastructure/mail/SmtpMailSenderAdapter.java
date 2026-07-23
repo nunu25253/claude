@@ -71,4 +71,28 @@ public class SmtpMailSenderAdapter implements MailSenderPort {
             log.error("Failed to send email verification mail to {}", toEmail, e);
         }
     }
+
+    @Override
+    public void sendThresholdAlertEmail(String toEmail, String postCaption, double currentScore, double threshold) {
+        String caption = (postCaption == null || postCaption.isBlank()) ? "(キャプションなし)" : postCaption;
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(properties.getFromAddress());
+        message.setTo(toEmail);
+        message.setSubject("【SNS AIバズ分析】設定したしきい値を超えました");
+        message.setText("""
+                保存済み分析に設定したBuzzScoreのしきい値を超えました。
+
+                投稿: %s
+                現在のBuzzScore: %.1f (しきい値: %.1f)
+
+                以下から詳細をご確認ください。
+                %s
+                """.formatted(caption, currentScore, threshold, properties.getSavedAnalysesUrl()));
+        try {
+            mailSender.send(message);
+        } catch (Exception e) {
+            // 通知送信の失敗でバッチ処理全体を止めない(他の保存済み分析のチェックは継続する)。
+            log.error("Failed to send threshold alert mail to {}", toEmail, e);
+        }
+    }
 }

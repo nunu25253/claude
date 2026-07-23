@@ -14,4 +14,7 @@ public interface SavedAnalysisRepository {
     Optional<SavedAnalysis> findById(UUID id);
 
     void deleteById(UUID id);
+
+    /** しきい値アラートが設定済みかつ未通知のものを一括取得する(バッチ通知処理用)。 */
+    List<SavedAnalysis> findPendingAlerts();
 }

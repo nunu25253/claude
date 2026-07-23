@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { QueryState } from "@/components/dashboard/query-state";
 import { PlatformBadge } from "@/components/ui/badge";
 import { AnalysisResult } from "@/components/dashboard/analysis/analysis-result";
+import { AlertThresholdControl } from "@/components/dashboard/saved/alert-threshold-control";
 import { formatDateTime } from "@/lib/utils";
 import { downloadCsv, toCsv } from "@/lib/csv";
 import type { SavedAnalysis } from "@/lib/types";
@@ -97,6 +98,7 @@ export default function SavedPage() {
                       @{item.post.accountHandle ?? item.post.authorName} ・ 保存日 {formatDateTime(item.createdAt)}
                     </p>
                     {item.note && <p className="mt-1 text-xs text-slate-500">メモ: {item.note}</p>}
+                    <AlertThresholdControl item={item} />
                   </div>
                   <div className="flex shrink-0 gap-2">
                     {item.analysis && item.buzzScore && (

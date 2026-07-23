@@ -28,15 +28,24 @@ public class SavedAnalysisEntity {
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
+    @Column(name = "alert_threshold")
+    private Double alertThreshold;
+
+    @Column(name = "alert_triggered_at")
+    private OffsetDateTime alertTriggeredAt;
+
     protected SavedAnalysisEntity() {
     }
 
-    public SavedAnalysisEntity(UUID id, UUID userId, UUID postId, String note, OffsetDateTime createdAt) {
+    public SavedAnalysisEntity(UUID id, UUID userId, UUID postId, String note, OffsetDateTime createdAt,
+                                Double alertThreshold, OffsetDateTime alertTriggeredAt) {
         this.id = id;
         this.userId = userId;
         this.postId = postId;
         this.note = note;
         this.createdAt = createdAt;
+        this.alertThreshold = alertThreshold;
+        this.alertTriggeredAt = alertTriggeredAt;
     }
 
     public UUID getId() {
@@ -57,5 +66,13 @@ public class SavedAnalysisEntity {
 
     public OffsetDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public Double getAlertThreshold() {
+        return alertThreshold;
+    }
+
+    public OffsetDateTime getAlertTriggeredAt() {
+        return alertTriggeredAt;
     }
 }
