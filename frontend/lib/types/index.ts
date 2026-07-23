@@ -10,3 +10,4 @@ export * from "./settings";
 export * from "./proposal";
 export * from "./evaluation";
 export * from "./organization";
+export * from "./billing";

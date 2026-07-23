@@ -1476,6 +1476,57 @@ paths:
                 items:
                   $ref: "#/components/schemas/TeamSavedAnalysisDto"
 
+  /billing/subscription:
+    get:
+      tags: [Billing]
+      summary: "現在の課金プラン取得(改善計画No.11: 無料枠/有料枠)"
+      description: アップグレード未実施のユーザーはFREEプランとして返る。
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionDto"
+
+  /billing/subscription/upgrade:
+    post:
+      tags: [Billing]
+      summary: PROプランへアップグレード
+      description: >-
+        カードトークン(決済代行事業者のクライアントサイドJSでトークン化された参照値。生のカード番号は
+        受け取らない)を指定して課金を開始する。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpgradeSubscriptionRequest"
+      responses:
+        "200":
+          description: アップグレード成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionDto"
+        "400":
+          description: 決済失敗、または既にPROプランを利用中
+
+  /billing/subscription/cancel:
+    post:
+      tags: [Billing]
+      summary: PROプランの解約
+      description: 即時にFREEプランへ戻る(猶予期間は設けない)。
+      responses:
+        "200":
+          description: 解約成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionDto"
+        "400":
+          description: PROプランを利用中でない
+
 components:
   securitySchemes:
     bearerAuth:
@@ -3117,3 +3168,32 @@ components:
           format: uuid
         savedByDisplayName:
           type: string
+
+    UpgradeSubscriptionRequest:
+      type: object
+      required: [cardToken]
+      properties:
+        cardToken:
+          type: string
+          description: >-
+            決済代行事業者のクライアントサイドJS(GMOの場合TokenObject.js)でトークン化されたカード情報の
+            参照値。生のカード番号ではない。
+
+    SubscriptionDto:
+      type: object
+      properties:
+        plan:
+          type: string
+          enum: [FREE, PRO]
+        status:
+          type: string
+          enum: [ACTIVE, CANCELED]
+        currentPeriodEnd:
+          type: string
+          format: date-time
+          nullable: true
+          description: FREEプランの場合はnull
+        dailyAnalysisLimit:
+          type: integer
+          format: int32
+          description: 1日あたりの投稿分析(OpenAI呼び出しを伴う)回数の上限

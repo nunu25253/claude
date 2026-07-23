@@ -5,10 +5,12 @@ import com.buzzanalysis.infrastructure.external.platform.instagram.InstagramApiP
 import com.buzzanalysis.infrastructure.external.platform.tiktok.TikTokApiProperties;
 import com.buzzanalysis.infrastructure.external.platform.x.XApiProperties;
 import com.buzzanalysis.infrastructure.mail.PasswordResetMailProperties;
+import com.buzzanalysis.infrastructure.payment.GmoPaymentProperties;
 import com.buzzanalysis.infrastructure.quota.UsageQuotaProperties;
 import com.buzzanalysis.infrastructure.scheduling.BatchAlertProperties;
 import com.buzzanalysis.infrastructure.scheduling.BatchSyncProperties;
 import com.buzzanalysis.infrastructure.scheduling.BatchTrendProperties;
+import com.buzzanalysis.infrastructure.scheduling.BillingRenewalProperties;
 import com.buzzanalysis.infrastructure.security.CorsProperties;
 import com.buzzanalysis.infrastructure.security.JwtProperties;
 import com.buzzanalysis.infrastructure.security.RateLimitProperties;
@@ -31,7 +33,9 @@ import org.springframework.context.annotation.Configuration;
         CorsProperties.class,
         UsageQuotaProperties.class,
         RateLimitProperties.class,
-        PasswordResetMailProperties.class
+        PasswordResetMailProperties.class,
+        GmoPaymentProperties.class,
+        BillingRenewalProperties.class
 })
 public class AppPropertiesConfig {
 }

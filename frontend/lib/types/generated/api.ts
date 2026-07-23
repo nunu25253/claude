@@ -442,6 +442,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/billing/subscription/upgrade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * PROプランへアップグレード
+         * @description カードトークン(決済代行事業者のクライアントサイドJSでトークン化された参照値)を指定して課金を開始する
+         */
+        post: operations["upgrade"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/billing/subscription/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * PROプランの解約
+         * @description 即時にFREEプランへ戻る(猶予期間は設けない)
+         */
+        post: operations["cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/register": {
         parameters: {
             query?: never;
@@ -980,6 +1020,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/billing/subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 現在の課金プラン取得
+         * @description アップグレード未実施のユーザーはFREEプランとして返る
+         */
+        get: operations["getMyPlan"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/saved-analyses/{id}": {
         parameters: {
             query?: never;
@@ -1435,6 +1495,19 @@ export interface components {
             headline?: string;
             bodyText?: string;
             visualDirection?: string;
+        };
+        UpgradeSubscriptionRequest: {
+            cardToken: string;
+        };
+        SubscriptionDto: {
+            /** @enum {string} */
+            plan?: "FREE" | "PRO";
+            /** @enum {string} */
+            status?: "ACTIVE" | "CANCELED";
+            /** Format: date-time */
+            currentPeriodEnd?: string;
+            /** Format: int32 */
+            dailyAnalysisLimit?: number;
         };
         RegisterRequest: {
             email: string;
@@ -2291,6 +2364,50 @@ export interface operations {
             };
         };
     };
+    upgrade: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpgradeSubscriptionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SubscriptionDto"];
+                };
+            };
+        };
+    };
+    cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SubscriptionDto"];
+                };
+            };
+        };
+    };
     register: {
         parameters: {
             query?: never;
@@ -2928,6 +3045,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["CarouselDto"][];
+                };
+            };
+        };
+    };
+    getMyPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SubscriptionDto"];
                 };
             };
         };

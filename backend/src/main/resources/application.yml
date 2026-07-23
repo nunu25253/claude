@@ -59,8 +59,9 @@ app:
   # レポートのローカルストレージ配信URL(storage.provider=local時)の組み立てに使う自ホストのベースURL。
   base-url: ${APP_BASE_URL:http://localhost:8080}
   quota:
-    # ユーザー単位・1日あたりの投稿分析(OpenAI呼び出しを伴う)回数の上限。
-    daily-openai-calls: ${QUOTA_DAILY_OPENAI_CALLS:50}
+    # ユーザー単位・1日あたりの投稿分析(OpenAI呼び出しを伴う)回数の上限。課金プラン(No.11)によりFREE/PROで異なる。
+    daily-openai-calls-free: ${QUOTA_DAILY_OPENAI_CALLS_FREE:50}
+    daily-openai-calls-pro: ${QUOTA_DAILY_OPENAI_CALLS_PRO:500}
   rate-limit:
     # ログイン/登録エンドポイントへの、送信元IPごとの試行回数上限(ブルートフォース対策)。
     auth-max-attempts: ${RATE_LIMIT_AUTH_MAX_ATTEMPTS:10}
@@ -144,6 +145,21 @@ batch:
     # 蓄積済みデータのみを参照する(外部SNS APIへのアクセスは発生しない)。
     enabled: ${BATCH_ALERT_ENABLED:false}
     cron: ${BATCH_ALERT_CRON:0 0 * * * *}
+  billing-renewal:
+    # PRO契約の月次更新課金バッチ(改善計画No.11)。決済処理を伴うため、他バッチと同様デフォルトはOFF。
+    enabled: ${BATCH_BILLING_RENEWAL_ENABLED:false}
+    cron: ${BATCH_BILLING_RENEWAL_CRON:0 0 3 * * *}
+
+payment:
+  gateway:
+    # mock: 決済代行事業者と未契約の開発/評価環境向けの既定値(常に成功する疑似決済)。
+    # gmo: GMOペイメントゲートウェイ(GMO-PG)と実連携する(本番投入前にpayment.gmo.*の技術仕様確認が必須)。
+    provider: ${PAYMENT_GATEWAY_PROVIDER:mock}
+  gmo:
+    base-url: ${GMO_PAYMENT_BASE_URL:https://pt01.mul-pay.jp}
+    shop-id: ${GMO_PAYMENT_SHOP_ID:}
+    shop-pass: ${GMO_PAYMENT_SHOP_PASS:}
+    pro-plan-monthly-amount: ${GMO_PAYMENT_PRO_PLAN_MONTHLY_AMOUNT:4980}
 
 storage:
   # local: ファイルシステムにレポートを保存する既定値(Docker/MinIOなしでも動作する)。

@@ -120,6 +120,21 @@ INSTAGRAM_BUSINESS_ACCOUNT_ID=
 TIKTOK_ACCESS_TOKEN=
 X_BEARER_TOKEN=
 
+# 課金プラン(FREE/PRO、No.11)。決済代行事業者と未契約の場合は既定値(mock)のままでよく、
+# 常に成功する疑似決済でPROプランへのアップグレード・解約が動作します。
+# PAYMENT_GATEWAY_PROVIDER=mock
+# 本番でGMOペイメントゲートウェイ(GMO-PG)と連携する場合は下記を設定してください。
+# 実際のエンドポイント・パラメータ名は契約時にGMOから提供される技術仕様書で必ず確認してください
+# (backend/.../infrastructure/payment/GmoPaymentGatewayAdapter.java のJavadoc参照)。
+# PAYMENT_GATEWAY_PROVIDER=gmo
+# GMO_PAYMENT_SHOP_ID=
+# GMO_PAYMENT_SHOP_PASS=
+# GMO_PAYMENT_PRO_PLAN_MONTHLY_AMOUNT=4980
+# PRO契約の月次更新課金バッチ(決済処理を伴うため既定でOFF)。
+# BATCH_BILLING_RENEWAL_ENABLED=true
+# QUOTA_DAILY_OPENAI_CALLS_FREE=50
+# QUOTA_DAILY_OPENAI_CALLS_PRO=500
+
 # JWT署名鍵（本番相当で動かす場合は必ず変更してください）
 JWT_SECRET=change-this-secret-in-production-please-0123456789abcdef
 ```
