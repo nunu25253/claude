@@ -106,6 +106,12 @@ cp .env.example .env
 # OpenAI (AI分析に必須。未設定の場合はルールベースのフォールバック分析結果が返ります)
 OPENAI_API_KEY=sk-xxxxxxxx
 OPENAI_MODEL=gpt-4o-mini
+# OpenAI呼び出しのリトライ・サーキットブレーカー設定(省略可、デフォルト値で動作)。
+# 障害時に失敗が続くと一定時間サーキットブレーカーがOPENになり、以降の呼び出しは
+# 実際にAPIへアクセスせず即座にルールベースのフォールバックへ切り替わる。
+# OPENAI_RETRY_MAX_ATTEMPTS=3
+# OPENAI_CIRCUIT_BREAKER_FAILURE_RATE_THRESHOLD=50
+# OPENAI_CIRCUIT_BREAKER_WAIT_DURATION_IN_OPEN_STATE=10s
 
 # 各SNS公式APIの認証情報（未設定の場合はスタブデータにフォールバックします。取得方法・制約は
 # 「SNS公式API連携」セクションを参照）

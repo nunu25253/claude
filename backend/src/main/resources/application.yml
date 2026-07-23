@@ -82,6 +82,30 @@ openai:
   embedding-model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
   embedding-dimensions: ${OPENAI_EMBEDDING_DIMENSIONS:1536}
 
+resilience4j:
+  retry:
+    instances:
+      openai:
+        # タイムアウトや5xx等の一時的な失敗を想定し、短い間隔で数回だけ再試行する
+        # (無限に待たせず、ユーザー体感のレイテンシ増加は最小限に抑える)。
+        max-attempts: ${OPENAI_RETRY_MAX_ATTEMPTS:3}
+        wait-duration: ${OPENAI_RETRY_WAIT_DURATION:500ms}
+        retry-exceptions:
+          - com.buzzanalysis.domain.common.exception.ExternalApiException
+  circuitbreaker:
+    instances:
+      openai:
+        # 直近N件中X%以上が失敗したらOPENにし、以降一定時間は実際の呼び出しをせず即座に
+        # フォールバック(502エラー)を返す。障害中に全リクエストがタイムアウト待ちで
+        # 詰まる(スレッドプール枯渇)ことを防ぐのが目的。
+        sliding-window-size: ${OPENAI_CIRCUIT_BREAKER_SLIDING_WINDOW_SIZE:10}
+        minimum-number-of-calls: ${OPENAI_CIRCUIT_BREAKER_MINIMUM_CALLS:5}
+        failure-rate-threshold: ${OPENAI_CIRCUIT_BREAKER_FAILURE_RATE_THRESHOLD:50}
+        wait-duration-in-open-state: ${OPENAI_CIRCUIT_BREAKER_WAIT_DURATION_IN_OPEN_STATE:10s}
+        permitted-number-of-calls-in-half-open-state: ${OPENAI_CIRCUIT_BREAKER_PERMITTED_CALLS_HALF_OPEN:3}
+        record-exceptions:
+          - com.buzzanalysis.domain.common.exception.ExternalApiException
+
 sns:
   # 各SNSともアクセストークン(等)が未設定の場合はモックデータにフォールバックする(開発・デモ用)。
   # 実際の取得元・取得可能な範囲はREADMEの「SNS公式API連携」セクションを参照。

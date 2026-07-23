@@ -28,6 +28,7 @@ ext {
     testcontainersVersion = '1.20.2'
     jjwtVersion = '0.12.6'
     springdocVersion = '2.6.0'
+    resilience4jVersion = '2.2.0'
 }
 
 dependencies {
@@ -41,6 +42,11 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-cache'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-mail' // パスワードリセットメール送信
+    implementation 'org.springframework.boot:spring-boot-starter-aop' // Resilience4jの@Retry/@CircuitBreakerアノテーションのAOPプロキシに必要
+
+    // --- 外部API呼び出しのリトライ・サーキットブレーカー ---
+    // OpenAI障害時に各リクエストがタイムアウトいっぱいまで待たされ続けてアプリ全体が詰まる問題への対応。
+    implementation "io.github.resilience4j:resilience4j-spring-boot3:${resilience4jVersion}"
 
     // --- DB / Migration ---
     // pgvector用のカスタムHibernate型(VectorType)がorg.postgresql.util.PGobjectをコンパイル時に
