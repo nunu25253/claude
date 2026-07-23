@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Brain, TrendingUp, Search, Trophy } from "lucide-react";
+import { BrandMark } from "@/components/layout/brand-mark";
 
 export const metadata: Metadata = {
   title: "ようこそ",
@@ -35,9 +36,9 @@ export default function WelcomePage() {
   return (
     <div className="min-h-dvh bg-gradient-to-br from-brand-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
       <div className="mx-auto flex max-w-4xl flex-col items-center px-4 py-16 text-center sm:py-24">
-        <span className="text-5xl" aria-hidden>
-          🚀
-        </span>
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-600 shadow-card">
+          <BrandMark className="h-9 w-9 text-white" />
+        </div>
         <h1 className="mt-4 text-3xl font-bold text-slate-900 dark:text-slate-100 sm:text-4xl">
           SNS AIバズ分析プラットフォーム
         </h1>

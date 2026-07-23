@@ -20,8 +20,22 @@ export default function OpengraphImage() {
           color: "#ffffff",
         }}
       >
-        <div style={{ fontSize: 120 }}>🚀</div>
-        <div style={{ fontSize: 64, fontWeight: 700, marginTop: 16 }}>SNS AI Buzz Analysis</div>
+        <div
+          style={{
+            display: "flex",
+            width: 140,
+            height: 140,
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: 32,
+            background: "rgba(255, 255, 255, 0.15)",
+          }}
+        >
+          <svg width="72" height="72" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17.5 6 9 18h6l-1 8 8.5-12h-6l1-8z" fill="#ffffff" />
+          </svg>
+        </div>
+        <div style={{ fontSize: 64, fontWeight: 700, marginTop: 24 }}>SNS AI Buzz Analysis</div>
         <div style={{ fontSize: 30, opacity: 0.85, marginTop: 12 }}>
           AI-powered social post analytics
         </div>

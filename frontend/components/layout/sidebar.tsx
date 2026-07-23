@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Rocket, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth/auth-context";
+import { BrandMark } from "./brand-mark";
 import { NAV_GROUPS } from "./nav-items";
 
 function isActivePath(pathname: string, href: string): boolean {
@@ -18,8 +19,10 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="flex h-full flex-col bg-slate-900 text-slate-200">
-      <div className="flex items-center gap-2 px-5 py-5">
-        <Rocket className="h-6 w-6 text-white" aria-hidden />
+      <div className="flex items-center gap-2.5 px-5 py-5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-600">
+          <BrandMark className="h-5 w-5 text-white" />
+        </div>
         <div>
           <p className="text-sm font-bold leading-tight text-white">SNS AIバズ分析</p>
           <p className="text-xs text-slate-400">プラットフォーム</p>
