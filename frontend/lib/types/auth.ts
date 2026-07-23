@@ -2,6 +2,7 @@ export interface User {
   id: string;
   email: string;
   displayName: string;
+  emailVerified?: boolean;
   createdAt?: string;
 }
 
@@ -25,12 +26,21 @@ export interface PasswordResetConfirmRequest {
   newPassword: string;
 }
 
+export interface EmailVerificationResendRequest {
+  email: string;
+}
+
+export interface EmailVerificationConfirmRequest {
+  token: string;
+}
+
 // バックエンド(AuthResult)のレスポンス構造に合わせたフラットな形。
 // ネストした user オブジェクトは返らないため、呼び出し側で User に組み立てる。
 export interface AuthResponse {
   userId: string;
   email: string;
   displayName: string;
+  emailVerified: boolean;
   accessToken: string;
   accessTokenExpiresInSeconds: number;
   refreshToken: string;

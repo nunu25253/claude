@@ -48,4 +48,27 @@ public class SmtpMailSenderAdapter implements MailSenderPort {
             log.error("Failed to send password reset email to {}", toEmail, e);
         }
     }
+
+    @Override
+    public void sendEmailVerificationEmail(String toEmail, String rawToken) {
+        String verificationLink = properties.getVerificationLinkBaseUrl() + "?token=" + rawToken;
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(properties.getFromAddress());
+        message.setTo(toEmail);
+        message.setSubject("【SNS AIバズ分析】メールアドレスのご確認");
+        message.setText("""
+                ご登録ありがとうございます。
+
+                以下のリンクからメールアドレスの確認を完了してください（24時間有効）。
+                %s
+
+                このメールに心当たりがない場合は、無視していただいて問題ありません。
+                """.formatted(verificationLink));
+        try {
+            mailSender.send(message);
+        } catch (Exception e) {
+            // 登録処理自体は失敗させない(メール送信基盤の一時的な不調でユーザー登録をブロックしない)。
+            log.error("Failed to send email verification mail to {}", toEmail, e);
+        }
+    }
 }

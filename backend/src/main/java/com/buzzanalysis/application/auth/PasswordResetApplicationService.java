@@ -10,13 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.time.Duration;
-import java.util.Base64;
-import java.util.HexFormat;
 
 /**
  * パスワードリセット（依頼・確定）のユースケース。
@@ -32,7 +26,6 @@ public class PasswordResetApplicationService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoderPort passwordEncoderPort;
     private final MailSenderPort mailSenderPort;
-    private final SecureRandom secureRandom = new SecureRandom();
 
     public PasswordResetApplicationService(UserRepository userRepository,
                                             PasswordResetTokenRepository passwordResetTokenRepository,
@@ -52,8 +45,8 @@ public class PasswordResetApplicationService {
     @Transactional
     public void requestReset(String email) {
         userRepository.findByEmail(email).ifPresentOrElse(user -> {
-            String rawToken = generateRawToken();
-            PasswordResetToken token = PasswordResetToken.createNew(user.getId(), hash(rawToken), TOKEN_VALIDITY);
+            String rawToken = TokenHasher.generateRawToken();
+            PasswordResetToken token = PasswordResetToken.createNew(user.getId(), TokenHasher.hash(rawToken), TOKEN_VALIDITY);
             passwordResetTokenRepository.save(token);
             mailSenderPort.sendPasswordResetEmail(user.getEmail(), rawToken);
         }, () -> log.debug("Password reset requested for unknown email (ignored to avoid account enumeration)"));
@@ -61,7 +54,7 @@ public class PasswordResetApplicationService {
 
     @Transactional
     public void confirmReset(String rawToken, String newPassword) {
-        PasswordResetToken token = passwordResetTokenRepository.findByTokenHash(hash(rawToken))
+        PasswordResetToken token = passwordResetTokenRepository.findByTokenHash(TokenHasher.hash(rawToken))
                 .filter(PasswordResetToken::isValid)
                 .orElseThrow(() -> new BusinessRuleViolationException("リンクが無効か有効期限が切れています。もう一度お試しください。"));
 
@@ -73,21 +66,5 @@ public class PasswordResetApplicationService {
 
         token.markUsed();
         passwordResetTokenRepository.save(token);
-    }
-
-    private String generateRawToken() {
-        byte[] bytes = new byte[32];
-        secureRandom.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
-
-    private String hash(String rawToken) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashed = digest.digest(rawToken.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hashed);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 is not available", e);
-        }
     }
 }

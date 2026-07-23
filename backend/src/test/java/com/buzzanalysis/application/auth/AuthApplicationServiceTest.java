@@ -38,12 +38,15 @@ class AuthApplicationServiceTest {
     private PasswordEncoderPort passwordEncoderPort;
     @Mock
     private TokenProvider tokenProvider;
+    @Mock
+    private EmailVerificationApplicationService emailVerificationApplicationService;
 
     private AuthApplicationService service;
 
     @BeforeEach
     void setUp() {
-        service = new AuthApplicationService(userRepository, passwordEncoderPort, tokenProvider);
+        service = new AuthApplicationService(userRepository, passwordEncoderPort, tokenProvider,
+                emailVerificationApplicationService);
     }
 
     @Test
@@ -63,6 +66,8 @@ class AuthApplicationServiceTest {
         ArgumentCaptor<User> savedUserCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(savedUserCaptor.capture());
         assertThat(savedUserCaptor.getValue().getPasswordHash()).isEqualTo("hashed-password");
+        assertThat(savedUserCaptor.getValue().isEmailVerified()).isFalse();
+        verify(emailVerificationApplicationService).sendVerificationEmail(savedUserCaptor.getValue());
     }
 
     @Test
@@ -75,7 +80,7 @@ class AuthApplicationServiceTest {
 
     @Test
     void login_rejectsInvalidPassword() {
-        User existingUser = new User(UUID.randomUUID(), "user@example.com", "hashed", "User", Role.USER,
+        User existingUser = new User(UUID.randomUUID(), "user@example.com", "hashed", "User", Role.USER, true,
                 OffsetDateTime.now(), OffsetDateTime.now());
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(existingUser));
         when(passwordEncoderPort.matches(anyString(), anyString())).thenReturn(false);
@@ -86,7 +91,7 @@ class AuthApplicationServiceTest {
 
     @Test
     void login_succeedsWithCorrectPassword() {
-        User existingUser = new User(UUID.randomUUID(), "user@example.com", "hashed", "User", Role.USER,
+        User existingUser = new User(UUID.randomUUID(), "user@example.com", "hashed", "User", Role.USER, true,
                 OffsetDateTime.now(), OffsetDateTime.now());
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(existingUser));
         when(passwordEncoderPort.matches("correct-password", "hashed")).thenReturn(true);

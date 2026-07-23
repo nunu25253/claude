@@ -3,7 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 // token.ts の DEFAULT_TOKEN_KEY と同じ値（env未設定時のフォールバック）
 const DEFAULT_TOKEN_KEY = "sns_buzz_auth_token";
 
-const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"];
+// ログイン不要でアクセスできるパス
+const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email"];
+// ログイン済みならダッシュボードへ戻すパス(/verify-email は登録直後の
+// ログイン済みユーザーもアクセスするため対象外とする)
+const AUTH_ONLY_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"];
 
 /**
  * ダッシュボード配下は未ログインの場合 /login にリダイレクトする簡易ガード。
@@ -15,6 +19,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isPublicPath = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  const isAuthOnlyPath = AUTH_ONLY_PATHS.some((p) => pathname.startsWith(p));
 
   if (!token && !isPublicPath) {
     const loginUrl = new URL("/login", request.url);
@@ -22,7 +27,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (token && isPublicPath) {
+  if (token && isAuthOnlyPath) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 

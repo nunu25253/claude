@@ -12,4 +12,12 @@ public interface MailSenderPort {
      * @param rawToken リセットリンクに埋め込む生トークン（ハッシュ化前）
      */
     void sendPasswordResetEmail(String toEmail, String rawToken);
+
+    /**
+     * メールアドレス確認用のリンクを含むメールを送信する。
+     *
+     * @param toEmail  送信先メールアドレス
+     * @param rawToken 確認リンクに埋め込む生トークン（ハッシュ化前）
+     */
+    void sendEmailVerificationEmail(String toEmail, String rawToken);
 }

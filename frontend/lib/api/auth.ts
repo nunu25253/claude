@@ -1,6 +1,8 @@
 import { apiClient } from "../api-client";
 import type {
   AuthResponse,
+  EmailVerificationConfirmRequest,
+  EmailVerificationResendRequest,
   LoginRequest,
   PasswordResetConfirmRequest,
   PasswordResetRequestRequest,
@@ -21,4 +23,10 @@ export const authApi = {
 
   confirmPasswordReset: (payload: PasswordResetConfirmRequest) =>
     apiClient.post<void>("/auth/password-reset/confirm", payload, { skipAuth: true }),
+
+  resendEmailVerification: (payload: EmailVerificationResendRequest) =>
+    apiClient.post<void>("/auth/email-verification/resend", payload, { skipAuth: true }),
+
+  confirmEmailVerification: (payload: EmailVerificationConfirmRequest) =>
+    apiClient.post<void>("/auth/email-verification/confirm", payload, { skipAuth: true }),
 };

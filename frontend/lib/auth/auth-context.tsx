@@ -26,6 +26,7 @@ interface AuthContextValue {
   login: (payload: LoginRequest) => Promise<void>;
   register: (payload: RegisterRequest) => Promise<void>;
   logout: () => void;
+  markEmailVerified: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -68,7 +69,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const res = await authApi.login(payload);
     setToken(res.accessToken);
     setRefreshToken(res.refreshToken);
-    const loggedInUser: User = { id: res.userId, email: res.email, displayName: res.displayName };
+    const loggedInUser: User = {
+      id: res.userId,
+      email: res.email,
+      displayName: res.displayName,
+      emailVerified: res.emailVerified,
+    };
     storeUser(loggedInUser);
     setUser(loggedInUser);
   }, []);
@@ -77,7 +83,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const res = await authApi.register(payload);
     setToken(res.accessToken);
     setRefreshToken(res.refreshToken);
-    const registeredUser: User = { id: res.userId, email: res.email, displayName: res.displayName };
+    const registeredUser: User = {
+      id: res.userId,
+      email: res.email,
+      displayName: res.displayName,
+      emailVerified: res.emailVerified,
+    };
     storeUser(registeredUser);
     setUser(registeredUser);
   }, []);
@@ -89,6 +100,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push("/login");
   }, [router]);
 
+  const markEmailVerified = useCallback(() => {
+    setUser((current) => {
+      if (!current) return current;
+      const updated = { ...current, emailVerified: true };
+      storeUser(updated);
+      return updated;
+    });
+  }, []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -97,8 +117,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       login,
       register,
       logout,
+      markEmailVerified,
     }),
-    [user, isInitializing, login, register, logout],
+    [user, isInitializing, login, register, logout, markEmailVerified],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

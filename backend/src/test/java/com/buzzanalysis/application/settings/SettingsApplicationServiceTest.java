@@ -39,7 +39,7 @@ class SettingsApplicationServiceTest {
     void setUp() {
         service = new SettingsApplicationService(userRepository, userSettingsRepository);
         userId = UUID.randomUUID();
-        user = new User(userId, "user@example.com", "hashed", "元の名前", Role.USER,
+        user = new User(userId, "user@example.com", "hashed", "元の名前", Role.USER, true,
                 OffsetDateTime.now(), OffsetDateTime.now());
     }
 

@@ -24,6 +24,8 @@ import com.buzzanalysis.domain.score.BuzzScore;
 import com.buzzanalysis.domain.score.BuzzScoreCalculator;
 import com.buzzanalysis.domain.score.BuzzScoreInput;
 import com.buzzanalysis.domain.score.BuzzScoreRepository;
+import com.buzzanalysis.domain.user.User;
+import com.buzzanalysis.domain.user.UserRepository;
 import com.buzzanalysis.infrastructure.quota.UsageQuotaService;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -50,6 +52,7 @@ public class PostAnalysisApplicationService {
     private final BuzzScoreCalculator buzzScoreCalculator;
     private final ApplicationEventPublisher eventPublisher;
     private final UsageQuotaService usageQuotaService;
+    private final UserRepository userRepository;
 
     public PostAnalysisApplicationService(PlatformFactory platformFactory,
                                            SocialAccountRepository socialAccountRepository,
@@ -59,7 +62,8 @@ public class PostAnalysisApplicationService {
                                            AiPostAnalysisPort aiPostAnalysisPort,
                                            BuzzScoreCalculator buzzScoreCalculator,
                                            ApplicationEventPublisher eventPublisher,
-                                           UsageQuotaService usageQuotaService) {
+                                           UsageQuotaService usageQuotaService,
+                                           UserRepository userRepository) {
         this.platformFactory = platformFactory;
         this.socialAccountRepository = socialAccountRepository;
         this.postRepository = postRepository;
@@ -69,10 +73,17 @@ public class PostAnalysisApplicationService {
         this.buzzScoreCalculator = buzzScoreCalculator;
         this.eventPublisher = eventPublisher;
         this.usageQuotaService = usageQuotaService;
+        this.userRepository = userRepository;
     }
 
     @Transactional
     public AnalyzePostResult analyze(AnalyzePostCommand command) {
+        User requestingUser = userRepository.findById(command.requestingUserId())
+                .orElseThrow(() -> EntityNotFoundException.of("User", command.requestingUserId()));
+        if (!requestingUser.isEmailVerified()) {
+            throw new BusinessRuleViolationException(
+                    "メールアドレスの確認が完了していません。登録時に送信された確認メールのリンクからご確認ください。");
+        }
         if (!usageQuotaService.tryConsume(command.requestingUserId())) {
             throw new BusinessRuleViolationException("本日の投稿分析の利用回数上限に達しました。明日以降に再度お試しください。");
         }

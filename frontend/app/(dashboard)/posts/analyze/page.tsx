@@ -2,8 +2,8 @@
 
 import { Card, CardHeader } from "@/components/ui/card";
 import { ErrorState } from "@/components/ui/error-state";
-import { LoadingState } from "@/components/ui/loading-state";
 import { AnalyzeUrlForm } from "@/components/dashboard/analysis/analyze-url-form";
+import { AnalyzeProgress } from "@/components/dashboard/analysis/analyze-progress";
 import { AnalysisResult } from "@/components/dashboard/analysis/analysis-result";
 import { useAnalyzePost } from "@/lib/hooks/use-posts";
 
@@ -24,11 +24,7 @@ export default function AnalyzePostPage() {
         <AnalyzeUrlForm onSubmit={handleSubmit} isSubmitting={analyzeMutation.isPending} />
       </Card>
 
-      {analyzeMutation.isPending && (
-        <Card>
-          <LoadingState label="投稿データを取得し、AIが分析しています... 数十秒かかる場合があります" />
-        </Card>
-      )}
+      {analyzeMutation.isPending && <AnalyzeProgress />}
 
       {analyzeMutation.isError && (
         <ErrorState error={analyzeMutation.error} onRetry={() => analyzeMutation.reset()} />

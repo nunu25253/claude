@@ -18,6 +18,9 @@ import com.buzzanalysis.domain.common.exception.BusinessRuleViolationException;
 import com.buzzanalysis.domain.score.BuzzScore;
 import com.buzzanalysis.domain.score.BuzzScoreCalculator;
 import com.buzzanalysis.domain.score.BuzzScoreRepository;
+import com.buzzanalysis.domain.user.Role;
+import com.buzzanalysis.domain.user.User;
+import com.buzzanalysis.domain.user.UserRepository;
 import com.buzzanalysis.infrastructure.quota.UsageQuotaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -71,6 +74,8 @@ class PostAnalysisApplicationServiceTest {
     private SocialPlatform xClient;
     @Mock
     private UsageQuotaService usageQuotaService;
+    @Mock
+    private UserRepository userRepository;
 
     private PostAnalysisApplicationService service;
     private UUID postId;
@@ -81,7 +86,7 @@ class PostAnalysisApplicationServiceTest {
     void setUp() {
         service = new PostAnalysisApplicationService(platformFactory, socialAccountRepository, postRepository,
                 analysisResultRepository, buzzScoreRepository, aiPostAnalysisPort, buzzScoreCalculator, eventPublisher,
-                usageQuotaService);
+                usageQuotaService, userRepository);
 
         postId = UUID.randomUUID();
         requestingUserId = UUID.randomUUID();
@@ -89,6 +94,9 @@ class PostAnalysisApplicationServiceTest {
                 OffsetDateTime.now(), "user", "caption", List.of(), 100L, 10L, 1000L, 5L, null, null,
                 PostType.TEXT, OffsetDateTime.now(), OffsetDateTime.now());
 
+        when(userRepository.findById(requestingUserId)).thenReturn(Optional.of(
+                new User(requestingUserId, "user@example.com", "hash", "User", Role.USER, true,
+                        OffsetDateTime.now(), OffsetDateTime.now())));
         when(usageQuotaService.tryConsume(any())).thenReturn(true);
         when(platformFactory.detectPlatformFromUrl(any())).thenReturn(Platform.X);
         when(platformFactory.resolve(Platform.X)).thenReturn(xClient);
@@ -150,6 +158,19 @@ class PostAnalysisApplicationServiceTest {
         org.junit.jupiter.api.Assertions.assertThrows(BusinessRuleViolationException.class,
                 () -> service.analyze(new AnalyzePostCommand("https://x.com/user/status/12345", requestingUserId)));
 
+        org.mockito.Mockito.verifyNoInteractions(platformFactory);
+    }
+
+    @Test
+    void analyze_throwsBusinessRuleViolation_whenEmailNotVerified() {
+        when(userRepository.findById(requestingUserId)).thenReturn(Optional.of(
+                new User(requestingUserId, "user@example.com", "hash", "User", Role.USER, false,
+                        OffsetDateTime.now(), OffsetDateTime.now())));
+
+        org.junit.jupiter.api.Assertions.assertThrows(BusinessRuleViolationException.class,
+                () -> service.analyze(new AnalyzePostCommand("https://x.com/user/status/12345", requestingUserId)));
+
+        org.mockito.Mockito.verifyNoInteractions(usageQuotaService);
         org.mockito.Mockito.verifyNoInteractions(platformFactory);
     }
 

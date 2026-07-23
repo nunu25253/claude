@@ -50,7 +50,7 @@ class PasswordResetApplicationServiceTest {
         service = new PasswordResetApplicationService(userRepository, passwordResetTokenRepository,
                 passwordEncoderPort, mailSenderPort);
         existingUser = new User(UUID.randomUUID(), "user@example.com", "old-hash", "User",
-                Role.USER, OffsetDateTime.now(), OffsetDateTime.now());
+                Role.USER, true, OffsetDateTime.now(), OffsetDateTime.now());
     }
 
     @Test

@@ -31,6 +31,9 @@ public class UserEntity {
     @Column(nullable = false, length = 20)
     private RoleEnum role;
 
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
@@ -42,12 +45,13 @@ public class UserEntity {
     }
 
     public UserEntity(UUID id, String email, String passwordHash, String displayName, RoleEnum role,
-                       OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+                       boolean emailVerified, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.id = id;
         this.email = email;
         this.passwordHash = passwordHash;
         this.displayName = displayName;
         this.role = role;
+        this.emailVerified = emailVerified;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -74,6 +78,10 @@ public class UserEntity {
 
     public RoleEnum getRole() {
         return role;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
     }
 
     public OffsetDateTime getCreatedAt() {

@@ -7,6 +7,7 @@ public record AuthResult(
         UUID userId,
         String email,
         String displayName,
+        boolean emailVerified,
         String accessToken,
         long accessTokenExpiresInSeconds,
         String refreshToken,

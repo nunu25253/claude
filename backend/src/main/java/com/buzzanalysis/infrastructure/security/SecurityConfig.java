@@ -1,5 +1,6 @@
 package com.buzzanalysis.infrastructure.security;
 
+import com.buzzanalysis.infrastructure.logging.RequestIdFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -56,6 +57,7 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        RequestIdFilter requestIdFilter = new RequestIdFilter();
         RateLimitFilter rateLimitFilter = new RateLimitFilter(redisTemplate, rateLimitProperties, objectMapper);
         JwtAuthenticationFilter jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtTokenProvider);
         http
@@ -66,7 +68,8 @@ public class SecurityConfig {
                         .requestMatchers(PUBLIC_PATHS).permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(rateLimitFilter, JwtAuthenticationFilter.class);
+                .addFilterBefore(rateLimitFilter, JwtAuthenticationFilter.class)
+                .addFilterBefore(requestIdFilter, RateLimitFilter.class);
         return http.build();
     }
 

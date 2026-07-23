@@ -1,6 +1,7 @@
 package com.buzzanalysis.presentation.controller;
 
 import com.buzzanalysis.application.auth.AuthApplicationService;
+import com.buzzanalysis.application.auth.EmailVerificationApplicationService;
 import com.buzzanalysis.application.auth.PasswordResetApplicationService;
 import com.buzzanalysis.application.auth.dto.AuthResult;
 import com.buzzanalysis.application.auth.dto.LoginCommand;
@@ -43,9 +44,12 @@ class AuthControllerTest {
     @MockBean
     private PasswordResetApplicationService passwordResetApplicationService;
 
+    @MockBean
+    private EmailVerificationApplicationService emailVerificationApplicationService;
+
     @Test
     void register_returns201WithAuthResult() throws Exception {
-        AuthResult mockResult = new AuthResult(UUID.randomUUID(), "new@example.com", "New User",
+        AuthResult mockResult = new AuthResult(UUID.randomUUID(), "new@example.com", "New User", false,
                 "access-token", 1800, "refresh-token", 1209600);
         when(authApplicationService.register(any(RegisterCommand.class))).thenReturn(mockResult);
 

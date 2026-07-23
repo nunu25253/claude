@@ -22,12 +22,15 @@ public class AuthApplicationService {
     private final UserRepository userRepository;
     private final PasswordEncoderPort passwordEncoderPort;
     private final TokenProvider tokenProvider;
+    private final EmailVerificationApplicationService emailVerificationApplicationService;
 
     public AuthApplicationService(UserRepository userRepository, PasswordEncoderPort passwordEncoderPort,
-                                   TokenProvider tokenProvider) {
+                                   TokenProvider tokenProvider,
+                                   EmailVerificationApplicationService emailVerificationApplicationService) {
         this.userRepository = userRepository;
         this.passwordEncoderPort = passwordEncoderPort;
         this.tokenProvider = tokenProvider;
+        this.emailVerificationApplicationService = emailVerificationApplicationService;
     }
 
     @Transactional
@@ -38,6 +41,7 @@ public class AuthApplicationService {
         String hashed = passwordEncoderPort.encode(command.rawPassword());
         User user = User.createNew(command.email(), hashed, command.displayName());
         User saved = userRepository.save(user);
+        emailVerificationApplicationService.sendVerificationEmail(saved);
         return issueTokens(saved);
     }
 
@@ -66,6 +70,7 @@ public class AuthApplicationService {
                 user.getId(),
                 user.getEmail(),
                 user.getDisplayName(),
+                user.isEmailVerified(),
                 access.token(),
                 access.expiresInSeconds(),
                 refresh.token(),
