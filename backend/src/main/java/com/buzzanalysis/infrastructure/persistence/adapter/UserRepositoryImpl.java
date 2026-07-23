@@ -6,6 +6,7 @@ import com.buzzanalysis.infrastructure.persistence.mapper.UserMapper;
 import com.buzzanalysis.infrastructure.persistence.repository.UserJpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -32,6 +33,11 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     public Optional<User> findById(UUID id) {
         return jpaRepository.findById(id).map(mapper::toDomain);
+    }
+
+    @Override
+    public List<User> findByIdIn(List<UUID> ids) {
+        return jpaRepository.findByIdIn(ids).stream().map(mapper::toDomain).toList();
     }
 
     @Override

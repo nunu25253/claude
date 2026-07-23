@@ -9,6 +9,7 @@ import {
   Trophy,
   Bookmark,
   Settings,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 
@@ -29,5 +30,6 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/reports", label: "AIレポート", icon: FileText },
   { href: "/rankings", label: "ランキング", icon: Trophy },
   { href: "/saved", label: "保存済み分析", icon: Bookmark },
+  { href: "/team", label: "チーム", icon: Users },
   { href: "/settings", label: "設定", icon: Settings },
 ];

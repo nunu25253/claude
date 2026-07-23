@@ -278,6 +278,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 組織の作成
+         * @description 作成したユーザーがOWNERとして登録される
+         */
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{organizationId}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 組織のメンバー一覧取得
+         * @description 組織に所属していれば誰でも閲覧可能
+         */
+        get: operations["listMembers"];
+        put?: never;
+        /**
+         * メンバーの招待
+         * @description 既存の登録ユーザーをメールアドレスで指定して招待する。OWNERのみ実行可能
+         */
+        post: operations["inviteMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/matching/evaluate": {
         parameters: {
             query?: never;
@@ -819,6 +863,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/organizations/{organizationId}/saved-analyses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * チーム内の保存済み分析一覧取得
+         * @description 組織メンバー全員の保存済み分析(ブックマーク)を、誰が保存したかと合わせて返す
+         */
+        get: operations["listTeamSavedAnalyses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 自分が所属する組織の一覧取得 */
+        get: operations["listMine"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/evaluations/proposal/{proposalId}": {
         parameters: {
             query?: never;
@@ -911,6 +992,26 @@ export interface paths {
         post?: never;
         /** 保存済み分析を削除 */
         delete: operations["delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organizations/{organizationId}/members/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * メンバーの削除
+         * @description OWNERのみ実行可能。組織に残る唯一のOWNERは削除できない
+         */
+        delete: operations["removeMember"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1216,6 +1317,31 @@ export interface components {
             buzzScore?: components["schemas"]["BuzzScoreDto"];
             similarPosts?: components["schemas"]["PostDto"][];
         };
+        CreateOrganizationRequest: {
+            name: string;
+        };
+        OrganizationDto: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** @enum {string} */
+            myRole?: "OWNER" | "MEMBER";
+        };
+        InviteMemberRequest: {
+            email: string;
+        };
+        OrganizationMemberDto: {
+            /** Format: uuid */
+            userId?: string;
+            email?: string;
+            displayName?: string;
+            /** @enum {string} */
+            role?: "OWNER" | "MEMBER";
+            /** Format: date-time */
+            joinedAt?: string;
+        };
         MatchRateResultDto: {
             post?: components["schemas"]["PostDto"];
             /** Format: double */
@@ -1513,6 +1639,12 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+        };
+        TeamSavedAnalysisDto: {
+            savedAnalysis?: components["schemas"]["SavedAnalysisDetailDto"];
+            /** Format: uuid */
+            savedByUserId?: string;
+            savedByDisplayName?: string;
         };
         CompetitorStatsDto: {
             /** Format: uuid */
@@ -1940,6 +2072,78 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AnalyzePostResult"];
+                };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateOrganizationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrganizationDto"];
+                };
+            };
+        };
+    };
+    listMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrganizationMemberDto"][];
+                };
+            };
+        };
+    };
+    inviteMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteMemberRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrganizationMemberDto"];
                 };
             };
         };
@@ -2597,6 +2801,48 @@ export interface operations {
             };
         };
     };
+    listTeamSavedAnalyses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeamSavedAnalysisDto"][];
+                };
+            };
+        };
+    };
+    listMine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrganizationDto"][];
+                };
+            };
+        };
+    };
     findByProposalId_1: {
         parameters: {
             query?: never;
@@ -2692,6 +2938,27 @@ export interface operations {
             header?: never;
             path: {
                 id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    removeMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationId: string;
+                userId: string;
             };
             cookie?: never;
         };
