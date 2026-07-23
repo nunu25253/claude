@@ -6,6 +6,7 @@ import com.buzzanalysis.application.carousel.dto.CarouselGenerationRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,13 +34,18 @@ public class CarouselController {
 
     @Operation(summary = "カルーセルの生成", description = "投稿企画IDから、AIがInstagramカルーセル(2〜8ページ)を生成する。")
     @PostMapping("/generate")
-    public ResponseEntity<CarouselDto> generate(@RequestBody CarouselGenerationRequest request) {
-        return ResponseEntity.ok(carouselGenerationApplicationService.generate(request));
+    public ResponseEntity<CarouselDto> generate(Authentication authentication,
+                                                 @RequestBody CarouselGenerationRequest request) {
+        return ResponseEntity.ok(carouselGenerationApplicationService.generate(request, currentUserId(authentication)));
     }
 
     @Operation(summary = "企画に紐づく生成済みカルーセルの取得", description = "指定した投稿企画IDに紐づくカルーセル一覧を取得する。")
     @GetMapping("/proposal/{proposalId}")
     public ResponseEntity<List<CarouselDto>> findByProposalId(@PathVariable UUID proposalId) {
         return ResponseEntity.ok(carouselGenerationApplicationService.findByProposalId(proposalId));
+    }
+
+    private UUID currentUserId(Authentication authentication) {
+        return UUID.fromString(authentication.getName());
     }
 }

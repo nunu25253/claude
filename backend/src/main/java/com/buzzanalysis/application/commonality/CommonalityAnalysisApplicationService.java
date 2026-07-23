@@ -5,11 +5,13 @@ import com.buzzanalysis.domain.analysis.AnalysisResult;
 import com.buzzanalysis.domain.analysis.AnalysisResultRepository;
 import com.buzzanalysis.domain.commonality.CommonalityAnalysisResult;
 import com.buzzanalysis.domain.commonality.CommonalityStatisticsCalculator;
+import com.buzzanalysis.domain.common.exception.BusinessRuleViolationException;
 import com.buzzanalysis.domain.normalization.PostNormalizer;
 import com.buzzanalysis.domain.post.Post;
 import com.buzzanalysis.domain.post.PostRepository;
 import com.buzzanalysis.domain.preprocessing.PostPreprocessor;
 import com.buzzanalysis.domain.preprocessing.PreprocessedPost;
+import com.buzzanalysis.infrastructure.quota.UsageQuotaService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,23 +40,29 @@ public class CommonalityAnalysisApplicationService {
     private final PostPreprocessor postPreprocessor;
     private final CommonalityStatisticsCalculator statisticsCalculator;
     private final AiCommonalityAnalysisPort aiCommonalityAnalysisPort;
+    private final UsageQuotaService usageQuotaService;
 
     public CommonalityAnalysisApplicationService(PostRepository postRepository,
                                                   AnalysisResultRepository analysisResultRepository,
                                                   PostNormalizer postNormalizer,
                                                   PostPreprocessor postPreprocessor,
                                                   CommonalityStatisticsCalculator statisticsCalculator,
-                                                  AiCommonalityAnalysisPort aiCommonalityAnalysisPort) {
+                                                  AiCommonalityAnalysisPort aiCommonalityAnalysisPort,
+                                                  UsageQuotaService usageQuotaService) {
         this.postRepository = postRepository;
         this.analysisResultRepository = analysisResultRepository;
         this.postNormalizer = postNormalizer;
         this.postPreprocessor = postPreprocessor;
         this.statisticsCalculator = statisticsCalculator;
         this.aiCommonalityAnalysisPort = aiCommonalityAnalysisPort;
+        this.usageQuotaService = usageQuotaService;
     }
 
     @Transactional(readOnly = true)
-    public CommonalityAnalysisResultDto analyze(List<UUID> postIds) {
+    public CommonalityAnalysisResultDto analyze(List<UUID> postIds, UUID requestingUserId) {
+        if (!usageQuotaService.tryConsume(requestingUserId)) {
+            throw new BusinessRuleViolationException("本日のAI機能の利用回数上限に達しました。明日以降に再度お試しください。");
+        }
         List<UUID> targetIds = postIds.size() > MAX_POSTS ? postIds.subList(0, MAX_POSTS) : postIds;
 
         List<Post> posts = new ArrayList<>();

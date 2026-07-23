@@ -2,15 +2,19 @@ package com.buzzanalysis.application.evaluation;
 
 import com.buzzanalysis.application.evaluation.dto.ContentEvaluationDto;
 import com.buzzanalysis.application.evaluation.dto.PostEvaluationRequest;
+import com.buzzanalysis.domain.common.exception.BusinessRuleViolationException;
 import com.buzzanalysis.domain.common.exception.EntityNotFoundException;
 import com.buzzanalysis.domain.evaluation.ContentEvaluationRepository;
 import com.buzzanalysis.domain.proposal.ContentProposal;
 import com.buzzanalysis.domain.proposal.ContentProposalRepository;
+import com.buzzanalysis.infrastructure.quota.UsageQuotaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -26,6 +30,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class PostEvaluationApplicationServiceTest {
 
     @Mock
@@ -34,13 +39,18 @@ class PostEvaluationApplicationServiceTest {
     private AiPostEvaluationPort aiPostEvaluationPort;
     @Mock
     private ContentEvaluationRepository contentEvaluationRepository;
+    @Mock
+    private UsageQuotaService usageQuotaService;
 
     private PostEvaluationApplicationService service;
+    private UUID requestingUserId;
 
     @BeforeEach
     void setUp() {
         service = new PostEvaluationApplicationService(contentProposalRepository, aiPostEvaluationPort,
-                contentEvaluationRepository);
+                contentEvaluationRepository, usageQuotaService);
+        requestingUserId = UUID.randomUUID();
+        when(usageQuotaService.tryConsume(any())).thenReturn(true);
     }
 
     @Test
@@ -50,12 +60,22 @@ class PostEvaluationApplicationServiceTest {
         when(contentEvaluationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         ContentEvaluationDto result = service.evaluate(
-                new PostEvaluationRequest(null, "タイトル", "フック", "構成", "CTA", "ターゲット"));
+                new PostEvaluationRequest(null, "タイトル", "フック", "構成", "CTA", "ターゲット"), requestingUserId);
 
         assertThat(result.proposalId()).isNull();
         assertThat(result.matchRatePercent()).isNull();
         assertThat(result.predictedScore()).isEqualTo(55);
         verifyNoInteractions(contentProposalRepository);
+    }
+
+    @Test
+    void evaluate_throwsBusinessRuleViolation_whenDailyUsageQuotaExceeded() {
+        when(usageQuotaService.tryConsume(requestingUserId)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.evaluate(
+                new PostEvaluationRequest(null, "タイトル", "フック", "構成", "CTA", "ターゲット"), requestingUserId))
+                .isInstanceOf(BusinessRuleViolationException.class);
+        verifyNoInteractions(contentProposalRepository, aiPostEvaluationPort, contentEvaluationRepository);
     }
 
     @Test
@@ -69,7 +89,7 @@ class PostEvaluationApplicationServiceTest {
         when(contentEvaluationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         ContentEvaluationDto result = service.evaluate(
-                new PostEvaluationRequest(proposalId, "タイトル", "フック", "構成", "CTA", "ターゲット"));
+                new PostEvaluationRequest(proposalId, "タイトル", "フック", "構成", "CTA", "ターゲット"), requestingUserId);
 
         assertThat(result.proposalId()).isEqualTo(proposalId);
         assertThat(result.matchRatePercent()).isEqualTo(80.0);
@@ -83,7 +103,7 @@ class PostEvaluationApplicationServiceTest {
         when(contentProposalRepository.findById(proposalId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.evaluate(
-                new PostEvaluationRequest(proposalId, "タイトル", "フック", "構成", "CTA", "ターゲット")))
+                new PostEvaluationRequest(proposalId, "タイトル", "フック", "構成", "CTA", "ターゲット"), requestingUserId))
                 .isInstanceOf(EntityNotFoundException.class);
         verifyNoInteractions(aiPostEvaluationPort, contentEvaluationRepository);
     }

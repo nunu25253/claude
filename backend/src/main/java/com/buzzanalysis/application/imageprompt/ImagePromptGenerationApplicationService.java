@@ -12,6 +12,8 @@ import com.buzzanalysis.domain.imageprompt.ImagePromptSourceType;
 import com.buzzanalysis.domain.script.ScriptCut;
 import com.buzzanalysis.domain.script.VideoScript;
 import com.buzzanalysis.domain.script.VideoScriptRepository;
+import com.buzzanalysis.domain.common.exception.BusinessRuleViolationException;
+import com.buzzanalysis.infrastructure.quota.UsageQuotaService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,19 +34,25 @@ public class ImagePromptGenerationApplicationService {
     private final CarouselRepository carouselRepository;
     private final AiImagePromptGenerationPort aiImagePromptGenerationPort;
     private final ImagePromptSetRepository imagePromptSetRepository;
+    private final UsageQuotaService usageQuotaService;
 
     public ImagePromptGenerationApplicationService(VideoScriptRepository videoScriptRepository,
                                                      CarouselRepository carouselRepository,
                                                      AiImagePromptGenerationPort aiImagePromptGenerationPort,
-                                                     ImagePromptSetRepository imagePromptSetRepository) {
+                                                     ImagePromptSetRepository imagePromptSetRepository,
+                                                     UsageQuotaService usageQuotaService) {
         this.videoScriptRepository = videoScriptRepository;
         this.carouselRepository = carouselRepository;
         this.aiImagePromptGenerationPort = aiImagePromptGenerationPort;
         this.imagePromptSetRepository = imagePromptSetRepository;
+        this.usageQuotaService = usageQuotaService;
     }
 
     @Transactional
-    public ImagePromptSetDto generateForScript(UUID scriptId) {
+    public ImagePromptSetDto generateForScript(UUID scriptId, UUID requestingUserId) {
+        if (!usageQuotaService.tryConsume(requestingUserId)) {
+            throw new BusinessRuleViolationException("本日のAI機能の利用回数上限に達しました。明日以降に再度お試しください。");
+        }
         VideoScript script = videoScriptRepository.findById(scriptId)
                 .orElseThrow(() -> EntityNotFoundException.of("VideoScript", scriptId));
         List<String> directions = script.getCuts().stream().map(ScriptCut::visualDirection).toList();
@@ -52,7 +60,10 @@ public class ImagePromptGenerationApplicationService {
     }
 
     @Transactional
-    public ImagePromptSetDto generateForCarousel(UUID carouselId) {
+    public ImagePromptSetDto generateForCarousel(UUID carouselId, UUID requestingUserId) {
+        if (!usageQuotaService.tryConsume(requestingUserId)) {
+            throw new BusinessRuleViolationException("本日のAI機能の利用回数上限に達しました。明日以降に再度お試しください。");
+        }
         Carousel carousel = carouselRepository.findById(carouselId)
                 .orElseThrow(() -> EntityNotFoundException.of("Carousel", carouselId));
         List<String> directions = carousel.getPages().stream().map(CarouselPage::visualDirection).toList();

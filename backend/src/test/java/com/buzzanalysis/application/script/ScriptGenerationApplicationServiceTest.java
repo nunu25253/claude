@@ -9,11 +9,14 @@ import com.buzzanalysis.domain.proposal.ContentProposal;
 import com.buzzanalysis.domain.proposal.ContentProposalRepository;
 import com.buzzanalysis.domain.script.VideoScript;
 import com.buzzanalysis.domain.script.VideoScriptRepository;
+import com.buzzanalysis.infrastructure.quota.UsageQuotaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -27,6 +30,9 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+// durationSeconds不正テストは利用上限チェックの前に例外を投げるため、
+// 未使用スタブの厳格チェック(UnnecessaryStubbingException)を無効化する。
+@MockitoSettings(strictness = Strictness.LENIENT)
 class ScriptGenerationApplicationServiceTest {
 
     @Mock
@@ -35,13 +41,18 @@ class ScriptGenerationApplicationServiceTest {
     private AiScriptGenerationPort aiScriptGenerationPort;
     @Mock
     private VideoScriptRepository videoScriptRepository;
+    @Mock
+    private UsageQuotaService usageQuotaService;
 
     private ScriptGenerationApplicationService service;
+    private UUID requestingUserId;
 
     @BeforeEach
     void setUp() {
         service = new ScriptGenerationApplicationService(contentProposalRepository, aiScriptGenerationPort,
-                videoScriptRepository);
+                videoScriptRepository, usageQuotaService);
+        requestingUserId = UUID.randomUUID();
+        when(usageQuotaService.tryConsume(any())).thenReturn(true);
     }
 
     private ContentProposal sampleProposal(UUID id) {
@@ -51,7 +62,16 @@ class ScriptGenerationApplicationServiceTest {
 
     @Test
     void generate_rejectsUnsupportedDuration() {
-        assertThatThrownBy(() -> service.generate(new ScriptGenerationRequest(UUID.randomUUID(), 45)))
+        assertThatThrownBy(() -> service.generate(new ScriptGenerationRequest(UUID.randomUUID(), 45), requestingUserId))
+                .isInstanceOf(BusinessRuleViolationException.class);
+        verifyNoInteractions(contentProposalRepository, aiScriptGenerationPort, videoScriptRepository);
+    }
+
+    @Test
+    void generate_throwsBusinessRuleViolation_whenDailyUsageQuotaExceeded() {
+        when(usageQuotaService.tryConsume(requestingUserId)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.generate(new ScriptGenerationRequest(UUID.randomUUID(), 30), requestingUserId))
                 .isInstanceOf(BusinessRuleViolationException.class);
         verifyNoInteractions(contentProposalRepository, aiScriptGenerationPort, videoScriptRepository);
     }
@@ -61,7 +81,7 @@ class ScriptGenerationApplicationServiceTest {
         UUID proposalId = UUID.randomUUID();
         when(contentProposalRepository.findById(proposalId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.generate(new ScriptGenerationRequest(proposalId, 30)))
+        assertThatThrownBy(() -> service.generate(new ScriptGenerationRequest(proposalId, 30), requestingUserId))
                 .isInstanceOf(EntityNotFoundException.class);
         verifyNoInteractions(aiScriptGenerationPort, videoScriptRepository);
     }
@@ -76,7 +96,7 @@ class ScriptGenerationApplicationServiceTest {
         when(aiScriptGenerationPort.generate(any(), org.mockito.ArgumentMatchers.eq(60))).thenReturn(generated);
         when(videoScriptRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        VideoScriptDto result = service.generate(new ScriptGenerationRequest(proposalId, 60));
+        VideoScriptDto result = service.generate(new ScriptGenerationRequest(proposalId, 60), requestingUserId);
 
         assertThat(result.proposalId()).isEqualTo(proposalId);
         assertThat(result.durationSeconds()).isEqualTo(60);

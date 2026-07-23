@@ -6,6 +6,7 @@ import com.buzzanalysis.application.script.dto.VideoScriptDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,13 +35,18 @@ public class ScriptController {
     @Operation(summary = "動画台本の生成",
             description = "投稿企画IDと尺(30/60/90秒のいずれか)から、AIが動画台本を生成する。")
     @PostMapping("/generate")
-    public ResponseEntity<VideoScriptDto> generate(@RequestBody ScriptGenerationRequest request) {
-        return ResponseEntity.ok(scriptGenerationApplicationService.generate(request));
+    public ResponseEntity<VideoScriptDto> generate(Authentication authentication,
+                                                    @RequestBody ScriptGenerationRequest request) {
+        return ResponseEntity.ok(scriptGenerationApplicationService.generate(request, currentUserId(authentication)));
     }
 
     @Operation(summary = "企画に紐づく生成済み台本の取得", description = "指定した投稿企画IDに紐づく台本一覧を取得する。")
     @GetMapping("/proposal/{proposalId}")
     public ResponseEntity<List<VideoScriptDto>> findByProposalId(@PathVariable UUID proposalId) {
         return ResponseEntity.ok(scriptGenerationApplicationService.findByProposalId(proposalId));
+    }
+
+    private UUID currentUserId(Authentication authentication) {
+        return UUID.fromString(authentication.getName());
     }
 }

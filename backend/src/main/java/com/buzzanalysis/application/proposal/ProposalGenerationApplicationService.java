@@ -4,8 +4,10 @@ import com.buzzanalysis.application.commonality.CommonalityAnalysisApplicationSe
 import com.buzzanalysis.application.commonality.dto.CommonalityAnalysisResultDto;
 import com.buzzanalysis.application.proposal.dto.ContentProposalDto;
 import com.buzzanalysis.application.proposal.dto.ProposalGenerationRequest;
+import com.buzzanalysis.domain.common.exception.BusinessRuleViolationException;
 import com.buzzanalysis.domain.proposal.ContentProposal;
 import com.buzzanalysis.domain.proposal.ContentProposalRepository;
+import com.buzzanalysis.infrastructure.quota.UsageQuotaService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,19 +29,26 @@ public class ProposalGenerationApplicationService {
     private final CommonalityAnalysisApplicationService commonalityAnalysisApplicationService;
     private final AiProposalGenerationPort aiProposalGenerationPort;
     private final ContentProposalRepository contentProposalRepository;
+    private final UsageQuotaService usageQuotaService;
 
     public ProposalGenerationApplicationService(CommonalityAnalysisApplicationService commonalityAnalysisApplicationService,
                                                  AiProposalGenerationPort aiProposalGenerationPort,
-                                                 ContentProposalRepository contentProposalRepository) {
+                                                 ContentProposalRepository contentProposalRepository,
+                                                 UsageQuotaService usageQuotaService) {
         this.commonalityAnalysisApplicationService = commonalityAnalysisApplicationService;
         this.aiProposalGenerationPort = aiProposalGenerationPort;
         this.contentProposalRepository = contentProposalRepository;
+        this.usageQuotaService = usageQuotaService;
     }
 
     @Transactional
-    public List<ContentProposalDto> generate(ProposalGenerationRequest request) {
+    public List<ContentProposalDto> generate(ProposalGenerationRequest request, UUID requestingUserId) {
+        if (!usageQuotaService.tryConsume(requestingUserId)) {
+            throw new BusinessRuleViolationException("本日のAI機能の利用回数上限に達しました。明日以降に再度お試しください。");
+        }
         int requestedCount = resolveCount(request.count());
-        CommonalityAnalysisResultDto commonality = commonalityAnalysisApplicationService.analyze(request.postIds());
+        CommonalityAnalysisResultDto commonality =
+                commonalityAnalysisApplicationService.analyze(request.postIds(), requestingUserId);
         List<AiProposalGenerationPort.GeneratedProposal> generated =
                 aiProposalGenerationPort.generate(commonality, requestedCount);
 

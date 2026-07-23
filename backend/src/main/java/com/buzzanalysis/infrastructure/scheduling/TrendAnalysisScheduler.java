@@ -35,7 +35,8 @@ public class TrendAnalysisScheduler {
     public void run() {
         log.info("Trend analysis daily batch started");
         TrendReportDto report = trendAnalysisApplicationService.analyze(
-                new TrendAnalysisRequest(null, properties.getRecentWindowDays(), properties.getBaselineWindowDays()));
+                new TrendAnalysisRequest(null, properties.getRecentWindowDays(), properties.getBaselineWindowDays()),
+                null);
         log.info("Trend analysis daily batch completed: {} items detected", report.items().size());
     }
 }

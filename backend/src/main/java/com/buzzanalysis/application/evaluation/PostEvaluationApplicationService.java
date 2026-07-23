@@ -3,10 +3,12 @@ package com.buzzanalysis.application.evaluation;
 import com.buzzanalysis.application.evaluation.dto.ContentEvaluationDto;
 import com.buzzanalysis.application.evaluation.dto.PostEvaluationRequest;
 import com.buzzanalysis.application.proposal.dto.ContentProposalDto;
+import com.buzzanalysis.domain.common.exception.BusinessRuleViolationException;
 import com.buzzanalysis.domain.common.exception.EntityNotFoundException;
 import com.buzzanalysis.domain.evaluation.ContentEvaluation;
 import com.buzzanalysis.domain.evaluation.ContentEvaluationRepository;
 import com.buzzanalysis.domain.proposal.ContentProposalRepository;
+import com.buzzanalysis.infrastructure.quota.UsageQuotaService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,17 +28,23 @@ public class PostEvaluationApplicationService {
     private final ContentProposalRepository contentProposalRepository;
     private final AiPostEvaluationPort aiPostEvaluationPort;
     private final ContentEvaluationRepository contentEvaluationRepository;
+    private final UsageQuotaService usageQuotaService;
 
     public PostEvaluationApplicationService(ContentProposalRepository contentProposalRepository,
                                              AiPostEvaluationPort aiPostEvaluationPort,
-                                             ContentEvaluationRepository contentEvaluationRepository) {
+                                             ContentEvaluationRepository contentEvaluationRepository,
+                                             UsageQuotaService usageQuotaService) {
         this.contentProposalRepository = contentProposalRepository;
         this.aiPostEvaluationPort = aiPostEvaluationPort;
         this.contentEvaluationRepository = contentEvaluationRepository;
+        this.usageQuotaService = usageQuotaService;
     }
 
     @Transactional
-    public ContentEvaluationDto evaluate(PostEvaluationRequest request) {
+    public ContentEvaluationDto evaluate(PostEvaluationRequest request, UUID requestingUserId) {
+        if (!usageQuotaService.tryConsume(requestingUserId)) {
+            throw new BusinessRuleViolationException("本日のAI機能の利用回数上限に達しました。明日以降に再度お試しください。");
+        }
         Optional<ContentProposalDto> referenceProposal = Optional.empty();
         if (request.proposalId() != null) {
             ContentProposalDto proposalDto = contentProposalRepository.findById(request.proposalId())

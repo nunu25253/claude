@@ -5,17 +5,21 @@ import com.buzzanalysis.domain.carousel.Carousel;
 import com.buzzanalysis.domain.carousel.CarouselPage;
 import com.buzzanalysis.domain.carousel.CarouselRepository;
 import com.buzzanalysis.domain.carousel.PageRole;
+import com.buzzanalysis.domain.common.exception.BusinessRuleViolationException;
 import com.buzzanalysis.domain.common.exception.EntityNotFoundException;
 import com.buzzanalysis.domain.imageprompt.ImagePromptSetRepository;
 import com.buzzanalysis.domain.imageprompt.ImagePromptSourceType;
 import com.buzzanalysis.domain.script.ScriptCut;
 import com.buzzanalysis.domain.script.VideoScript;
 import com.buzzanalysis.domain.script.VideoScriptRepository;
+import com.buzzanalysis.infrastructure.quota.UsageQuotaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -29,6 +33,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class ImagePromptGenerationApplicationServiceTest {
 
     @Mock
@@ -39,13 +44,18 @@ class ImagePromptGenerationApplicationServiceTest {
     private AiImagePromptGenerationPort aiImagePromptGenerationPort;
     @Mock
     private ImagePromptSetRepository imagePromptSetRepository;
+    @Mock
+    private UsageQuotaService usageQuotaService;
 
     private ImagePromptGenerationApplicationService service;
+    private UUID requestingUserId;
 
     @BeforeEach
     void setUp() {
         service = new ImagePromptGenerationApplicationService(videoScriptRepository, carouselRepository,
-                aiImagePromptGenerationPort, imagePromptSetRepository);
+                aiImagePromptGenerationPort, imagePromptSetRepository, usageQuotaService);
+        requestingUserId = UUID.randomUUID();
+        when(usageQuotaService.tryConsume(any())).thenReturn(true);
     }
 
     @Test
@@ -53,8 +63,19 @@ class ImagePromptGenerationApplicationServiceTest {
         UUID scriptId = UUID.randomUUID();
         when(videoScriptRepository.findById(scriptId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.generateForScript(scriptId)).isInstanceOf(EntityNotFoundException.class);
+        assertThatThrownBy(() -> service.generateForScript(scriptId, requestingUserId))
+                .isInstanceOf(EntityNotFoundException.class);
         verifyNoInteractions(aiImagePromptGenerationPort, imagePromptSetRepository);
+    }
+
+    @Test
+    void generateForScript_throwsBusinessRuleViolation_whenDailyUsageQuotaExceeded() {
+        UUID scriptId = UUID.randomUUID();
+        when(usageQuotaService.tryConsume(requestingUserId)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.generateForScript(scriptId, requestingUserId))
+                .isInstanceOf(BusinessRuleViolationException.class);
+        verifyNoInteractions(videoScriptRepository, aiImagePromptGenerationPort, imagePromptSetRepository);
     }
 
     @Test
@@ -71,7 +92,7 @@ class ImagePromptGenerationApplicationServiceTest {
                 .thenReturn(List.of("プロンプト1", "プロンプト2"));
         when(imagePromptSetRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        ImagePromptSetDto result = service.generateForScript(scriptId);
+        ImagePromptSetDto result = service.generateForScript(scriptId, requestingUserId);
 
         assertThat(result.sourceType()).isEqualTo(ImagePromptSourceType.VIDEO_SCRIPT);
         assertThat(result.sourceId()).isEqualTo(scriptId);
@@ -93,7 +114,7 @@ class ImagePromptGenerationApplicationServiceTest {
                 .thenReturn(List.of("プロンプトA", "プロンプトB"));
         when(imagePromptSetRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        ImagePromptSetDto result = service.generateForCarousel(carouselId);
+        ImagePromptSetDto result = service.generateForCarousel(carouselId, requestingUserId);
 
         assertThat(result.sourceType()).isEqualTo(ImagePromptSourceType.CAROUSEL);
         assertThat(result.prompts()).hasSize(2);

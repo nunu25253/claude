@@ -10,6 +10,7 @@ import com.buzzanalysis.domain.proposal.ContentProposalRepository;
 import com.buzzanalysis.domain.script.ScriptCut;
 import com.buzzanalysis.domain.script.VideoScript;
 import com.buzzanalysis.domain.script.VideoScriptRepository;
+import com.buzzanalysis.infrastructure.quota.UsageQuotaService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,20 +31,26 @@ public class ScriptGenerationApplicationService {
     private final ContentProposalRepository contentProposalRepository;
     private final AiScriptGenerationPort aiScriptGenerationPort;
     private final VideoScriptRepository videoScriptRepository;
+    private final UsageQuotaService usageQuotaService;
 
     public ScriptGenerationApplicationService(ContentProposalRepository contentProposalRepository,
                                                AiScriptGenerationPort aiScriptGenerationPort,
-                                               VideoScriptRepository videoScriptRepository) {
+                                               VideoScriptRepository videoScriptRepository,
+                                               UsageQuotaService usageQuotaService) {
         this.contentProposalRepository = contentProposalRepository;
         this.aiScriptGenerationPort = aiScriptGenerationPort;
         this.videoScriptRepository = videoScriptRepository;
+        this.usageQuotaService = usageQuotaService;
     }
 
     @Transactional
-    public VideoScriptDto generate(ScriptGenerationRequest request) {
+    public VideoScriptDto generate(ScriptGenerationRequest request, UUID requestingUserId) {
         if (!ALLOWED_DURATIONS.contains(request.durationSeconds())) {
             throw new BusinessRuleViolationException("durationSecondsは30/60/90のいずれかである必要があります: "
                     + request.durationSeconds());
+        }
+        if (!usageQuotaService.tryConsume(requestingUserId)) {
+            throw new BusinessRuleViolationException("本日のAI機能の利用回数上限に達しました。明日以降に再度お試しください。");
         }
         ContentProposal proposal = contentProposalRepository.findById(request.proposalId())
                 .orElseThrow(() -> EntityNotFoundException.of("ContentProposal", request.proposalId()));

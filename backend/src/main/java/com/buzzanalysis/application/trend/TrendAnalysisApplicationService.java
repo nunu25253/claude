@@ -4,6 +4,7 @@ import com.buzzanalysis.application.trend.dto.TrendAnalysisRequest;
 import com.buzzanalysis.application.trend.dto.TrendReportDto;
 import com.buzzanalysis.domain.analysis.AnalysisResult;
 import com.buzzanalysis.domain.analysis.AnalysisResultRepository;
+import com.buzzanalysis.domain.common.exception.BusinessRuleViolationException;
 import com.buzzanalysis.domain.normalization.PostNormalizer;
 import com.buzzanalysis.domain.platform.Platform;
 import com.buzzanalysis.domain.post.Post;
@@ -16,6 +17,7 @@ import com.buzzanalysis.domain.trend.TrendCategory;
 import com.buzzanalysis.domain.trend.TrendItem;
 import com.buzzanalysis.domain.trend.TrendReport;
 import com.buzzanalysis.domain.trend.TrendReportRepository;
+import com.buzzanalysis.infrastructure.quota.UsageQuotaService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,23 +50,33 @@ public class TrendAnalysisApplicationService {
     private final PostPreprocessor postPreprocessor;
     private final AiTrendSummaryPort aiTrendSummaryPort;
     private final TrendReportRepository trendReportRepository;
+    private final UsageQuotaService usageQuotaService;
 
     public TrendAnalysisApplicationService(PostRepository postRepository,
                                             AnalysisResultRepository analysisResultRepository,
                                             PostNormalizer postNormalizer,
                                             PostPreprocessor postPreprocessor,
                                             AiTrendSummaryPort aiTrendSummaryPort,
-                                            TrendReportRepository trendReportRepository) {
+                                            TrendReportRepository trendReportRepository,
+                                            UsageQuotaService usageQuotaService) {
         this.postRepository = postRepository;
         this.analysisResultRepository = analysisResultRepository;
         this.postNormalizer = postNormalizer;
         this.postPreprocessor = postPreprocessor;
         this.aiTrendSummaryPort = aiTrendSummaryPort;
         this.trendReportRepository = trendReportRepository;
+        this.usageQuotaService = usageQuotaService;
     }
 
+    /**
+     * requestingUserIdはnull許容。ユーザー操作(API経由)では必須だが、スケジューラによる
+     * 定期実行(誰の操作でもない)ではnullを渡し、その場合は利用上限チェックをスキップする。
+     */
     @Transactional
-    public TrendReportDto analyze(TrendAnalysisRequest request) {
+    public TrendReportDto analyze(TrendAnalysisRequest request, UUID requestingUserId) {
+        if (requestingUserId != null && !usageQuotaService.tryConsume(requestingUserId)) {
+            throw new BusinessRuleViolationException("本日のAI機能の利用回数上限に達しました。明日以降に再度お試しください。");
+        }
         int recentWindowDays = request.recentWindowDays() == null || request.recentWindowDays() <= 0
                 ? DEFAULT_RECENT_WINDOW_DAYS : request.recentWindowDays();
         int baselineWindowDays = request.baselineWindowDays() == null || request.baselineWindowDays() <= 0

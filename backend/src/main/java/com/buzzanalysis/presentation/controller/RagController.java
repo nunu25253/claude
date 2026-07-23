@@ -9,10 +9,13 @@ import com.buzzanalysis.application.rag.dto.RagQueryResultDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.UUID;
 
 /**
  * RAG API（AIマーケティングOS Phase16）。過去の分析結果・投稿評価・トレンドレポート等を明示的に
@@ -42,7 +45,11 @@ public class RagController {
     @Operation(summary = "RAG質問応答",
             description = "索引済みドキュメントの中から類似度上位(既定5件、上限20件)を取得し、それらを根拠にAIが回答する。")
     @PostMapping("/query")
-    public ResponseEntity<RagQueryResultDto> query(@RequestBody RagQueryRequest request) {
-        return ResponseEntity.ok(ragQueryApplicationService.query(request));
+    public ResponseEntity<RagQueryResultDto> query(Authentication authentication, @RequestBody RagQueryRequest request) {
+        return ResponseEntity.ok(ragQueryApplicationService.query(request, currentUserId(authentication)));
+    }
+
+    private UUID currentUserId(Authentication authentication) {
+        return UUID.fromString(authentication.getName());
     }
 }

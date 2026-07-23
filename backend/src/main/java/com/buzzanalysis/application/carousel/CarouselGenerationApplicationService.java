@@ -7,9 +7,11 @@ import com.buzzanalysis.domain.carousel.Carousel;
 import com.buzzanalysis.domain.carousel.CarouselPage;
 import com.buzzanalysis.domain.carousel.CarouselRepository;
 import com.buzzanalysis.domain.carousel.PageRole;
+import com.buzzanalysis.domain.common.exception.BusinessRuleViolationException;
 import com.buzzanalysis.domain.common.exception.EntityNotFoundException;
 import com.buzzanalysis.domain.proposal.ContentProposal;
 import com.buzzanalysis.domain.proposal.ContentProposalRepository;
+import com.buzzanalysis.infrastructure.quota.UsageQuotaService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,17 +31,23 @@ public class CarouselGenerationApplicationService {
     private final ContentProposalRepository contentProposalRepository;
     private final AiCarouselGenerationPort aiCarouselGenerationPort;
     private final CarouselRepository carouselRepository;
+    private final UsageQuotaService usageQuotaService;
 
     public CarouselGenerationApplicationService(ContentProposalRepository contentProposalRepository,
                                                  AiCarouselGenerationPort aiCarouselGenerationPort,
-                                                 CarouselRepository carouselRepository) {
+                                                 CarouselRepository carouselRepository,
+                                                 UsageQuotaService usageQuotaService) {
         this.contentProposalRepository = contentProposalRepository;
         this.aiCarouselGenerationPort = aiCarouselGenerationPort;
         this.carouselRepository = carouselRepository;
+        this.usageQuotaService = usageQuotaService;
     }
 
     @Transactional
-    public CarouselDto generate(CarouselGenerationRequest request) {
+    public CarouselDto generate(CarouselGenerationRequest request, UUID requestingUserId) {
+        if (!usageQuotaService.tryConsume(requestingUserId)) {
+            throw new BusinessRuleViolationException("本日のAI機能の利用回数上限に達しました。明日以降に再度お試しください。");
+        }
         ContentProposal proposal = contentProposalRepository.findById(request.proposalId())
                 .orElseThrow(() -> EntityNotFoundException.of("ContentProposal", request.proposalId()));
 

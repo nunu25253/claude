@@ -6,10 +6,13 @@ import com.buzzanalysis.application.commonality.dto.CommonalityAnalysisResultDto
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.UUID;
 
 /**
  * 共通点分析API（AIマーケティングOS Phase8）。検索結果等の投稿群（最大100件）から、
@@ -29,7 +32,13 @@ public class CommonalityAnalysisController {
     @Operation(summary = "投稿群の共通点分析",
             description = "投稿ID配列(最大100件)から共通パターンを抽出する。AIには要約スニペットを最大30件までサンプリングして渡す。")
     @PostMapping("/analyze")
-    public ResponseEntity<CommonalityAnalysisResultDto> analyze(@RequestBody CommonalityAnalysisRequest request) {
-        return ResponseEntity.ok(commonalityAnalysisApplicationService.analyze(request.postIds()));
+    public ResponseEntity<CommonalityAnalysisResultDto> analyze(Authentication authentication,
+                                                                 @RequestBody CommonalityAnalysisRequest request) {
+        return ResponseEntity.ok(
+                commonalityAnalysisApplicationService.analyze(request.postIds(), currentUserId(authentication)));
+    }
+
+    private UUID currentUserId(Authentication authentication) {
+        return UUID.fromString(authentication.getName());
     }
 }

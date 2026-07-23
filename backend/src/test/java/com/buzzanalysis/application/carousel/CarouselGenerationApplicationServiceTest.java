@@ -6,14 +6,18 @@ import com.buzzanalysis.domain.carousel.Carousel;
 import com.buzzanalysis.domain.carousel.CarouselPage;
 import com.buzzanalysis.domain.carousel.CarouselRepository;
 import com.buzzanalysis.domain.carousel.PageRole;
+import com.buzzanalysis.domain.common.exception.BusinessRuleViolationException;
 import com.buzzanalysis.domain.common.exception.EntityNotFoundException;
 import com.buzzanalysis.domain.proposal.ContentProposal;
 import com.buzzanalysis.domain.proposal.ContentProposalRepository;
+import com.buzzanalysis.infrastructure.quota.UsageQuotaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -27,6 +31,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class CarouselGenerationApplicationServiceTest {
 
     @Mock
@@ -35,13 +40,18 @@ class CarouselGenerationApplicationServiceTest {
     private AiCarouselGenerationPort aiCarouselGenerationPort;
     @Mock
     private CarouselRepository carouselRepository;
+    @Mock
+    private UsageQuotaService usageQuotaService;
 
     private CarouselGenerationApplicationService service;
+    private UUID requestingUserId;
 
     @BeforeEach
     void setUp() {
         service = new CarouselGenerationApplicationService(contentProposalRepository, aiCarouselGenerationPort,
-                carouselRepository);
+                carouselRepository, usageQuotaService);
+        requestingUserId = UUID.randomUUID();
+        when(usageQuotaService.tryConsume(any())).thenReturn(true);
     }
 
     private ContentProposal sampleProposal(UUID id) {
@@ -54,9 +64,18 @@ class CarouselGenerationApplicationServiceTest {
         UUID proposalId = UUID.randomUUID();
         when(contentProposalRepository.findById(proposalId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.generate(new CarouselGenerationRequest(proposalId)))
+        assertThatThrownBy(() -> service.generate(new CarouselGenerationRequest(proposalId), requestingUserId))
                 .isInstanceOf(EntityNotFoundException.class);
         verifyNoInteractions(aiCarouselGenerationPort, carouselRepository);
+    }
+
+    @Test
+    void generate_throwsBusinessRuleViolation_whenDailyUsageQuotaExceeded() {
+        when(usageQuotaService.tryConsume(requestingUserId)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.generate(new CarouselGenerationRequest(UUID.randomUUID()), requestingUserId))
+                .isInstanceOf(BusinessRuleViolationException.class);
+        verifyNoInteractions(contentProposalRepository, aiCarouselGenerationPort, carouselRepository);
     }
 
     @Test
@@ -72,7 +91,7 @@ class CarouselGenerationApplicationServiceTest {
         when(aiCarouselGenerationPort.generate(any())).thenReturn(generated);
         when(carouselRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        CarouselDto result = service.generate(new CarouselGenerationRequest(proposalId));
+        CarouselDto result = service.generate(new CarouselGenerationRequest(proposalId), requestingUserId);
 
         assertThat(result.pages()).hasSize(4);
         assertThat(result.pages().get(0).role()).isEqualTo(PageRole.HOOK);
