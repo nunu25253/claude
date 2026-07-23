@@ -491,7 +491,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** ユーザー登録 */
+        /**
+         * ユーザー登録
+         * @description 成功時、アクセス/リフレッシュトークンをHttpOnly Cookieとして発行する
+         */
         post: operations["register"];
         delete?: never;
         options?: never;
@@ -508,7 +511,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** アクセストークン再発行 */
+        /**
+         * アクセストークン再発行
+         * @description リフレッシュトークンはCookieから読み取る(リクエストボディ不要)
+         */
         post: operations["refresh"];
         delete?: never;
         options?: never;
@@ -556,6 +562,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * ログアウト
+         * @description リフレッシュトークンを失効させ、認証Cookieを削除する
+         */
+        post: operations["logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -565,7 +591,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** ログイン */
+        /**
+         * ログイン
+         * @description 成功時、アクセス/リフレッシュトークンをHttpOnly Cookieとして発行する
+         */
         post: operations["login"];
         delete?: never;
         options?: never;
@@ -1032,6 +1061,26 @@ export interface paths {
          * @description アップグレード未実施のユーザーはFREEプランとして返る
          */
         get: operations["getMyPlan"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/csrf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * CSRFトークンCookie発行
+         * @description XSRF-TOKEN Cookieを確実に発行するための空エンドポイント。フロントエンドはログイン成功後にこれを一度呼び出す
+         */
+        get: operations["csrf"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1514,21 +1563,14 @@ export interface components {
             password: string;
             displayName: string;
         };
-        AuthResult: {
+        AuthResponse: {
             /** Format: uuid */
             userId?: string;
             email?: string;
             displayName?: string;
             emailVerified?: boolean;
-            accessToken?: string;
             /** Format: int64 */
             accessTokenExpiresInSeconds?: number;
-            refreshToken?: string;
-            /** Format: int64 */
-            refreshTokenExpiresInSeconds?: number;
-        };
-        RefreshRequest: {
-            refreshToken: string;
         };
         PasswordResetRequestRequest: {
             email: string;
@@ -1749,6 +1791,11 @@ export interface components {
             target?: components["schemas"]["CompetitorStatsDto"];
             competitor?: components["schemas"]["CompetitorStatsDto"];
             aiExplanation?: string;
+        };
+        CsrfToken: {
+            parameterName?: string;
+            token?: string;
+            headerName?: string;
         };
     };
     responses: never;
@@ -2427,7 +2474,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["AuthResult"];
+                    "*/*": components["schemas"]["AuthResponse"];
                 };
             };
         };
@@ -2437,13 +2484,11 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RefreshRequest"];
+            cookie?: {
+                refresh_token?: string;
             };
         };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -2451,7 +2496,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["AuthResult"];
+                    "*/*": components["schemas"]["AuthResponse"];
                 };
             };
         };
@@ -2500,6 +2545,26 @@ export interface operations {
             };
         };
     };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                refresh_token?: string;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     login: {
         parameters: {
             query?: never;
@@ -2519,7 +2584,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["AuthResult"];
+                    "*/*": components["schemas"]["AuthResponse"];
                 };
             };
         };
@@ -2729,7 +2794,10 @@ export interface operations {
     };
     download: {
         parameters: {
-            query?: never;
+            query: {
+                expires: number;
+                sig: string;
+            };
             header?: never;
             path: {
                 key: string;
@@ -3066,6 +3134,26 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["SubscriptionDto"];
                 };
+            };
+        };
+    };
+    csrf: {
+        parameters: {
+            query: {
+                csrfToken: components["schemas"]["CsrfToken"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

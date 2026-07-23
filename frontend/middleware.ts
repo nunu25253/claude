@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// token.ts の DEFAULT_TOKEN_KEY と同じ値（env未設定時のフォールバック）
-const DEFAULT_TOKEN_KEY = "sns_buzz_auth_token";
+// バックエンド(AuthCookieNames.ACCESS_TOKEN)が発行するHttpOnly Cookieの名前と同じ値。
+// HttpOnlyはブラウザのJSからの読み取りを禁じるだけで、サーバーサイドのmiddlewareが
+// リクエストヘッダー経由でCookieの有無を見ることは問題無い(実際の署名検証はバックエンド側で行う。
+// ここでは「Cookieが存在するか」だけを見た簡易ガード)。
+const ACCESS_TOKEN_COOKIE = "access_token";
 
 // ログイン不要でアクセスできるパス
 const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email", "/welcome"];
@@ -14,8 +17,7 @@ const AUTH_ONLY_PATHS = ["/login", "/register", "/forgot-password", "/reset-pass
  * JWTの中身の検証はバックエンド側に委ね、ここでは「Cookieの有無」のみをチェックする。
  */
 export function middleware(request: NextRequest) {
-  const tokenKey = process.env.NEXT_PUBLIC_AUTH_TOKEN_KEY || DEFAULT_TOKEN_KEY;
-  const token = request.cookies.get(tokenKey)?.value;
+  const token = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
   const { pathname } = request.nextUrl;
 
   const isPublicPath = PUBLIC_PATHS.some((p) => pathname.startsWith(p));

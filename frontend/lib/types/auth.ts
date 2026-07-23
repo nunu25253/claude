@@ -14,10 +14,11 @@ export type PasswordResetConfirmRequest = Schemas["PasswordResetConfirmRequest"]
 export type EmailVerificationResendRequest = Schemas["EmailVerificationResendRequest"];
 export type EmailVerificationConfirmRequest = Schemas["EmailVerificationConfirmRequest"];
 
+// アクセス/リフレッシュトークンはHttpOnly Cookieとして発行され、レスポンスボディには含まれない
+// (JSからトークンに触れる経路を無くし、XSS時の窃取面を減らすため)。
 // springdocはJavaレコードのレスポンスDTOを全フィールドoptional扱いで出力するため、
-// 実際には必ず値が入る(AuthApplicationService#issueTokensが全フィールドを設定する)前提で
-// Requiredを被せる。フィールド自体の型・存在チェックはSchemas["AuthResult"]由来のまま。
-export type AuthResponse = Required<Schemas["AuthResult"]>;
+// 実際には必ず値が入る前提でRequiredを被せる。
+export type AuthResponse = Required<Schemas["AuthResponse"]>;
 
 // フロントエンドでの認証状態管理用のローカルモデル(APIレスポンスそのものではない)。
 export interface User {

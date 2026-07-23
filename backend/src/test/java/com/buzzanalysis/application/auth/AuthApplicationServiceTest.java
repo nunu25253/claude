@@ -102,4 +102,20 @@ class AuthApplicationServiceTest {
 
         assertThat(result.userId()).isEqualTo(existingUser.getId());
     }
+
+    @Test
+    void logout_revokesRefreshToken_whenPresent() {
+        service.logout("some-refresh-token");
+
+        verify(tokenProvider).revokeRefreshToken("some-refresh-token");
+    }
+
+    @Test
+    void logout_doesNothing_whenRefreshTokenIsNullOrBlank() {
+        service.logout(null);
+        service.logout("");
+        service.logout("   ");
+
+        verify(tokenProvider, org.mockito.Mockito.never()).revokeRefreshToken(anyString());
+    }
 }

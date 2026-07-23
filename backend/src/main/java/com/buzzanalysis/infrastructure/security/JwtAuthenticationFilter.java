@@ -1,8 +1,10 @@
 package com.buzzanalysis.infrastructure.security;
 
+import com.buzzanalysis.application.auth.AuthCookieNames;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -16,9 +18,13 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * リクエストの {@code Authorization: Bearer <token>} ヘッダーからJWTアクセストークンを検証し、
- * 有効であれば {@link SecurityContextHolder} に認証情報（ユーザーID・ロール）をセットするフィルタ。
- * ステートレスAPIのため、DB参照は行わずトークンのクレームのみで認証を完結させる。
+ * リクエストからJWTアクセストークンを取り出して検証し、有効であれば{@link SecurityContextHolder}に
+ * 認証情報（ユーザーID・ロール）をセットするフィルタ。ステートレスAPIのため、DB参照は行わず
+ * トークンのクレームのみで認証を完結させる。
+ *
+ * <p>ブラウザ(Webフロントエンド)はHttpOnly Cookie({@value AuthCookieNames#ACCESS_TOKEN})でトークンを
+ * 送るため、まずCookieを見る。{@code Authorization: Bearer}ヘッダーは、ブラウザ以外のクライアント
+ * (将来のモバイルアプリ/サーバー間連携等)向けのフォールバックとして引き続き受け付ける。</p>
  */
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -34,9 +40,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        String header = request.getHeader("Authorization");
-        if (header != null && header.startsWith(BEARER_PREFIX)) {
-            String token = header.substring(BEARER_PREFIX.length());
+        String token = extractToken(request);
+        if (token != null) {
             try {
                 Claims claims = jwtTokenProvider.validateAccessTokenAndGetClaims(token);
                 String userId = claims.getSubject();
@@ -50,5 +55,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
         filterChain.doFilter(request, response);
+    }
+
+    private String extractToken(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (AuthCookieNames.ACCESS_TOKEN.equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        String header = request.getHeader("Authorization");
+        if (header != null && header.startsWith(BEARER_PREFIX)) {
+            return header.substring(BEARER_PREFIX.length());
+        }
+        return null;
     }
 }

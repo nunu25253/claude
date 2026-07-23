@@ -57,6 +57,13 @@ jwt:
   issuer: ${JWT_ISSUER:buzz-analysis-platform}
   access-token-expiration-minutes: ${JWT_ACCESS_EXPIRATION_MINUTES:30}
   refresh-token-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS:14}
+  # 認証Cookie(HttpOnly)の属性。ローカル開発はHTTPのためSecure=falseが既定。
+  # 本番(HTTPS)では必ずJWT_COOKIE_SECURE=trueにすること。
+  cookie-secure: ${JWT_COOKIE_SECURE:false}
+  # フロント/バックエンドを app.example.com / api.example.com のようにサブドメインで分ける場合、
+  # 共通の親ドメイン(例: .example.com)を設定する。同一ホスト(ポートのみ違う)の開発環境では空でよい。
+  cookie-domain: ${JWT_COOKIE_DOMAIN:}
+  cookie-same-site: ${JWT_COOKIE_SAME_SITE:Lax}
 
 app:
   cors:

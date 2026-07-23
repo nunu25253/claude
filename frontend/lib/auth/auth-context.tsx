@@ -15,7 +15,6 @@ import type {
   RegisterRequest,
   User,
 } from "@/lib/types";
-import { clearToken, getToken, setRefreshToken, setToken } from "./token";
 
 const USER_STORAGE_KEY = "sns_buzz_auth_user";
 
@@ -25,7 +24,7 @@ interface AuthContextValue {
   isInitializing: boolean;
   login: (payload: LoginRequest) => Promise<void>;
   register: (payload: RegisterRequest) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   markEmailVerified: () => void;
 }
 
@@ -52,14 +51,16 @@ function storeUser(user: User | null) {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  // 初回マウント時に localStorage からトークン/ユーザー情報を復元するまでのローディング状態
+  // 初回マウント時に localStorage からユーザー情報(非機密なプロフィールのみ)を復元するまでの
+  // ローディング状態。アクセストークンはHttpOnly Cookieのためここでは検証できず、
+  // 実際の認証有無はAPI呼び出し時(401)やミドルウェアのCookie存在チェックに委ねる
+  // (HttpOnly Cookie採用によるトレードオフ。楽観的にキャッシュ済みユーザーを表示する)。
   const [isInitializing, setIsInitializing] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    const token = getToken();
     const storedUser = readStoredUser();
-    if (token && storedUser) {
+    if (storedUser) {
       setUser(storedUser);
     }
     setIsInitializing(false);
@@ -67,8 +68,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (payload: LoginRequest) => {
     const res = await authApi.login(payload);
-    setToken(res.accessToken);
-    setRefreshToken(res.refreshToken);
     const loggedInUser: User = {
       id: res.userId,
       email: res.email,
@@ -81,8 +80,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = useCallback(async (payload: RegisterRequest) => {
     const res = await authApi.register(payload);
-    setToken(res.accessToken);
-    setRefreshToken(res.refreshToken);
     const registeredUser: User = {
       id: res.userId,
       email: res.email,
@@ -93,8 +90,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(registeredUser);
   }, []);
 
-  const logout = useCallback(() => {
-    clearToken();
+  const logout = useCallback(async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      // バックエンドに到達できなくても、クライアント側の状態は必ずクリアしてログイン画面へ戻す。
+    }
     storeUser(null);
     setUser(null);
     router.push("/login");

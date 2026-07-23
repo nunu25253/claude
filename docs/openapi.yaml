@@ -77,6 +77,9 @@ paths:
     post:
       tags: [Auth]
       summary: 新規ユーザー登録
+      description: >-
+        成功時、アクセス/リフレッシュトークンをHttpOnly Cookie(access_token/refresh_token)として発行する。
+        レスポンスボディには生のトークンを含めない。
       security: []
       requestBody:
         required: true
@@ -90,7 +93,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
+                $ref: "#/components/schemas/AuthResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "409":
@@ -99,7 +102,8 @@ paths:
   /auth/login:
     post:
       tags: [Auth]
-      summary: ログイン（JWT発行）
+      summary: ログイン（JWT発行、HttpOnly Cookie）
+      description: 成功時、アクセス/リフレッシュトークンをHttpOnly Cookieとして発行する。
       security: []
       requestBody:
         required: true
@@ -113,7 +117,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthTokenResponse"
+                $ref: "#/components/schemas/AuthResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -121,24 +125,17 @@ paths:
     post:
       tags: [Auth]
       summary: アクセストークン再発行
+      description: リフレッシュトークンはCookieから読み取るため、リクエストボディは不要。
       security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [refreshToken]
-              properties:
-                refreshToken:
-                  type: string
       responses:
         "200":
           description: 再発行成功
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthTokenResponse"
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: リフレッシュトークンCookieが無い
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -146,9 +143,22 @@ paths:
     post:
       tags: [Auth]
       summary: ログアウト（リフレッシュトークン失効）
+      description: リフレッシュトークンをサーバー側で失効させ（Redisのdenylist）、認証Cookieを削除する。
       responses:
         "204":
           description: ログアウト成功
+
+  /auth/csrf:
+    get:
+      tags: [Auth]
+      summary: CSRFトークンCookie発行
+      description: >-
+        XSRF-TOKEN Cookie(HttpOnlyではない)を発行/更新する。フロントエンドは状態変更リクエストの前に
+        これを呼び、Cookieの値をX-XSRF-TOKENヘッダーに複製して送ることでCSRF対策を行う
+        (ダブルサブミットCookie方式)。
+      responses:
+        "204":
+          description: 発行成功
 
   /auth/me:
     get:
@@ -1791,21 +1801,23 @@ components:
           type: string
           format: password
 
-    AuthTokenResponse:
+    AuthResponse:
       type: object
+      description: 生のアクセス/リフレッシュトークンは含まない(HttpOnly Cookieとして別途発行される)。
       properties:
-        accessToken:
+        userId:
           type: string
-        refreshToken:
+          format: uuid
+        email:
           type: string
-        tokenType:
+          format: email
+        displayName:
           type: string
-          example: Bearer
-        expiresIn:
+        emailVerified:
+          type: boolean
+        accessTokenExpiresInSeconds:
           type: integer
           description: アクセストークン有効期限（秒）
-        user:
-          $ref: "#/components/schemas/User"
 
     Hashtag:
       type: object

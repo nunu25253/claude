@@ -22,11 +22,9 @@ test("新規登録から投稿分析・保存・CSVエクスポートまでの�
   // 登録成功後はダッシュボードのトップに遷移する
   await expect(page).toHaveURL("/", { timeout: 15_000 });
 
-  // オンボーディングツアーが初回表示されるため閉じる
-  const onboardingButton = page.getByRole("button", { name: "はじめる" });
-  if (await onboardingButton.isVisible().catch(() => false)) {
-    await onboardingButton.click();
-  }
+  // オンボーディングツアーが初回表示されるため閉じる。モーダルは非同期でマウントされるため、
+  // 即座のisVisible()チェックではなく数秒待ってから判定する(表示されなければそのまま進める)。
+  await page.getByRole("button", { name: "はじめる" }).click({ timeout: 3_000 }).catch(() => {});
 
   // メール確認を済ませないと投稿分析がブロックされるため、MailHogから確認リンクを取得して踏む
   const verificationLink = await fetchVerificationLink(uniqueEmail);

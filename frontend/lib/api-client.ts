@@ -1,39 +1,35 @@
 import { ApiError, type ApiErrorBody } from "./types/common";
-import { clearToken, getRefreshToken, getToken, setRefreshToken, setToken } from "./auth/token";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080/api/v1";
 
-interface RefreshResponse {
-  accessToken: string;
-  refreshToken: string;
-}
+const CSRF_COOKIE_NAME = "XSRF-TOKEN";
+const CSRF_HEADER_NAME = "X-XSRF-TOKEN";
+const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 // 複数のリクエストが同時に401/403を受け取っても /auth/refresh を1回しか呼ばないよう、
 // 進行中のリフレッシュ処理を共有する（同時に呼ぶとリフレッシュトークンの二重消費で
 // 片方が失敗する競合が起こりうるため）。
 let inFlightRefresh: Promise<boolean> | null = null;
 
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return match?.[1] ? decodeURIComponent(match[1]) : null;
+}
+
 async function refreshAccessToken(): Promise<boolean> {
   if (inFlightRefresh) return inFlightRefresh;
 
   inFlightRefresh = (async () => {
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) return false;
     try {
+      // リフレッシュトークンはHttpOnly Cookieとして自動送信されるため、
+      // リクエストボディに何も乗せる必要が無い。
       const res = await fetch(new URL("auth/refresh", `${API_BASE_URL}/`).toString(), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
+        credentials: "include",
       });
-      if (!res.ok) {
-        clearToken();
-        return false;
-      }
-      const data = (await res.json()) as RefreshResponse;
-      setToken(data.accessToken);
-      setRefreshToken(data.refreshToken);
-      return true;
+      return res.ok;
     } catch {
       return false;
     }
@@ -49,7 +45,7 @@ async function refreshAccessToken(): Promise<boolean> {
 export interface RequestOptions {
   /** クエリパラメータ。undefined の値は自動的に除外される */
   params?: Record<string, string | number | boolean | undefined>;
-  /** 認証ヘッダーを付与しない場合（login/register 用）に true */
+  /** 401時の自動リフレッシュ&リトライを行わない場合（login/register/refresh/logout用）に true */
   skipAuth?: boolean;
   signal?: AbortSignal;
 }
@@ -79,8 +75,33 @@ async function parseErrorBody(res: Response): Promise<Partial<ApiErrorBody>> {
 }
 
 /**
+ * 状態変更リクエストの直前にXSRF-TOKEN Cookieを取得し直す。
+ * (実測により判明した挙動: バックエンドのSpring Security CSRF設定では、認証済みリクエストが
+ * 1件処理されるたびにXSRF-TOKEN Cookieが失効し、明示的に/auth/csrfへアクセスしないと
+ * 再発行されない。そのためログイン直後に一度取得しただけのCookieは、その後に別の
+ * 認証付きGETが1件でも挟まると使えなくなる。ここでは正確性を優先し、状態変更リクエストの
+ * 都度フレッシュなトークンを取りに行く。ユーザー操作起点の呼び出しであり高頻度アクセスでは
+ * ないため、追加の1往復のレイテンシは実用上問題にならない。)
+ */
+async function ensureFreshCsrfCookie(): Promise<void> {
+  try {
+    await fetch(new URL("auth/csrf", `${API_BASE_URL}/`).toString(), {
+      method: "GET",
+      credentials: "include",
+    });
+  } catch {
+    // 取得に失敗しても、その後の本リクエストが403で失敗する形で表面化するため、ここでは無視する。
+  }
+}
+
+/**
  * fetch をラップした薄いAPIクライアント。
- * - JWT を Authorization ヘッダーに自動付与
+ * - 認証はHttpOnly Cookie(access_token/refresh_token)をブラウザが自動送信するため、
+ *   このクライアント自身はトークンに一切触れない(credentials: "include"を付与するのみ)。
+ * - 状態変更リクエスト(POST/PUT/PATCH/DELETE)にはCSRF対策としてXSRF-TOKEN Cookieの値を
+ *   X-XSRF-TOKENヘッダーへ複製して送る(バックエンドのCookieCsrfTokenRepositoryと対になる
+ *   ダブルサブミットCookie方式。攻撃者のクロスサイトページは同一オリジンポリシーにより
+ *   このCookie値を読めないため偽造できない)。
  * - 非2xxレスポンスは ApiError に変換して throw する
  * - バックエンド未起動時などのネットワークエラーも ApiError に統一する
  */
@@ -98,10 +119,11 @@ async function request<T>(
     headers["Content-Type"] = "application/json";
   }
 
-  if (!options.skipAuth) {
-    const token = getToken();
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
+  if (MUTATING_METHODS.has(method) && !options.skipAuth) {
+    await ensureFreshCsrfCookie();
+    const csrfToken = readCookie(CSRF_COOKIE_NAME);
+    if (csrfToken) {
+      headers[CSRF_HEADER_NAME] = csrfToken;
     }
   }
 
@@ -112,6 +134,7 @@ async function request<T>(
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: options.signal,
       cache: "no-store",
+      credentials: "include",
     });
 
   let res: Response;
@@ -126,11 +149,10 @@ async function request<T>(
   }
 
   // アクセストークン失効時は一度だけリフレッシュして同じリクエストをやり直す。
-  // login/register/refresh自体（skipAuth）はここでの再試行対象にしない。
-  if ((res.status === 401 || res.status === 403) && !options.skipAuth && getToken()) {
+  // login/register/refresh/logout自体（skipAuth）はここでの再試行対象にしない。
+  if ((res.status === 401 || res.status === 403) && !options.skipAuth) {
     const refreshed = await refreshAccessToken();
     if (refreshed) {
-      headers["Authorization"] = `Bearer ${getToken()}`;
       try {
         res = await doFetch();
       } catch {

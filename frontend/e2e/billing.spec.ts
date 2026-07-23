@@ -15,10 +15,10 @@ test("課金プランのアップグレード・解約が壊れない", async ({
   await page.fill("#passwordConfirm", "password123");
   await page.click('button[type="submit"]');
   await expect(page).toHaveURL("/", { timeout: 15_000 });
-  const onboardingButton = page.getByRole("button", { name: "はじめる" });
-  if (await onboardingButton.isVisible().catch(() => false)) {
-    await onboardingButton.click();
-  }
+  // オンボーディングツアーのモーダルは初回ユーザー情報取得後に非同期でマウントされるため、
+  // 即座のisVisible()チェックでは表示前後のタイミングを取りこぼすことがある。
+  // 数秒待ってでも表示されれば閉じる、出なければそのまま進める。
+  await page.getByRole("button", { name: "はじめる" }).click({ timeout: 3_000 }).catch(() => {});
 
   await page.goto("/billing", { waitUntil: "networkidle" });
   await expect(page.getByText("FREEプラン")).toBeVisible({ timeout: 10_000 });

@@ -18,6 +18,10 @@ export const authApi = {
       skipAuth: true,
     }),
 
+  // ログアウトはリフレッシュトークン(Cookie)をサーバー側で失効させ、認証Cookieを削除するため
+  // 実際にAPIを呼ぶ必要がある(HttpOnly CookieはフロントのJSから直接削除できない)。
+  logout: () => apiClient.post<void>("/auth/logout", undefined, { skipAuth: true }),
+
   requestPasswordReset: (payload: PasswordResetRequestRequest) =>
     apiClient.post<void>("/auth/password-reset/request", payload, { skipAuth: true }),
 

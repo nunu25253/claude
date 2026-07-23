@@ -63,6 +63,16 @@ public class AuthApplicationService {
         return issueTokens(user);
     }
 
+    /**
+     * リフレッシュトークンを失効させる(ログアウト)。トークンが無い/既に無効な場合も
+     * べき等に成功として扱う(二重ログアウトでエラーにする必要は無いため)。
+     */
+    public void logout(String refreshToken) {
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            tokenProvider.revokeRefreshToken(refreshToken);
+        }
+    }
+
     private AuthResult issueTokens(User user) {
         TokenProvider.IssuedToken access = tokenProvider.generateAccessToken(user);
         TokenProvider.IssuedToken refresh = tokenProvider.generateRefreshToken(user);

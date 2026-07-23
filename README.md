@@ -246,6 +246,15 @@ curl -X POST http://localhost:8080/api/v1/posts/analyze \
   -d '{"url": "https://www.instagram.com/reel/xxxxxxxx/"}'
 ```
 
+> **認証方式について**: Webフロントエンドはアクセス/リフレッシュトークンを HttpOnly Cookie
+> (`access_token`/`refresh_token`) として保持し、JSからは一切トークンに触れない構成にしている
+> (XSS発生時にトークンが窃取される経路を無くすため)。上記のcurl例のような`Authorization: Bearer`
+> ヘッダーは、ブラウザ以外のクライアント(スクリプト・将来のモバイルアプリ等)向けのフォールバックとして
+> 引き続きサーバー側で受け付けている。Cookieを自動送信するブラウザからの状態変更リクエスト
+> (POST/PUT/PATCH/DELETE)には、CSRF対策として`GET /api/v1/auth/csrf`で発行される
+> `XSRF-TOKEN`Cookieの値を`X-XSRF-TOKEN`ヘッダーに複製して送る必要がある
+> (`/api/v1/auth/**`はCSRF検証の対象外)。
+
 ---
 
 ## 定期データ取得バッチ（自動化）

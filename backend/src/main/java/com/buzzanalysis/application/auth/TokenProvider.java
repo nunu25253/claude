@@ -20,6 +20,12 @@ public interface TokenProvider {
      */
     java.util.UUID validateRefreshTokenAndGetUserId(String refreshToken);
 
+    /**
+     * リフレッシュトークンを失効させる（ログアウト時に使用）。
+     * トークンが既に無効/期限切れの場合は何もしない（べき等）。
+     */
+    void revokeRefreshToken(String refreshToken);
+
     /** 発行されたトークンとその有効期限（秒）。 */
     record IssuedToken(String token, long expiresInSeconds) {
     }

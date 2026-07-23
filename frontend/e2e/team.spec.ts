@@ -24,10 +24,9 @@ test("チームの作成・招待・メンバー閲覧・削除が壊れない",
     await page.fill("#passwordConfirm", "password123");
     await page.click('button[type="submit"]');
     await expect(page).toHaveURL("/", { timeout: 15_000 });
-    const onboardingButton = page.getByRole("button", { name: "はじめる" });
-    if (await onboardingButton.isVisible().catch(() => false)) {
-      await onboardingButton.click();
-    }
+    // オンボーディングツアーのモーダルは非同期でマウントされるため、即座のisVisible()チェックでは
+    // 表示前後のタイミングを取りこぼすことがある。数秒待ってでも表示されれば閉じる。
+    await page.getByRole("button", { name: "はじめる" }).click({ timeout: 3_000 }).catch(() => {});
   }
 
   await register(ownerPage, ownerEmail, "オーナー太郎");

@@ -1,66 +1,102 @@
 package com.buzzanalysis.presentation.controller;
 
 import com.buzzanalysis.application.auth.AuthApplicationService;
+import com.buzzanalysis.application.auth.AuthCookieNames;
 import com.buzzanalysis.application.auth.EmailVerificationApplicationService;
 import com.buzzanalysis.application.auth.PasswordResetApplicationService;
 import com.buzzanalysis.application.auth.dto.AuthResult;
 import com.buzzanalysis.application.auth.dto.LoginCommand;
 import com.buzzanalysis.application.auth.dto.RegisterCommand;
+import com.buzzanalysis.domain.common.exception.BusinessRuleViolationException;
+import com.buzzanalysis.infrastructure.security.JwtProperties;
 import com.buzzanalysis.presentation.dto.request.EmailVerificationConfirmRequest;
 import com.buzzanalysis.presentation.dto.request.EmailVerificationResendRequest;
 import com.buzzanalysis.presentation.dto.request.LoginRequest;
 import com.buzzanalysis.presentation.dto.request.PasswordResetConfirmRequest;
 import com.buzzanalysis.presentation.dto.request.PasswordResetRequestRequest;
-import com.buzzanalysis.presentation.dto.request.RefreshRequest;
 import com.buzzanalysis.presentation.dto.request.RegisterRequest;
+import com.buzzanalysis.presentation.dto.response.AuthResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 認証API（登録/ログイン/トークンリフレッシュ/パスワードリセット/メールアドレス確認）。 */
+/** 認証API（登録/ログイン/トークンリフレッシュ/ログアウト/パスワードリセット/メールアドレス確認）。 */
 @RestController
 @RequestMapping("/api/v1/auth")
-@Tag(name = "Auth", description = "ユーザー登録・ログイン・トークンリフレッシュ・パスワードリセット・メールアドレス確認")
+@Tag(name = "Auth", description = "ユーザー登録・ログイン・トークンリフレッシュ・ログアウト・パスワードリセット・メールアドレス確認")
 public class AuthController {
 
     private final AuthApplicationService authApplicationService;
     private final PasswordResetApplicationService passwordResetApplicationService;
     private final EmailVerificationApplicationService emailVerificationApplicationService;
+    private final JwtProperties jwtProperties;
 
     public AuthController(AuthApplicationService authApplicationService,
                            PasswordResetApplicationService passwordResetApplicationService,
-                           EmailVerificationApplicationService emailVerificationApplicationService) {
+                           EmailVerificationApplicationService emailVerificationApplicationService,
+                           JwtProperties jwtProperties) {
         this.authApplicationService = authApplicationService;
         this.passwordResetApplicationService = passwordResetApplicationService;
         this.emailVerificationApplicationService = emailVerificationApplicationService;
+        this.jwtProperties = jwtProperties;
     }
 
-    @Operation(summary = "ユーザー登録")
+    @Operation(summary = "ユーザー登録", description = "成功時、アクセス/リフレッシュトークンをHttpOnly Cookieとして発行する")
     @PostMapping("/register")
-    public ResponseEntity<AuthResult> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         AuthResult result = authApplicationService.register(
                 new RegisterCommand(request.email(), request.password(), request.displayName()));
-        return ResponseEntity.status(HttpStatus.CREATED).body(result);
+        return withAuthCookies(HttpStatus.CREATED, result);
     }
 
-    @Operation(summary = "ログイン")
+    @Operation(summary = "ログイン", description = "成功時、アクセス/リフレッシュトークンをHttpOnly Cookieとして発行する")
     @PostMapping("/login")
-    public ResponseEntity<AuthResult> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResult result = authApplicationService.login(new LoginCommand(request.email(), request.password()));
-        return ResponseEntity.ok(result);
+        return withAuthCookies(HttpStatus.OK, result);
     }
 
-    @Operation(summary = "アクセストークン再発行")
+    @Operation(summary = "アクセストークン再発行", description = "リフレッシュトークンはCookieから読み取る(リクエストボディ不要)")
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResult> refresh(@Valid @RequestBody RefreshRequest request) {
-        AuthResult result = authApplicationService.refresh(request.refreshToken());
-        return ResponseEntity.ok(result);
+    public ResponseEntity<AuthResponse> refresh(
+            @CookieValue(name = AuthCookieNames.REFRESH_TOKEN, required = false) String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new BusinessRuleViolationException("Refresh token cookie is missing");
+        }
+        AuthResult result = authApplicationService.refresh(refreshToken);
+        return withAuthCookies(HttpStatus.OK, result);
+    }
+
+    @Operation(summary = "ログアウト", description = "リフレッシュトークンを失効させ、認証Cookieを削除する")
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @CookieValue(name = AuthCookieNames.REFRESH_TOKEN, required = false) String refreshToken) {
+        authApplicationService.logout(refreshToken);
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.SET_COOKIE, clearCookie(AuthCookieNames.ACCESS_TOKEN).toString())
+                .header(HttpHeaders.SET_COOKIE, clearCookie(AuthCookieNames.REFRESH_TOKEN).toString())
+                .build();
+    }
+
+    @Operation(summary = "CSRFトークンCookie発行",
+            description = "XSRF-TOKEN Cookieを確実に発行するための空エンドポイント。フロントエンドはログイン成功後にこれを一度呼び出す")
+    @GetMapping("/csrf")
+    public ResponseEntity<Void> csrf(CsrfToken csrfToken) {
+        // 引数として受け取り明示的にアクセスすることで、Spring Securityの遅延トークン生成を
+        // このリクエストの時点で確定させ、レスポンスにXSRF-TOKEN Cookieを発行させる。
+        csrfToken.getToken();
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "パスワードリセットメール送信依頼",
@@ -91,5 +127,45 @@ public class AuthController {
     public ResponseEntity<Void> confirmEmailVerification(@Valid @RequestBody EmailVerificationConfirmRequest request) {
         emailVerificationApplicationService.confirmVerification(request.token());
         return ResponseEntity.noContent().build();
+    }
+
+    private ResponseEntity<AuthResponse> withAuthCookies(HttpStatus status, AuthResult result) {
+        ResponseCookie accessCookie = buildCookie(AuthCookieNames.ACCESS_TOKEN, result.accessToken(),
+                result.accessTokenExpiresInSeconds());
+        ResponseCookie refreshCookie = buildCookie(AuthCookieNames.REFRESH_TOKEN, result.refreshToken(),
+                result.refreshTokenExpiresInSeconds());
+        return ResponseEntity.status(status)
+                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .body(AuthResponse.from(result));
+    }
+
+    private ResponseCookie buildCookie(String name, String value, long maxAgeSeconds) {
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(name, value)
+                .httpOnly(true)
+                .secure(jwtProperties.isCookieSecure())
+                .sameSite(jwtProperties.getCookieSameSite())
+                .path("/")
+                .maxAge(maxAgeSeconds);
+        applyDomain(builder);
+        return builder.build();
+    }
+
+    private ResponseCookie clearCookie(String name) {
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(name, "")
+                .httpOnly(true)
+                .secure(jwtProperties.isCookieSecure())
+                .sameSite(jwtProperties.getCookieSameSite())
+                .path("/")
+                .maxAge(0);
+        applyDomain(builder);
+        return builder.build();
+    }
+
+    private void applyDomain(ResponseCookie.ResponseCookieBuilder builder) {
+        String domain = jwtProperties.getCookieDomain();
+        if (domain != null && !domain.isBlank()) {
+            builder.domain(domain);
+        }
     }
 }
