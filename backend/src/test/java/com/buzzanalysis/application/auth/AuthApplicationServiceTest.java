@@ -7,6 +7,7 @@ import com.buzzanalysis.domain.common.exception.BusinessRuleViolationException;
 import com.buzzanalysis.domain.user.Role;
 import com.buzzanalysis.domain.user.User;
 import com.buzzanalysis.domain.user.UserRepository;
+import com.buzzanalysis.infrastructure.security.AccountLockoutService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,14 +47,17 @@ class AuthApplicationServiceTest {
     private EmailVerificationApplicationService emailVerificationApplicationService;
     @Mock
     private CaptchaVerificationPort captchaVerificationPort;
+    @Mock
+    private AccountLockoutService accountLockoutService;
 
     private AuthApplicationService service;
 
     @BeforeEach
     void setUp() {
         service = new AuthApplicationService(userRepository, passwordEncoderPort, tokenProvider,
-                emailVerificationApplicationService, captchaVerificationPort);
+                emailVerificationApplicationService, captchaVerificationPort, accountLockoutService);
         when(captchaVerificationPort.verify(any(), any())).thenReturn(true);
+        when(accountLockoutService.isLocked(anyString())).thenReturn(false);
     }
 
     @Test
@@ -108,6 +112,16 @@ class AuthApplicationServiceTest {
 
         assertThatThrownBy(() -> service.login(new LoginCommand("user@example.com", "wrong-password")))
                 .isInstanceOf(BusinessRuleViolationException.class);
+        verify(accountLockoutService).recordFailure("user@example.com");
+    }
+
+    @Test
+    void login_recordsFailure_whenEmailDoesNotExist() {
+        when(userRepository.findByEmail("unknown@example.com")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.login(new LoginCommand("unknown@example.com", "any-password")))
+                .isInstanceOf(BusinessRuleViolationException.class);
+        verify(accountLockoutService).recordFailure("unknown@example.com");
     }
 
     @Test
@@ -122,6 +136,18 @@ class AuthApplicationServiceTest {
         AuthResult result = service.login(new LoginCommand("user@example.com", "correct-password"));
 
         assertThat(result.userId()).isEqualTo(existingUser.getId());
+        verify(accountLockoutService).recordSuccess("user@example.com");
+    }
+
+    @Test
+    void login_throwsBusinessRuleViolation_withAccountLockedErrorCode_whenAccountIsLocked() {
+        when(accountLockoutService.isLocked("user@example.com")).thenReturn(true);
+
+        assertThatThrownBy(() -> service.login(new LoginCommand("user@example.com", "any-password")))
+                .isInstanceOf(BusinessRuleViolationException.class)
+                .satisfies(e -> assertThat(((BusinessRuleViolationException) e).getErrorCode())
+                        .isEqualTo(AccountLockoutService.ACCOUNT_LOCKED_ERROR_CODE));
+        verifyNoInteractions(userRepository, passwordEncoderPort);
     }
 
     @Test

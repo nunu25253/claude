@@ -152,6 +152,13 @@ STORAGE_LOCAL_SIGNING_SECRET=change-this-secret-in-production-please-0123456789a
 # CAPTCHA_SECRET_KEY=
 # frontend/.env.local (または frontend/.env) に設定:
 # NEXT_PUBLIC_TURNSTILE_SITE_KEY=
+
+# アカウント(メールアドレス)単位のログイン失敗ロックアウト(省略可、デフォルト値で動作)。
+# 送信元IPごとのRATE_LIMIT_AUTH_*を補完し、多数のIP/ボットネットに分散されたクレデンシャル
+# スタッフィング(単一アカウントへの総当たり)を防ぐ。
+# ACCOUNT_LOCKOUT_MAX_FAILED_ATTEMPTS=10
+# ACCOUNT_LOCKOUT_FAILURE_WINDOW_MINUTES=15
+# ACCOUNT_LOCKOUT_MINUTES=15
 ```
 
 ### 2. Docker Composeで一式起動（推奨）

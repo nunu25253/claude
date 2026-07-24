@@ -80,6 +80,12 @@ app:
     # ログイン/登録エンドポイントへの、送信元IPごとの試行回数上限(ブルートフォース対策)。
     auth-max-attempts: ${RATE_LIMIT_AUTH_MAX_ATTEMPTS:10}
     auth-window-minutes: ${RATE_LIMIT_AUTH_WINDOW_MINUTES:15}
+  account-lockout:
+    # アカウント(メールアドレス)単位のログイン失敗回数によるロックアウト。分散IPからの
+    # クレデンシャルスタッフィング対策としてrate-limitのIPベース制限を補完する。
+    max-failed-attempts: ${ACCOUNT_LOCKOUT_MAX_FAILED_ATTEMPTS:10}
+    failure-window-minutes: ${ACCOUNT_LOCKOUT_FAILURE_WINDOW_MINUTES:15}
+    lockout-minutes: ${ACCOUNT_LOCKOUT_MINUTES:15}
   captcha:
     # 登録エンドポイントのBot対策(Cloudflare Turnstile)。既定は無効(ローカル開発・CI用)。
     # 本番で有効化する場合はCAPTCHA_ENABLED=trueとCAPTCHA_SECRET_KEYを設定すること。

@@ -7,9 +7,11 @@ import com.buzzanalysis.domain.common.exception.BusinessRuleViolationException;
 import com.buzzanalysis.domain.common.exception.EntityNotFoundException;
 import com.buzzanalysis.domain.user.User;
 import com.buzzanalysis.domain.user.UserRepository;
+import com.buzzanalysis.infrastructure.security.AccountLockoutService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -27,16 +29,19 @@ public class AuthApplicationService {
     private final TokenProvider tokenProvider;
     private final EmailVerificationApplicationService emailVerificationApplicationService;
     private final CaptchaVerificationPort captchaVerificationPort;
+    private final AccountLockoutService accountLockoutService;
 
     public AuthApplicationService(UserRepository userRepository, PasswordEncoderPort passwordEncoderPort,
                                    TokenProvider tokenProvider,
                                    EmailVerificationApplicationService emailVerificationApplicationService,
-                                   CaptchaVerificationPort captchaVerificationPort) {
+                                   CaptchaVerificationPort captchaVerificationPort,
+                                   AccountLockoutService accountLockoutService) {
         this.userRepository = userRepository;
         this.passwordEncoderPort = passwordEncoderPort;
         this.tokenProvider = tokenProvider;
         this.emailVerificationApplicationService = emailVerificationApplicationService;
         this.captchaVerificationPort = captchaVerificationPort;
+        this.accountLockoutService = accountLockoutService;
     }
 
     @Transactional
@@ -57,12 +62,22 @@ public class AuthApplicationService {
 
     @Transactional(readOnly = true)
     public AuthResult login(LoginCommand command) {
-        User user = userRepository.findByEmail(command.email())
-                .orElseThrow(() -> new BusinessRuleViolationException("Invalid email or password"));
-        if (!passwordEncoderPort.matches(command.rawPassword(), user.getPasswordHash())) {
+        if (accountLockoutService.isLocked(command.email())) {
+            throw new BusinessRuleViolationException(
+                    "ログイン試行回数が多すぎるため一時的にロックされています。しばらくしてから再度お試しください。",
+                    AccountLockoutService.ACCOUNT_LOCKED_ERROR_CODE);
+        }
+
+        Optional<User> maybeUser = userRepository.findByEmail(command.email());
+        boolean credentialsValid = maybeUser.isPresent()
+                && passwordEncoderPort.matches(command.rawPassword(), maybeUser.get().getPasswordHash());
+        if (!credentialsValid) {
+            accountLockoutService.recordFailure(command.email());
             throw new BusinessRuleViolationException("Invalid email or password");
         }
-        return issueTokens(user);
+
+        accountLockoutService.recordSuccess(command.email());
+        return issueTokens(maybeUser.get());
     }
 
     @Transactional(readOnly = true)
