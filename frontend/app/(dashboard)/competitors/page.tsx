@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { useCompetitorStats } from "@/lib/hooks/use-competitors";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { QueryState } from "@/components/dashboard/query-state";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PostCard } from "@/components/dashboard/post-card";
-import { EngagementTrendChart } from "@/components/charts/engagement-trend-chart";
+import { ChartSkeleton } from "@/components/charts/chart-skeleton";
 import { PostingTimeHeatmap } from "@/components/charts/posting-time-heatmap";
 import { PlatformBadge } from "@/components/ui/badge";
 import {
@@ -16,6 +17,12 @@ import {
   formatDurationSeconds,
   formatNumber,
 } from "@/lib/utils";
+
+// rechartsは重量級のため、このページの初期バンドルサイズを削減するために遅延読み込みする。
+const EngagementTrendChart = dynamic(
+  () => import("@/components/charts/engagement-trend-chart").then((m) => m.EngagementTrendChart),
+  { ssr: false, loading: () => <ChartSkeleton /> },
+);
 
 export default function CompetitorsPage() {
   const [inputValue, setInputValue] = useState("");
