@@ -2,6 +2,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { ProfileSettingsForm } from "@/components/dashboard/settings/profile-settings-form";
 import { NotificationSettingsForm } from "@/components/dashboard/settings/notification-settings-form";
 import { ApiKeySettingsPanel } from "@/components/dashboard/settings/api-key-settings";
+import { DeleteAccountSection } from "@/components/dashboard/settings/delete-account-section";
 
 export default function SettingsPage() {
   return (
@@ -19,6 +20,11 @@ export default function SettingsPage() {
       <Card>
         <CardHeader title="通知設定" description="メール通知のオン・オフを切り替えます" />
         <NotificationSettingsForm />
+      </Card>
+
+      <Card>
+        <CardHeader title="アカウント削除" description="アカウントとすべての関連データを完全に削除します" />
+        <DeleteAccountSection />
       </Card>
     </div>
   );

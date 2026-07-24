@@ -8,6 +8,7 @@ vi.mock("@/lib/api", () => ({
     login: vi.fn(),
     register: vi.fn(),
     logout: vi.fn(),
+    deleteAccount: vi.fn(),
   },
 }));
 
@@ -35,6 +36,7 @@ describe("AuthProvider / useAuth", () => {
     vi.mocked(authApi.login).mockReset();
     vi.mocked(authApi.register).mockReset();
     vi.mocked(authApi.logout).mockReset();
+    vi.mocked(authApi.deleteAccount).mockReset();
     pushMock.mockReset();
   });
 
@@ -175,6 +177,61 @@ describe("AuthProvider / useAuth", () => {
 
     expect(result.current.user?.emailVerified).toBe(true);
     expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)!).emailVerified).toBe(true);
+  });
+
+  it("deleteAccount clears user/localStorage and does a full navigation to /welcome on success", async () => {
+    // DashboardLayoutの認証ガード(useEffectでisAuthenticated===falseなら/loginへ強制遷移)との
+    // 競合を避けるため、deleteAccountはNext.jsのクライアントサイドrouter.pushではなく
+    // window.location.hrefによるフルナビゲーションを使う(auth-context.tsx参照)。
+    // そのためこのテストではpushMockではなくwindow.location.hrefへの代入を検証する。
+    const originalLocation = window.location;
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...originalLocation, href: "" },
+    });
+
+    vi.mocked(authApi.login).mockResolvedValue(authResponse);
+    vi.mocked(authApi.deleteAccount).mockResolvedValue(undefined);
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+    await waitFor(() => expect(result.current.isInitializing).toBe(false));
+    await act(async () => {
+      await result.current.login({ email: "user@example.com", password: "Password123!" });
+    });
+
+    await act(async () => {
+      await result.current.deleteAccount("Password123!");
+    });
+
+    // window.location.hrefへの代入はフルページ遷移(ドキュメント全体の破棄)を伴うため、
+    // 実際にはこの後React側の状態を気にする必要はない。ここではlocalStorageのクリアと
+    // 遷移先の指定のみを検証する。
+    expect(authApi.deleteAccount).toHaveBeenCalledWith({ currentPassword: "Password123!" });
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
+    expect(window.location.href).toBe("/welcome");
+
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: originalLocation,
+    });
+  });
+
+  it("deleteAccount rejects and keeps the current user when the API call fails", async () => {
+    vi.mocked(authApi.login).mockResolvedValue(authResponse);
+    vi.mocked(authApi.deleteAccount).mockRejectedValue(new Error("invalid password"));
+    const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+    await waitFor(() => expect(result.current.isInitializing).toBe(false));
+    await act(async () => {
+      await result.current.login({ email: "user@example.com", password: "Password123!" });
+    });
+
+    await expect(
+      act(async () => {
+        await result.current.deleteAccount("wrong-password");
+      }),
+    ).rejects.toThrow("invalid password");
+
+    expect(result.current.user).not.toBeNull();
+    expect(window.localStorage.getItem(STORAGE_KEY)).not.toBeNull();
   });
 
   it("markEmailVerified is a no-op when there is no current user", async () => {

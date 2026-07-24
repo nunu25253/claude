@@ -24,6 +24,9 @@ public class AuthApplicationService {
     /** Bot対策検証失敗時にフロントエンドが判別するためのerrorCode。 */
     public static final String CAPTCHA_VERIFICATION_FAILED_CODE = "CAPTCHA_VERIFICATION_FAILED";
 
+    /** アカウント削除時のパスワード確認失敗時にフロントエンドが判別するためのerrorCode。 */
+    public static final String DELETE_ACCOUNT_INVALID_PASSWORD_CODE = "DELETE_ACCOUNT_INVALID_PASSWORD";
+
     private final UserRepository userRepository;
     private final PasswordEncoderPort passwordEncoderPort;
     private final TokenProvider tokenProvider;
@@ -93,6 +96,27 @@ public class AuthApplicationService {
      * べき等に成功として扱う(二重ログアウトでエラーにする必要は無いため)。
      */
     public void logout(String refreshToken) {
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            tokenProvider.revokeRefreshToken(refreshToken);
+        }
+    }
+
+    /**
+     * アカウントを削除する(退会)。誤操作・第三者による不正操作を防ぐため現在のパスワードの
+     * 再確認を必須とする。関連データ(保存済み分析・チーム所属・購読・各種トークン等)は
+     * DBのON DELETE CASCADE/SET NULL設定により整合的に削除・匿名化される
+     * (V24__account_deletion_cascades.sql参照)。削除後は現在のセッションのリフレッシュ
+     * トークンも失効させる。
+     */
+    @Transactional
+    public void deleteAccount(UUID userId, String currentPassword, String refreshToken) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> EntityNotFoundException.of("User", userId));
+        if (!passwordEncoderPort.matches(currentPassword, user.getPasswordHash())) {
+            throw new BusinessRuleViolationException("パスワードが正しくありません。",
+                    DELETE_ACCOUNT_INVALID_PASSWORD_CODE);
+        }
+        userRepository.deleteById(userId);
         if (refreshToken != null && !refreshToken.isBlank()) {
             tokenProvider.revokeRefreshToken(refreshToken);
         }

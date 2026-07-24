@@ -25,6 +25,7 @@ interface AuthContextValue {
   login: (payload: LoginRequest) => Promise<void>;
   register: (payload: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: (currentPassword: string) => Promise<void>;
   markEmailVerified: () => void;
 }
 
@@ -101,6 +102,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push("/login");
   }, [router]);
 
+  // logout()と異なり、パスワード誤り等のAPIエラーは呼び出し元(削除フォーム)で
+  // メッセージ表示する必要があるため、ここでは握りつぶさずそのまま伝播させる。
+  // 成功時のみローカル状態のクリア・遷移を行う。
+  const deleteAccount = useCallback(async (currentPassword: string) => {
+    await authApi.deleteAccount({ currentPassword });
+    storeUser(null);
+    // DashboardLayoutはisAuthenticatedがfalseになった時点で/loginへ強制遷移するガードを持つ。
+    // ここでsetUser(null)してからNext.jsのクライアントサイドrouter.push("/welcome")を呼ぶと、
+    // このガードのuseEffectが先に走り/loginへ奪われる競合が発生する(router.pushはReactの
+    // トランジションとして低優先度で処理されるのに対し、setUserは通常優先度で即座に
+    // 再レンダリングされガードのeffectを先に発火させてしまうため)。
+    // アカウント削除は取り消し不能な最終操作であり、この後アプリの状態を保持し続ける必要はないため、
+    // ブラウザのフルナビゲーションで確実に/welcomeへ遷移し、あわせてクライアント側の状態
+    // (メモリ上のReact/React Queryキャッシュ等)も完全に破棄する。
+    window.location.href = "/welcome";
+  }, []);
+
   const markEmailVerified = useCallback(() => {
     setUser((current) => {
       if (!current) return current;
@@ -118,9 +136,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       login,
       register,
       logout,
+      deleteAccount,
       markEmailVerified,
     }),
-    [user, isInitializing, login, register, logout, markEmailVerified],
+    [user, isInitializing, login, register, logout, deleteAccount, markEmailVerified],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

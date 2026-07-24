@@ -1,6 +1,7 @@
 import { apiClient } from "../api-client";
 import type {
   AuthResponse,
+  DeleteAccountRequest,
   EmailVerificationConfirmRequest,
   EmailVerificationResendRequest,
   LoginRequest,
@@ -33,4 +34,9 @@ export const authApi = {
 
   confirmEmailVerification: (payload: EmailVerificationConfirmRequest) =>
     apiClient.post<void>("/auth/email-verification/confirm", payload, { skipAuth: true }),
+
+  // アカウント削除もログアウトと同様、サーバー側でリフレッシュトークン失効・認証Cookie削除を
+  // 行う必要があるため実際にAPIを呼ぶ。
+  deleteAccount: (payload: DeleteAccountRequest) =>
+    apiClient.delete<void>("/auth/account", payload),
 };

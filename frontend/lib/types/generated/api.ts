@@ -1126,12 +1126,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * アカウント削除(退会)
+         * @description 現在のパスワードを確認した上でアカウントと関連データ(保存済み分析・チーム所属・購読等)を削除し、認証Cookieを削除する。取り消しはできない。
+         */
+        delete: operations["deleteAccount"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         UpdateProfileRequest: {
-            displayName?: string;
+            displayName: string;
             email?: string;
         };
         ProfileSettingsDto: {
@@ -1197,7 +1217,7 @@ export interface components {
         };
         ScriptGenerationRequest: {
             /** Format: uuid */
-            proposalId?: string;
+            proposalId: string;
             /** Format: int32 */
             durationSeconds?: number;
         };
@@ -1346,7 +1366,7 @@ export interface components {
             };
         };
         RagQueryRequest: {
-            question?: string;
+            question: string;
             /** Format: int32 */
             topK?: number;
         };
@@ -1367,13 +1387,13 @@ export interface components {
         };
         RagIndexRequest: {
             /** @enum {string} */
-            sourceType?: "ANALYSIS_RESULT" | "EVALUATION" | "TREND_REPORT" | "PROPOSAL" | "OTHER";
+            sourceType: "ANALYSIS_RESULT" | "EVALUATION" | "TREND_REPORT" | "PROPOSAL" | "OTHER";
             /** Format: uuid */
             sourceId?: string;
-            contentText?: string;
+            contentText: string;
         };
         ProposalGenerationRequest: {
-            postIds?: string[];
+            postIds: string[];
             /** Format: int32 */
             count?: number;
         };
@@ -1479,7 +1499,7 @@ export interface components {
         PostEvaluationRequest: {
             /** Format: uuid */
             proposalId?: string;
-            title?: string;
+            title: string;
             hookText?: string;
             structureText?: string;
             ctaText?: string;
@@ -1503,7 +1523,7 @@ export interface components {
             createdAt?: string;
         };
         CommonalityAnalysisRequest: {
-            postIds?: string[];
+            postIds: string[];
         };
         CommonalityAnalysisResultDto: {
             /** Format: int32 */
@@ -1525,7 +1545,7 @@ export interface components {
         };
         CarouselGenerationRequest: {
             /** Format: uuid */
-            proposalId?: string;
+            proposalId: string;
         };
         CarouselDto: {
             /** Format: uuid */
@@ -1797,6 +1817,9 @@ export interface components {
             parameterName?: string;
             token?: string;
             headerName?: string;
+        };
+        DeleteAccountRequest: {
+            currentPassword: string;
         };
     };
     responses: never;
@@ -3189,6 +3212,30 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                refresh_token?: string;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteAccountRequest"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {

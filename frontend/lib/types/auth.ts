@@ -13,6 +13,7 @@ export type PasswordResetRequestRequest = Schemas["PasswordResetRequestRequest"]
 export type PasswordResetConfirmRequest = Schemas["PasswordResetConfirmRequest"];
 export type EmailVerificationResendRequest = Schemas["EmailVerificationResendRequest"];
 export type EmailVerificationConfirmRequest = Schemas["EmailVerificationConfirmRequest"];
+export type DeleteAccountRequest = Schemas["DeleteAccountRequest"];
 
 // アクセス/リフレッシュトークンはHttpOnly Cookieとして発行され、レスポンスボディには含まれない
 // (JSからトークンに触れる経路を無くし、XSS時の窃取面を減らすため)。

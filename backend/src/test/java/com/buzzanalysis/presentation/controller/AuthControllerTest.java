@@ -15,12 +15,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -145,5 +151,60 @@ class AuthControllerTest {
     void logout_succeeds_evenWithoutRefreshTokenCookie() throws Exception {
         mockMvc.perform(post("/api/v1/auth/logout"))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void deleteAccount_returns204WithClearedCookies_whenPasswordIsCorrect() throws Exception {
+        UUID userId = UUID.randomUUID();
+        doNothing().when(authApplicationService)
+                .deleteAccount(eq(userId), eq("correct-password"), eq("some-refresh-token"));
+
+        String requestBody = """
+                {"currentPassword":"correct-password"}
+                """;
+
+        mockMvc.perform(delete("/api/v1/auth/account")
+                        .contentType("application/json")
+                        .content(requestBody)
+                        .principal(new UsernamePasswordAuthenticationToken(userId.toString(), null))
+                        .cookie(new jakarta.servlet.http.Cookie("refresh_token", "some-refresh-token")))
+                .andExpect(status().isNoContent())
+                .andExpect(cookie().maxAge("access_token", 0))
+                .andExpect(cookie().maxAge("refresh_token", 0));
+
+        verify(authApplicationService).deleteAccount(userId, "correct-password", "some-refresh-token");
+    }
+
+    @Test
+    void deleteAccount_returns400_whenPasswordIsIncorrect() throws Exception {
+        UUID userId = UUID.randomUUID();
+        doThrow(new BusinessRuleViolationException("パスワードが正しくありません。",
+                AuthApplicationService.DELETE_ACCOUNT_INVALID_PASSWORD_CODE))
+                .when(authApplicationService).deleteAccount(eq(userId), eq("wrong-password"), any());
+
+        String requestBody = """
+                {"currentPassword":"wrong-password"}
+                """;
+
+        mockMvc.perform(delete("/api/v1/auth/account")
+                        .contentType("application/json")
+                        .content(requestBody)
+                        .principal(new UsernamePasswordAuthenticationToken(userId.toString(), null)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(AuthApplicationService.DELETE_ACCOUNT_INVALID_PASSWORD_CODE));
+    }
+
+    @Test
+    void deleteAccount_returns400_whenCurrentPasswordIsBlank() throws Exception {
+        UUID userId = UUID.randomUUID();
+        String requestBody = """
+                {"currentPassword":""}
+                """;
+
+        mockMvc.perform(delete("/api/v1/auth/account")
+                        .contentType("application/json")
+                        .content(requestBody)
+                        .principal(new UsernamePasswordAuthenticationToken(userId.toString(), null)))
+                .andExpect(status().isBadRequest());
     }
 }

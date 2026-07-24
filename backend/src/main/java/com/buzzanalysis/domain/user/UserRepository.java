@@ -19,4 +19,11 @@ public interface UserRepository {
     Optional<User> findByEmail(String email);
 
     boolean existsByEmail(String email);
+
+    /**
+     * ユーザーを削除する。関連データ(保存済み分析・チーム所属・購読・各種トークン等)は
+     * DBのON DELETE CASCADE/SET NULL設定により整合的に処理される
+     * (V24__account_deletion_cascades.sql参照)。
+     */
+    void deleteById(UUID id);
 }

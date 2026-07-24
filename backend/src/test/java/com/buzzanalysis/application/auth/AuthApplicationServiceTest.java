@@ -165,4 +165,48 @@ class AuthApplicationServiceTest {
 
         verify(tokenProvider, org.mockito.Mockito.never()).revokeRefreshToken(anyString());
     }
+
+    @Test
+    void deleteAccount_deletesUserAndRevokesRefreshToken_whenPasswordMatches() {
+        UUID userId = UUID.randomUUID();
+        User existingUser = new User(userId, "user@example.com", "hashed", "User", Role.USER, true,
+                OffsetDateTime.now(), OffsetDateTime.now());
+        when(userRepository.findById(userId)).thenReturn(Optional.of(existingUser));
+        when(passwordEncoderPort.matches("correct-password", "hashed")).thenReturn(true);
+
+        service.deleteAccount(userId, "correct-password", "some-refresh-token");
+
+        verify(userRepository).deleteById(userId);
+        verify(tokenProvider).revokeRefreshToken("some-refresh-token");
+    }
+
+    @Test
+    void deleteAccount_throwsBusinessRuleViolation_withErrorCode_whenPasswordDoesNotMatch() {
+        UUID userId = UUID.randomUUID();
+        User existingUser = new User(userId, "user@example.com", "hashed", "User", Role.USER, true,
+                OffsetDateTime.now(), OffsetDateTime.now());
+        when(userRepository.findById(userId)).thenReturn(Optional.of(existingUser));
+        when(passwordEncoderPort.matches("wrong-password", "hashed")).thenReturn(false);
+
+        assertThatThrownBy(() -> service.deleteAccount(userId, "wrong-password", "some-refresh-token"))
+                .isInstanceOf(BusinessRuleViolationException.class)
+                .satisfies(e -> assertThat(((BusinessRuleViolationException) e).getErrorCode())
+                        .isEqualTo(AuthApplicationService.DELETE_ACCOUNT_INVALID_PASSWORD_CODE));
+        verify(userRepository, org.mockito.Mockito.never()).deleteById(any());
+        verifyNoInteractions(tokenProvider);
+    }
+
+    @Test
+    void deleteAccount_doesNotRevokeToken_whenRefreshTokenIsNullOrBlank() {
+        UUID userId = UUID.randomUUID();
+        User existingUser = new User(userId, "user@example.com", "hashed", "User", Role.USER, true,
+                OffsetDateTime.now(), OffsetDateTime.now());
+        when(userRepository.findById(userId)).thenReturn(Optional.of(existingUser));
+        when(passwordEncoderPort.matches("correct-password", "hashed")).thenReturn(true);
+
+        service.deleteAccount(userId, "correct-password", null);
+
+        verify(userRepository).deleteById(userId);
+        verify(tokenProvider, org.mockito.Mockito.never()).revokeRefreshToken(anyString());
+    }
 }

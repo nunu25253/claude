@@ -9,6 +9,7 @@ import com.buzzanalysis.application.auth.dto.LoginCommand;
 import com.buzzanalysis.application.auth.dto.RegisterCommand;
 import com.buzzanalysis.domain.common.exception.BusinessRuleViolationException;
 import com.buzzanalysis.infrastructure.security.JwtProperties;
+import com.buzzanalysis.presentation.dto.request.DeleteAccountRequest;
 import com.buzzanalysis.presentation.dto.request.EmailVerificationConfirmRequest;
 import com.buzzanalysis.presentation.dto.request.EmailVerificationResendRequest;
 import com.buzzanalysis.presentation.dto.request.LoginRequest;
@@ -24,13 +25,17 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.UUID;
 
 /** 認証API（登録/ログイン/トークンリフレッシュ/ログアウト/パスワードリセット/メールアドレス確認）。 */
 @RestController
@@ -85,6 +90,21 @@ public class AuthController {
     public ResponseEntity<Void> logout(
             @CookieValue(name = AuthCookieNames.REFRESH_TOKEN, required = false) String refreshToken) {
         authApplicationService.logout(refreshToken);
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.SET_COOKIE, clearCookie(AuthCookieNames.ACCESS_TOKEN).toString())
+                .header(HttpHeaders.SET_COOKIE, clearCookie(AuthCookieNames.REFRESH_TOKEN).toString())
+                .build();
+    }
+
+    @Operation(summary = "アカウント削除(退会)",
+            description = "現在のパスワードを確認した上でアカウントと関連データ(保存済み分析・チーム所属・購読等)を削除し、認証Cookieを削除する。取り消しはできない。")
+    @DeleteMapping("/account")
+    public ResponseEntity<Void> deleteAccount(
+            Authentication authentication,
+            @Valid @RequestBody DeleteAccountRequest request,
+            @CookieValue(name = AuthCookieNames.REFRESH_TOKEN, required = false) String refreshToken) {
+        UUID userId = UUID.fromString(authentication.getName());
+        authApplicationService.deleteAccount(userId, request.currentPassword(), refreshToken);
         return ResponseEntity.noContent()
                 .header(HttpHeaders.SET_COOKIE, clearCookie(AuthCookieNames.ACCESS_TOKEN).toString())
                 .header(HttpHeaders.SET_COOKIE, clearCookie(AuthCookieNames.REFRESH_TOKEN).toString())
