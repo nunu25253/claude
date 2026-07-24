@@ -46,7 +46,7 @@ export function OverviewSection({ post, buzzScore }: { post: Post; buzzScore: Bu
               </span>
             </div>
             <p className="mt-1 line-clamp-3 text-sm text-slate-700">{post.caption}</p>
-            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-400">
+            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
               <span>❤️ {formatCompactNumber(post.likeCount)}</span>
               <span>💬 {formatCompactNumber(post.commentCount)}</span>
               <span>🔁 {formatCompactNumber(post.shareCount)}</span>

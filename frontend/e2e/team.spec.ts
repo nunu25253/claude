@@ -1,9 +1,11 @@
 import { test, expect } from "@playwright/test";
+import { expectNoA11yViolations } from "./a11y";
 
 /**
  * チーム機能(改善計画No.24: マルチアカウント/チーム機能の土台)の主要導線を検証する。
  * OWNERがチームを作成→メンバーを招待→招待されたMEMBERが一覧を閲覧できる→
  * OWNERがメンバーを削除、までを2ユーザー分の別ブラウザコンテキストで確認する。
+ * あわせてaxe-coreによるアクセシビリティ回帰検知も行う。
  */
 test("チームの作成・招待・メンバー閲覧・削除が壊れない", async ({ browser }) => {
   const uniqueSuffix = Date.now();
@@ -41,12 +43,14 @@ test("チームの作成・招待・メンバー閲覧・削除が壊れない",
   await ownerPage.fill("#inviteEmail", memberEmail);
   await ownerPage.click('button:has-text("招待する")');
   await expect(ownerPage.getByText("メンバー次郎")).toBeVisible({ timeout: 10_000 });
+  await expectNoA11yViolations(ownerPage);
 
   await memberPage.goto("/team", { waitUntil: "networkidle" });
   await memberPage.click(`button:has-text("${teamName}")`);
   await expect(memberPage.getByText("オーナー太郎")).toBeVisible({ timeout: 10_000 });
   // MEMBERロールなので招待フォームは表示されない
   await expect(memberPage.locator("#inviteEmail")).toHaveCount(0);
+  await expectNoA11yViolations(memberPage);
 
   await ownerPage.click('li:has-text("メンバー次郎") button:has-text("削除")');
   await expect(ownerPage.getByText("メンバー次郎")).toHaveCount(0, { timeout: 10_000 });

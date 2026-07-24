@@ -26,7 +26,7 @@ export function BuzzScoreBadge({ score, size = "md" }: { score: number; size?: "
       >
         {Math.round(score)}
       </div>
-      <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
         {tier.label}
       </span>
     </div>

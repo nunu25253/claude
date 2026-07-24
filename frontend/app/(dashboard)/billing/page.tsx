@@ -59,7 +59,7 @@ export default function BillingPage() {
             <div className="space-y-2">
               <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                 {subscription.plan === "PRO" ? "PROプラン" : "FREEプラン"}
-                <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-normal text-slate-500">
+                <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-normal text-slate-600">
                   {subscription.status}
                 </span>
               </p>

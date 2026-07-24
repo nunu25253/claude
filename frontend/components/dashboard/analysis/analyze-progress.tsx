@@ -58,7 +58,7 @@ export function AnalyzeProgress() {
                 >
                   {isDone ? "✓" : i + 1}
                 </span>
-                <span className={isDone || isCurrent ? "text-sm text-slate-700" : "text-sm text-slate-400"}>
+                <span className={isDone || isCurrent ? "text-sm text-slate-700" : "text-sm text-slate-500 dark:text-slate-400"}>
                   {stage.label}
                   {isCurrent && <span className="ml-1 animate-pulse">…</span>}
                 </span>
@@ -66,7 +66,7 @@ export function AnalyzeProgress() {
             );
           })}
         </div>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           経過時間: {elapsedSeconds}秒(通常20〜30秒程度で完了します。長引く場合もそのままお待ちください)
         </p>
       </div>

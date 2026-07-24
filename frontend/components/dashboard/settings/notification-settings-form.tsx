@@ -67,7 +67,7 @@ export function NotificationSettingsForm() {
             />
             <span>
               <span className="block text-sm font-medium text-slate-700">{item.label}</span>
-              <span className="block text-xs text-slate-400">{item.description}</span>
+              <span className="block text-xs text-slate-500 dark:text-slate-400">{item.description}</span>
             </span>
           </label>
         ))}

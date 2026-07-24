@@ -32,7 +32,7 @@ export default function GlobalError({
             時間をおいて再度アクセスしてください。問題が続く場合はサポートまでご連絡ください。
           </p>
           {error.digest && (
-            <p className="text-xs text-slate-400">エラーID: {error.digest}</p>
+            <p className="text-xs text-slate-500">エラーID: {error.digest}</p>
           )}
           <button
             type="button"

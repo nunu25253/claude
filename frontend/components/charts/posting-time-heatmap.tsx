@@ -21,7 +21,7 @@ export function PostingTimeHeatmap({ data }: { data: PostingTimeDistributionItem
           <tr>
             <th className="w-10" />
             {HOUR_BUCKETS.map((h) => (
-              <th key={h} className="font-normal text-slate-400">
+              <th key={h} className="font-normal text-slate-500 dark:text-slate-400">
                 {h}時
               </th>
             ))}

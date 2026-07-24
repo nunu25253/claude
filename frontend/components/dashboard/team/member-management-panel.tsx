@@ -108,11 +108,11 @@ export function MemberManagementPanel({
               <div>
                 <p className="text-sm font-medium text-slate-700">
                   {member.displayName}
-                  <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-normal text-slate-500">
+                  <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-normal text-slate-600">
                     {member.role === "OWNER" ? "OWNER" : "MEMBER"}
                   </span>
                 </p>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   {member.email} ・ 参加日 {formatDateTime(member.joinedAt)}
                 </p>
               </div>

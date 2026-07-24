@@ -39,7 +39,7 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
           <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
             {user?.displayName ?? "ゲスト"}
           </p>
-          <p className="text-xs text-slate-400">{user?.email}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{user?.email}</p>
         </div>
         <div
           className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700 dark:bg-brand-900 dark:text-brand-200"

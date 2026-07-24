@@ -17,18 +17,18 @@ export function EvaluationResult({ result }: { result: ContentEvaluation }) {
           <p className="text-xs font-medium text-slate-500">予測投稿スコア</p>
           <p className={`text-3xl font-bold ${scoreColorClass(result.predictedScore)}`}>
             {result.predictedScore}
-            <span className="text-base font-normal text-slate-400">/100</span>
+            <span className="text-base font-normal text-slate-500 dark:text-slate-400">/100</span>
           </p>
         </div>
         <div>
           <p className="text-xs font-medium text-slate-500">元企画との一致率</p>
           <p className="text-3xl font-bold text-slate-800">
             {result.matchRatePercent == null ? (
-              <span className="text-base font-normal text-slate-400">企画ID未指定</span>
+              <span className="text-base font-normal text-slate-500 dark:text-slate-400">企画ID未指定</span>
             ) : (
               <>
                 {result.matchRatePercent.toFixed(0)}
-                <span className="text-base font-normal text-slate-400">%</span>
+                <span className="text-base font-normal text-slate-500 dark:text-slate-400">%</span>
               </>
             )}
           </p>

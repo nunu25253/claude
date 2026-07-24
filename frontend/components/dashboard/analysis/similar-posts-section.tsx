@@ -7,7 +7,7 @@ export function SimilarPostsSection({ posts }: { posts: Post[] }) {
     <Card>
       <CardHeader title="✨ 類似の伸びている投稿" description="この投稿と傾向が近く、成果を出している投稿" />
       {posts.length === 0 ? (
-        <p className="text-sm text-slate-400">類似投稿が見つかりませんでした</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">類似投稿が見つかりませんでした</p>
       ) : (
         <div className="space-y-2">
           {posts.map((post) => (

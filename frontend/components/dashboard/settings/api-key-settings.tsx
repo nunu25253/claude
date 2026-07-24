@@ -43,7 +43,7 @@ export function ApiKeySettingsPanel() {
         >
           APIキーを再発行
         </Button>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           再発行すると、既存のAPIキーは無効になります。連携中のツールがある場合はご注意ください。
         </p>
       </div>

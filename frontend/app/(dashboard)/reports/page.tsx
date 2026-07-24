@@ -66,7 +66,7 @@ export default function ReportsPage() {
                       {item.post.caption || "(キャプションなし)"}
                     </span>
                   </div>
-                  <p className="mt-0.5 text-xs text-slate-400">
+                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                     {item.buzzScore && `BuzzScore ${Math.round(item.buzzScore.totalScore)} ・ `}
                     保存日 {formatDateTime(item.createdAt)}
                   </p>
@@ -107,7 +107,7 @@ export default function ReportsPage() {
               <li key={r.reportId} className="flex items-center justify-between gap-3 py-2.5">
                 <div className="min-w-0">
                   <p className="truncate text-sm text-slate-700">{r.postCaption}</p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
                     {r.format.toUpperCase()} ・ {formatDateTime(r.createdAt)}
                   </p>
                 </div>

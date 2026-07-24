@@ -31,7 +31,7 @@ export default function ErrorBoundary({
         ページの表示中に問題が発生しました。お手数ですが再読み込みをお試しください。解決しない場合は時間をおいて再度アクセスしてください。
       </p>
       {error.digest && (
-        <p className="text-xs text-slate-400">エラーID: {error.digest}</p>
+        <p className="text-xs text-slate-500">エラーID: {error.digest}</p>
       )}
       <div className="mt-2 flex gap-3">
         <button type="button" onClick={reset} className="btn-primary">

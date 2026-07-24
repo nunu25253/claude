@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { fetchVerificationLink } from "./mailhog";
+import { expectNoA11yViolations } from "./a11y";
 
 /**
  * 主要導線(新規登録→メール確認→投稿分析→保存→CSVエクスポート)が壊れていないことを確認するE2Eテスト。
@@ -40,6 +41,7 @@ test("新規登録から投稿分析・保存・CSVエクスポートまでの�
 
   const bodyAfterAnalyze = await page.locator("body").innerText();
   expect(bodyAfterAnalyze).not.toContain("client-side exception");
+  await expectNoA11yViolations(page);
 
   await page.click('button:has-text("この分析を保存")');
   await expect(page.getByText("保存済み一覧を見る")).toBeVisible({ timeout: 10_000 });

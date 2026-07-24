@@ -94,7 +94,7 @@ export default function SavedPage() {
                         {item.post.caption || "(キャプションなし)"}
                       </span>
                     </div>
-                    <p className="mt-0.5 text-xs text-slate-400">
+                    <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                       @{item.post.accountHandle ?? item.post.authorName} ・ 保存日 {formatDateTime(item.createdAt)}
                     </p>
                     {item.note && <p className="mt-1 text-xs text-slate-500">メモ: {item.note}</p>}

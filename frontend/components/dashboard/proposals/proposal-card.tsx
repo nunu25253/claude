@@ -20,7 +20,7 @@ export function ProposalCard({ proposal }: { proposal: ContentProposal }) {
     <Card>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium text-slate-400">#{proposal.sequenceNumber}</p>
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">#{proposal.sequenceNumber}</p>
           <h3 className="mt-0.5 truncate text-base font-semibold text-slate-900">{proposal.title}</h3>
         </div>
         {proposal.recommendedFormat && <Badge>{proposal.recommendedFormat}</Badge>}

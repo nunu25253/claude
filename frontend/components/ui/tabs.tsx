@@ -29,7 +29,7 @@ export function Tabs<T extends string>({ items, value, onChange }: TabsProps<T>)
               "rounded-lg px-3.5 py-1.5 text-sm font-medium transition",
               isActive
                 ? "bg-white text-brand-700 shadow-card"
-                : "text-slate-500 hover:text-slate-700",
+                : "text-slate-600 hover:text-slate-700",
             )}
           >
             {item.label}

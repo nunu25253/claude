@@ -133,7 +133,7 @@ function CompetitorStatsView({
         <Card>
           <CardHeader title="エンゲージメント推移" description="平均エンゲージメント率の推移" />
           {stats.engagementTrend.length === 0 ? (
-            <p className="py-8 text-center text-sm text-slate-400">データがありません</p>
+            <p className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">データがありません</p>
           ) : (
             <EngagementTrendChart data={stats.engagementTrend} />
           )}
@@ -141,7 +141,7 @@ function CompetitorStatsView({
         <Card>
           <CardHeader title="投稿時間帯" description="曜日 × 時間帯の投稿分布" />
           {stats.postingTimeDistribution.length === 0 ? (
-            <p className="py-8 text-center text-sm text-slate-400">データがありません</p>
+            <p className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">データがありません</p>
           ) : (
             <PostingTimeHeatmap data={stats.postingTimeDistribution} />
           )}
@@ -151,7 +151,7 @@ function CompetitorStatsView({
       <Card>
         <CardHeader title="伸びる投稿ランキング" description="このアカウントでよく伸びている投稿" />
         {stats.topGrowingPosts.length === 0 ? (
-          <p className="py-8 text-center text-sm text-slate-400">データがありません</p>
+          <p className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">データがありません</p>
         ) : (
           <div className="space-y-2">
             {stats.topGrowingPosts.map((post, idx) => (

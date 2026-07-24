@@ -57,7 +57,7 @@ export default function TrendPage() {
           <Card className="lg:col-span-1">
             <CardHeader title="トレンドハッシュタグ" description="伸び率が高い順" />
             {hashtags.length === 0 ? (
-              <p className="py-8 text-center text-sm text-slate-400">該当するハッシュタグがありません</p>
+              <p className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">該当するハッシュタグがありません</p>
             ) : (
               <ul className="space-y-2">
                 {hashtags.map((h) => (
@@ -69,7 +69,7 @@ export default function TrendPage() {
                       <p className="truncate text-sm font-medium text-slate-800">#{h.tag}</p>
                       <div className="mt-1 flex items-center gap-1.5">
                         <PlatformBadge platform={h.platform} />
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
                           {formatCompactNumber(h.postCount)}件
                         </span>
                       </div>
@@ -93,7 +93,7 @@ export default function TrendPage() {
           <Card className="lg:col-span-2">
             <CardHeader title="トレンド投稿一覧" description="いま話題の投稿" />
             {posts.length === 0 ? (
-              <p className="py-8 text-center text-sm text-slate-400">該当する投稿がありません</p>
+              <p className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">該当する投稿がありません</p>
             ) : (
               <div className="space-y-2">
                 {posts.map((post) => (

@@ -36,7 +36,7 @@ export function TeamSavedAnalysesPanel({ organizationId }: { organizationId: str
                       {savedAnalysis.post.caption || "(キャプションなし)"}
                     </span>
                   </div>
-                  <p className="mt-0.5 text-xs text-slate-400">
+                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                     保存者 {savedByDisplayName} ・ 保存日 {formatDateTime(savedAnalysis.createdAt)}
                   </p>
                   {savedAnalysis.note && (

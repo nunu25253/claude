@@ -101,12 +101,12 @@ export function AnalyzedPostsList() {
                     {item.post.caption || "(キャプションなし)"}
                   </span>
                 </div>
-                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-400">
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-500 dark:text-slate-400">
                   <span>
                     {item.buzzScore ? `BuzzScore ${Math.round(item.buzzScore.totalScore)} ・ ` : ""}
                     保存日 {formatDateTime(item.createdAt)}
                   </span>
-                  <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-slate-500">
+                  <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-slate-600">
                     {item.post.id}
                   </code>
                 </div>

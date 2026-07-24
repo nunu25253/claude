@@ -44,14 +44,14 @@ export function AlertThresholdControl({ item }: { item: SavedAnalysis }) {
       <span className="rounded-full bg-amber-50 px-2 py-0.5 font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-300">
         BuzzScore {item.alertThreshold}以上で通知
       </span>
-      <span className="text-slate-400">
+      <span className="text-slate-500 dark:text-slate-400">
         {item.alertTriggeredAt ? "通知済み" : "未通知"}
       </span>
       <button
         type="button"
         onClick={handleClear}
         disabled={mutation.isPending}
-        className="text-slate-400 underline hover:text-slate-600 disabled:opacity-50"
+        className="text-slate-500 underline hover:text-slate-600 disabled:opacity-50 dark:text-slate-400"
       >
         解除
       </button>
