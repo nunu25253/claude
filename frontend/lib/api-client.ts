@@ -76,12 +76,16 @@ async function parseErrorBody(res: Response): Promise<Partial<ApiErrorBody>> {
 
 /**
  * 状態変更リクエストの直前にXSRF-TOKEN Cookieを取得し直す。
- * (実測により判明した挙動: バックエンドのSpring Security CSRF設定では、認証済みリクエストが
- * 1件処理されるたびにXSRF-TOKEN Cookieが失効し、明示的に/auth/csrfへアクセスしないと
- * 再発行されない。そのためログイン直後に一度取得しただけのCookieは、その後に別の
- * 認証付きGETが1件でも挟まると使えなくなる。ここでは正確性を優先し、状態変更リクエストの
- * 都度フレッシュなトークンを取りに行く。ユーザー操作起点の呼び出しであり高頻度アクセスでは
- * ないため、追加の1往復のレイテンシは実用上問題にならない。)
+ *
+ * (根本原因は判明・修正済み: バックエンドのSpring SecurityはCSRF設定時にデフォルトで
+ * CsrfAuthenticationStrategyをセッション認証ストラテジーチェーンへ自動登録するが、
+ * このアプリはSTATELESS(セッション不使用)のため、認証済みリクエストは常に「新規認証」と
+ * 判定されてしまい、そのたびにCookieが削除されていた。バックエンド側で
+ * NullAuthenticatedSessionStrategyを明示指定して修正済み(SecurityConfig参照)であり、
+ * 現在はCookieが認証済みGETをまたいでも失効しない。
+ * このメソッド自体は、初回ログイン直後などまだCookieが1度も発行されていないタイミングでの
+ * 状態変更リクエストに備えた保険として残している(必須ではないが、ユーザー操作起点の呼び出しで
+ * 高頻度ではないため追加の1往復のレイテンシは実用上問題にならない)。)
  */
 async function ensureFreshCsrfCookie(): Promise<void> {
   try {

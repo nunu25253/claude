@@ -12,6 +12,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.session.NullAuthenticatedSessionStrategy;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.web.cors.CorsConfiguration;
@@ -44,6 +45,24 @@ import java.util.List;
  * {@link CsrfTokenRequestAttributeHandler}に明示的に切り替える
  * （Spring Security公式ドキュメント「Integrating CSRF with Single Page Applications」で
  * 推奨されている構成）。
+ *
+ * <p>{@link NullAuthenticatedSessionStrategy}を明示的に指定している理由: {@code csrf()}は
+ * デフォルトで{@link org.springframework.security.web.csrf.CsrfAuthenticationStrategy}を
+ * {@code SessionManagementFilter}のセッション認証ストラテジーチェーンへ自動登録する
+ * （{@code CsrfConfigurer#getSessionAuthenticationStrategy()}）。このストラテジーは
+ * 「新しい認証が確立された」と判定するたびに、既存のCSRFトークンCookieを一度削除して
+ * 再発行する（セッション固定化攻撃対策）。ところが本アプリはSTATELESS
+ * （{@code SecurityContextRepository}を使わずCookieのJWTを毎回検証するのみ）のため、
+ * 「前回はどの認証だったか」を比較する対象が存在せず、認証済みリクエストは常に
+ * 「新しい認証」とみなされてしまう。結果、認証済みGETを1件でも挟むとXSRF-TOKEN Cookieが
+ * 削除され、フロントエンドは状態変更リクエストの直前に{@code /auth/csrf}を叩いて
+ * 明示的に再取得する回避策を取っていた（実測は行っていたが、Spring Security内部の
+ * 原因は特定できていなかった）。実際にバックエンドを起動し
+ * {@code logging.level.org.springframework.security=DEBUG}で追跡した結果、認証済み
+ * GETのたびに{@code CsrfAuthenticationStrategy - Replaced CSRF Token}が出力されることを
+ * 確認して特定した。セッションを使わない設計では上記の固定化対策自体が意味を持たないため、
+ * 何もしない{@link NullAuthenticatedSessionStrategy}に差し替えてこの動作を無効化する
+ * （フロントエンド側の再取得ロジックは、この修正後も安全側の防御としてそのまま残す）。
  */
 @Configuration
 @EnableWebSecurity
@@ -83,6 +102,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+                        .sessionAuthenticationStrategy(new NullAuthenticatedSessionStrategy())
                         .ignoringRequestMatchers(PUBLIC_PATHS))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
