@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { ApiError } from "@/lib/types/common";
 import { Button } from "@/components/ui/button";
 import { FormField, inputClassName } from "@/components/ui/form-field";
+import { TurnstileWidget } from "@/components/auth/turnstile-widget";
 
 const registerSchema = z
   .object({
@@ -29,6 +30,7 @@ export function RegisterForm() {
   const { register: registerUser } = useAuth();
   const router = useRouter();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | undefined>(undefined);
 
   const {
     register,
@@ -45,6 +47,7 @@ export function RegisterForm() {
         displayName: values.displayName,
         email: values.email,
         password: values.password,
+        captchaToken,
       });
       router.push("/");
     } catch (err) {
@@ -103,6 +106,8 @@ export function RegisterForm() {
           {...register("passwordConfirm")}
         />
       </FormField>
+
+      <TurnstileWidget onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(undefined)} />
 
       {submitError && (
         <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">

@@ -13,6 +13,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -23,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -30,6 +33,7 @@ import static org.mockito.Mockito.when;
  * 依存する UserRepository / PasswordEncoderPort / TokenProvider はすべてモック化する。
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class AuthApplicationServiceTest {
 
     @Mock
@@ -40,13 +44,16 @@ class AuthApplicationServiceTest {
     private TokenProvider tokenProvider;
     @Mock
     private EmailVerificationApplicationService emailVerificationApplicationService;
+    @Mock
+    private CaptchaVerificationPort captchaVerificationPort;
 
     private AuthApplicationService service;
 
     @BeforeEach
     void setUp() {
         service = new AuthApplicationService(userRepository, passwordEncoderPort, tokenProvider,
-                emailVerificationApplicationService);
+                emailVerificationApplicationService, captchaVerificationPort);
+        when(captchaVerificationPort.verify(any(), any())).thenReturn(true);
     }
 
     @Test
@@ -57,7 +64,8 @@ class AuthApplicationServiceTest {
         when(tokenProvider.generateAccessToken(any(User.class))).thenReturn(new TokenProvider.IssuedToken("access-token", 1800));
         when(tokenProvider.generateRefreshToken(any(User.class))).thenReturn(new TokenProvider.IssuedToken("refresh-token", 1209600));
 
-        AuthResult result = service.register(new RegisterCommand("new@example.com", "Password123!", "New User"));
+        AuthResult result = service.register(
+                new RegisterCommand("new@example.com", "Password123!", "New User", "captcha-token", "127.0.0.1"));
 
         assertThat(result.email()).isEqualTo("new@example.com");
         assertThat(result.accessToken()).isEqualTo("access-token");
@@ -74,8 +82,21 @@ class AuthApplicationServiceTest {
     void register_rejectsDuplicateEmail() {
         when(userRepository.existsByEmail("existing@example.com")).thenReturn(true);
 
-        assertThatThrownBy(() -> service.register(new RegisterCommand("existing@example.com", "Password123!", "User")))
+        assertThatThrownBy(() -> service.register(
+                new RegisterCommand("existing@example.com", "Password123!", "User", "captcha-token", "127.0.0.1")))
                 .isInstanceOf(BusinessRuleViolationException.class);
+    }
+
+    @Test
+    void register_throwsBusinessRuleViolation_withCaptchaErrorCode_whenCaptchaVerificationFails() {
+        when(captchaVerificationPort.verify("bad-token", "127.0.0.1")).thenReturn(false);
+
+        assertThatThrownBy(() -> service.register(
+                new RegisterCommand("new@example.com", "Password123!", "New User", "bad-token", "127.0.0.1")))
+                .isInstanceOf(BusinessRuleViolationException.class)
+                .satisfies(e -> assertThat(((BusinessRuleViolationException) e).getErrorCode())
+                        .isEqualTo(AuthApplicationService.CAPTCHA_VERIFICATION_FAILED_CODE));
+        verifyNoInteractions(userRepository);
     }
 
     @Test

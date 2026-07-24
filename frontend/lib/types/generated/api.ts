@@ -1562,6 +1562,7 @@ export interface components {
             email: string;
             password: string;
             displayName: string;
+            captchaToken?: string;
         };
         AuthResponse: {
             /** Format: uuid */

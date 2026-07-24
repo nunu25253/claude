@@ -18,6 +18,7 @@ import com.buzzanalysis.presentation.dto.request.RegisterRequest;
 import com.buzzanalysis.presentation.dto.response.AuthResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -54,9 +55,10 @@ public class AuthController {
 
     @Operation(summary = "ユーザー登録", description = "成功時、アクセス/リフレッシュトークンをHttpOnly Cookieとして発行する")
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        AuthResult result = authApplicationService.register(
-                new RegisterCommand(request.email(), request.password(), request.displayName()));
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request,
+                                                  HttpServletRequest httpRequest) {
+        AuthResult result = authApplicationService.register(new RegisterCommand(request.email(), request.password(),
+                request.displayName(), request.captchaToken(), httpRequest.getRemoteAddr()));
         return withAuthCookies(HttpStatus.CREATED, result);
     }
 

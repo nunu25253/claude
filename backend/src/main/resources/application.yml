@@ -80,6 +80,12 @@ app:
     # ログイン/登録エンドポイントへの、送信元IPごとの試行回数上限(ブルートフォース対策)。
     auth-max-attempts: ${RATE_LIMIT_AUTH_MAX_ATTEMPTS:10}
     auth-window-minutes: ${RATE_LIMIT_AUTH_WINDOW_MINUTES:15}
+  captcha:
+    # 登録エンドポイントのBot対策(Cloudflare Turnstile)。既定は無効(ローカル開発・CI用)。
+    # 本番で有効化する場合はCAPTCHA_ENABLED=trueとCAPTCHA_SECRET_KEYを設定すること。
+    enabled: ${CAPTCHA_ENABLED:false}
+    secret-key: ${CAPTCHA_SECRET_KEY:}
+    verify-url: ${CAPTCHA_VERIFY_URL:https://challenges.cloudflare.com/turnstile/v0/siteverify}
   mail:
     # パスワードリセットメールに載せるリンクの遷移先(フロントエンドのパスワード再設定ページ)。
     reset-link-base-url: ${MAIL_RESET_LINK_BASE_URL:http://localhost:3000/reset-password}

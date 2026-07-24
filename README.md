@@ -144,6 +144,14 @@ JWT_SECRET=change-this-secret-in-production-please-0123456789abcdef
 STORAGE_LOCAL_SIGNING_SECRET=change-this-secret-in-production-please-0123456789abcdef
 # ダウンロードURLの有効期限（分）。既定60分。
 # STORAGE_LOCAL_PRESIGNED_URL_EXPIRATION_MINUTES=60
+
+# 登録エンドポイントのBot対策(Cloudflare Turnstile)。既定は無効(ローカル開発・CI用)。
+# 本番で有効化する場合は https://dash.cloudflare.com/ でサイトキー/シークレットキーを発行し、
+# バックエンドにシークレットキー、フロントエンドに公開のサイトキーをそれぞれ設定してください。
+# CAPTCHA_ENABLED=true
+# CAPTCHA_SECRET_KEY=
+# frontend/.env.local (または frontend/.env) に設定:
+# NEXT_PUBLIC_TURNSTILE_SITE_KEY=
 ```
 
 ### 2. Docker Composeで一式起動（推奨）

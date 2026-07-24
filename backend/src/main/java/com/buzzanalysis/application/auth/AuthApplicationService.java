@@ -19,22 +19,32 @@ import java.util.UUID;
 @Service
 public class AuthApplicationService {
 
+    /** Bot対策検証失敗時にフロントエンドが判別するためのerrorCode。 */
+    public static final String CAPTCHA_VERIFICATION_FAILED_CODE = "CAPTCHA_VERIFICATION_FAILED";
+
     private final UserRepository userRepository;
     private final PasswordEncoderPort passwordEncoderPort;
     private final TokenProvider tokenProvider;
     private final EmailVerificationApplicationService emailVerificationApplicationService;
+    private final CaptchaVerificationPort captchaVerificationPort;
 
     public AuthApplicationService(UserRepository userRepository, PasswordEncoderPort passwordEncoderPort,
                                    TokenProvider tokenProvider,
-                                   EmailVerificationApplicationService emailVerificationApplicationService) {
+                                   EmailVerificationApplicationService emailVerificationApplicationService,
+                                   CaptchaVerificationPort captchaVerificationPort) {
         this.userRepository = userRepository;
         this.passwordEncoderPort = passwordEncoderPort;
         this.tokenProvider = tokenProvider;
         this.emailVerificationApplicationService = emailVerificationApplicationService;
+        this.captchaVerificationPort = captchaVerificationPort;
     }
 
     @Transactional
     public AuthResult register(RegisterCommand command) {
+        if (!captchaVerificationPort.verify(command.captchaToken(), command.remoteIp())) {
+            throw new BusinessRuleViolationException("ボット確認に失敗しました。もう一度お試しください。",
+                    CAPTCHA_VERIFICATION_FAILED_CODE);
+        }
         if (userRepository.existsByEmail(command.email())) {
             throw new BusinessRuleViolationException("Email is already registered: " + command.email());
         }
