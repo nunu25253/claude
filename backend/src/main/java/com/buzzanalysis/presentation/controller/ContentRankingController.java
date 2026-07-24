@@ -6,6 +6,7 @@ import com.buzzanalysis.application.rankingscore.dto.RankingScoreResultDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -35,7 +36,7 @@ public class ContentRankingController {
                     + "ランキングスコアで降順に並び替える。")
     @PostMapping("/rank")
     public ResponseEntity<List<RankingScoreResultDto>> rank(
-            @RequestBody UserSearchConditionRequest request,
+            @Valid @RequestBody UserSearchConditionRequest request,
             @Parameter(description = "取得件数上限") @RequestParam(defaultValue = "20") int limit
     ) {
         return ResponseEntity.ok(contentRankingApplicationService.rank(request.toDomain(), limit));

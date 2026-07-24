@@ -5,6 +5,7 @@ import com.buzzanalysis.application.commonality.dto.CommonalityAnalysisRequest;
 import com.buzzanalysis.application.commonality.dto.CommonalityAnalysisResultDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,7 +34,7 @@ public class CommonalityAnalysisController {
             description = "投稿ID配列(最大100件)から共通パターンを抽出する。AIには要約スニペットを最大30件までサンプリングして渡す。")
     @PostMapping("/analyze")
     public ResponseEntity<CommonalityAnalysisResultDto> analyze(Authentication authentication,
-                                                                 @RequestBody CommonalityAnalysisRequest request) {
+                                                                 @Valid @RequestBody CommonalityAnalysisRequest request) {
         return ResponseEntity.ok(
                 commonalityAnalysisApplicationService.analyze(request.postIds(), currentUserId(authentication)));
     }

@@ -6,6 +6,7 @@ import com.buzzanalysis.application.matching.dto.UserSearchConditionRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -35,7 +36,7 @@ public class MatchingController {
                     + "各Strategyのスコアを重み付き平均して0〜100の一致率を算出する。")
     @PostMapping("/evaluate")
     public ResponseEntity<List<MatchRateResultDto>> evaluate(
-            @RequestBody UserSearchConditionRequest request,
+            @Valid @RequestBody UserSearchConditionRequest request,
             @Parameter(description = "取得件数上限") @RequestParam(defaultValue = "20") int limit
     ) {
         return ResponseEntity.ok(userConditionMatchApplicationService.evaluate(request.toDomain(), limit));

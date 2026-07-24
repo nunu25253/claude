@@ -5,6 +5,7 @@ import com.buzzanalysis.application.evaluation.dto.ContentEvaluationDto;
 import com.buzzanalysis.application.evaluation.dto.PostEvaluationRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,7 +37,7 @@ public class EvaluationController {
             description = "タイトル/フック/構成/CTA/ターゲットを評価する。proposalId指定時のみ元企画との一致率を算出する。")
     @PostMapping
     public ResponseEntity<ContentEvaluationDto> evaluate(Authentication authentication,
-                                                          @RequestBody PostEvaluationRequest request) {
+                                                          @Valid @RequestBody PostEvaluationRequest request) {
         return ResponseEntity.ok(postEvaluationApplicationService.evaluate(request, currentUserId(authentication)));
     }
 

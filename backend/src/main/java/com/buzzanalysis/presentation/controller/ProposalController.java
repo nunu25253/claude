@@ -5,6 +5,7 @@ import com.buzzanalysis.application.proposal.dto.ContentProposalDto;
 import com.buzzanalysis.application.proposal.dto.ProposalGenerationRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,7 +37,7 @@ public class ProposalController {
             description = "投稿ID配列(最大100件)から共通点分析を行い、その結果を元にAIが投稿企画をcount件(既定20件、上限20件)生成する。")
     @PostMapping("/generate")
     public ResponseEntity<List<ContentProposalDto>> generate(Authentication authentication,
-                                                              @RequestBody ProposalGenerationRequest request) {
+                                                              @Valid @RequestBody ProposalGenerationRequest request) {
         return ResponseEntity.ok(proposalGenerationApplicationService.generate(request, currentUserId(authentication)));
     }
 

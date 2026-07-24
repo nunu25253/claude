@@ -5,6 +5,7 @@ import com.buzzanalysis.application.script.dto.ScriptGenerationRequest;
 import com.buzzanalysis.application.script.dto.VideoScriptDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,7 +37,7 @@ public class ScriptController {
             description = "投稿企画IDと尺(30/60/90秒のいずれか)から、AIが動画台本を生成する。")
     @PostMapping("/generate")
     public ResponseEntity<VideoScriptDto> generate(Authentication authentication,
-                                                    @RequestBody ScriptGenerationRequest request) {
+                                                    @Valid @RequestBody ScriptGenerationRequest request) {
         return ResponseEntity.ok(scriptGenerationApplicationService.generate(request, currentUserId(authentication)));
     }
 

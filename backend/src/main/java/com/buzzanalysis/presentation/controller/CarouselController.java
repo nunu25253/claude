@@ -5,6 +5,7 @@ import com.buzzanalysis.application.carousel.dto.CarouselDto;
 import com.buzzanalysis.application.carousel.dto.CarouselGenerationRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,7 +36,7 @@ public class CarouselController {
     @Operation(summary = "カルーセルの生成", description = "投稿企画IDから、AIがInstagramカルーセル(2〜8ページ)を生成する。")
     @PostMapping("/generate")
     public ResponseEntity<CarouselDto> generate(Authentication authentication,
-                                                 @RequestBody CarouselGenerationRequest request) {
+                                                 @Valid @RequestBody CarouselGenerationRequest request) {
         return ResponseEntity.ok(carouselGenerationApplicationService.generate(request, currentUserId(authentication)));
     }
 

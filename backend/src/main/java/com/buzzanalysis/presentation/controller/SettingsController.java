@@ -7,6 +7,7 @@ import com.buzzanalysis.application.settings.dto.ProfileSettingsDto;
 import com.buzzanalysis.application.settings.dto.UpdateProfileRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -42,7 +43,7 @@ public class SettingsController {
     @Operation(summary = "プロフィール更新", description = "表示名のみ更新可能。メールアドレスはログインIDを兼ねるため変更不可。")
     @PutMapping("/profile")
     public ResponseEntity<ProfileSettingsDto> updateProfile(Authentication authentication,
-                                                              @RequestBody UpdateProfileRequest request) {
+                                                              @Valid @RequestBody UpdateProfileRequest request) {
         return ResponseEntity.ok(settingsApplicationService.updateProfile(currentUserId(authentication), request));
     }
 
@@ -55,7 +56,7 @@ public class SettingsController {
     @Operation(summary = "通知設定更新")
     @PutMapping("/notifications")
     public ResponseEntity<NotificationSettingsDto> updateNotifications(Authentication authentication,
-                                                                        @RequestBody NotificationSettingsDto request) {
+                                                                        @Valid @RequestBody NotificationSettingsDto request) {
         return ResponseEntity.ok(
                 settingsApplicationService.updateNotifications(currentUserId(authentication), request));
     }

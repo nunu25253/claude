@@ -8,6 +8,7 @@ import com.buzzanalysis.application.rag.dto.RagQueryRequest;
 import com.buzzanalysis.application.rag.dto.RagQueryResultDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,14 +39,15 @@ public class RagController {
     @Operation(summary = "テキストのRAG索引登録",
             description = "分析結果・評価・トレンドサマリー等のテキストを明示的にRAG検索対象として索引登録する。")
     @PostMapping("/index")
-    public ResponseEntity<RagDocumentDto> index(@RequestBody RagIndexRequest request) {
+    public ResponseEntity<RagDocumentDto> index(@Valid @RequestBody RagIndexRequest request) {
         return ResponseEntity.ok(ragIndexingApplicationService.index(request));
     }
 
     @Operation(summary = "RAG質問応答",
             description = "索引済みドキュメントの中から類似度上位(既定5件、上限20件)を取得し、それらを根拠にAIが回答する。")
     @PostMapping("/query")
-    public ResponseEntity<RagQueryResultDto> query(Authentication authentication, @RequestBody RagQueryRequest request) {
+    public ResponseEntity<RagQueryResultDto> query(Authentication authentication,
+                                                    @Valid @RequestBody RagQueryRequest request) {
         return ResponseEntity.ok(ragQueryApplicationService.query(request, currentUserId(authentication)));
     }
 
