@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { Brain, TrendingUp, Search, Trophy } from "lucide-react";
 import { BrandMark } from "@/components/layout/brand-mark";
 
@@ -7,6 +8,18 @@ export const metadata: Metadata = {
   title: "ようこそ",
   description:
     "Instagram / TikTok / X の公開投稿をAIが分析し、バズった理由と伸びる投稿の作り方を提案するダッシュボード。",
+};
+
+// 検索エンジン向けの構造化データ(schema.org SoftwareApplication)。
+// 価格・評価等、事実として裏付けの無い項目(offers/aggregateRating等)は含めない。
+const STRUCTURED_DATA = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Buzzly",
+  description:
+    "Instagram / TikTok / X の公開投稿をAIが分析し、バズった理由と伸びる投稿の作り方を提案するダッシュボード。",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
 };
 
 const FEATURES = [
@@ -32,9 +45,18 @@ const FEATURES = [
   },
 ];
 
-export default function WelcomePage() {
+export default async function WelcomePage() {
+  // middleware.tsがリクエスト毎に生成しx-nonceヘッダーで転送したnonce。
+  // CSPのscript-srcをnonceベースに厳格化しているため、JSON-LDのscriptタグにも必要。
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <div className="min-h-dvh bg-gradient-to-br from-brand-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
+      <script
+        type="application/ld+json"
+        nonce={nonce}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }}
+      />
       <div className="mx-auto flex max-w-4xl flex-col items-center px-4 py-16 text-center sm:py-24">
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-600 shadow-card">
           <BrandMark className="h-9 w-9 text-white" />
