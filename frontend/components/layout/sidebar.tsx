@@ -24,8 +24,8 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           <BrandMark className="h-5 w-5 text-white" />
         </div>
         <div>
-          <p className="text-sm font-bold leading-tight text-white">SNS AIバズ分析</p>
-          <p className="text-xs text-slate-400">プラットフォーム</p>
+          <p className="text-sm font-bold leading-tight text-white">Buzzly</p>
+          <p className="text-xs text-slate-400">AI Buzz Analytics</p>
         </div>
       </div>
 

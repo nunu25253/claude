@@ -40,8 +40,11 @@ export default function WelcomePage() {
           <BrandMark className="h-9 w-9 text-white" />
         </div>
         <h1 className="mt-4 text-3xl font-bold text-slate-900 dark:text-slate-100 sm:text-4xl">
-          SNS AIバズ分析プラットフォーム
+          Buzzly
         </h1>
+        <p className="mt-1 text-sm font-medium text-brand-600 dark:text-brand-400">
+          SNS AIバズ分析プラットフォーム
+        </p>
         <p className="mt-4 max-w-2xl text-base text-slate-600 dark:text-slate-300">
           Instagram / TikTok / X の公開投稿をAIが分析し、バズった理由と伸びる投稿の作り方を提案します。
         </p>

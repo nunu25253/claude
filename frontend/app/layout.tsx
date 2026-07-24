@@ -4,7 +4,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-const SITE_TITLE = "SNS AIバズ分析プラットフォーム";
+const SITE_TITLE = "Buzzly";
 const SITE_DESCRIPTION =
   "Instagram / TikTok / X の公開投稿をAIが分析し、バズった理由と伸びる投稿の作り方を提案するダッシュボード。";
 

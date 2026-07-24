@@ -35,7 +35,7 @@ export default function OpengraphImage() {
             <path d="M17.5 6 9 18h6l-1 8 8.5-12h-6l1-8z" fill="#ffffff" />
           </svg>
         </div>
-        <div style={{ fontSize: 64, fontWeight: 700, marginTop: 24 }}>SNS AI Buzz Analysis</div>
+        <div style={{ fontSize: 72, fontWeight: 700, marginTop: 24 }}>Buzzly</div>
         <div style={{ fontSize: 30, opacity: 0.85, marginTop: 12 }}>
           AI-powered social post analytics
         </div>

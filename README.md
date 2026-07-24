@@ -1,4 +1,4 @@
-# SNS AIバズ分析プラットフォーム（AIマーケティングOS）
+# Buzzly — SNS AIバズ分析プラットフォーム（AIマーケティングOS）
 
 [![CI](https://github.com/nunu25253/claude/actions/workflows/ci.yml/badge.svg)](https://github.com/nunu25253/claude/actions/workflows/ci.yml)
 

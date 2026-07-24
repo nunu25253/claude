@@ -70,7 +70,7 @@ export function OnboardingTour() {
     >
       <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900">
         <h2 id="onboarding-title" className="text-lg font-bold text-slate-900 dark:text-slate-100">
-          ようこそ、SNS AIバズ分析プラットフォームへ
+          ようこそ、Buzzlyへ
         </h2>
         <p className="mt-1 text-sm text-slate-500">まずはこの4つの機能から試してみましょう。</p>
 
