@@ -51,7 +51,7 @@ export default async function WelcomePage() {
   const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   return (
-    <div className="min-h-dvh bg-gradient-to-br from-brand-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
+    <main className="min-h-dvh bg-gradient-to-br from-brand-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
       <script
         type="application/ld+json"
         nonce={nonce}
@@ -97,6 +97,6 @@ export default async function WelcomePage() {
           ))}
         </div>
       </div>
-    </div>
+    </main>
   );
 }
