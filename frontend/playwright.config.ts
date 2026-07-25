@@ -30,10 +30,21 @@ export default defineConfig({
       },
     },
   ],
-  webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000",
-    reuseExistingServer: true,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: "npm run dev",
+      url: "http://localhost:3000",
+      reuseExistingServer: true,
+      timeout: 120_000,
+    },
+    {
+      // MailHog(docker-compose)が既に8025で起動していればそれを再利用し、
+      // 無ければDocker不要のfake-smtp-server.mjsを自動起動する。どちらも
+      // MailHog互換の/api/v2/search APIを返すためe2e/mail-catcher.tsは変更不要。
+      command: "npm run e2e:mail-server",
+      port: 8025,
+      reuseExistingServer: true,
+      timeout: 30_000,
+    },
+  ],
 });

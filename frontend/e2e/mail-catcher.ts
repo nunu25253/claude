@@ -1,8 +1,11 @@
 const MAILHOG_BASE_URL = process.env.MAILHOG_BASE_URL ?? "http://localhost:8025";
 
 /**
- * MailHog(docker-compose上のSMTPテストキャッチャー)から指定アドレス宛の最新メールを取得し、
- * 本文中の確認リンク(http(s)://.../verify-email?token=...)を抽出する。
+ * メールキャッチャー(docker-compose上のMailHog、またはDocker不要のe2e/fake-smtp-server.mjs)から
+ * 指定アドレス宛の最新メールを取得し、本文中の確認リンク(http(s)://.../verify-email?token=...)を
+ * 抽出する。fake-smtp-server.mjsはMailHogの`/api/v2/search`と同じレスポンス形状を返すため、
+ * どちらのキャッチャーを使っていてもこの関数は変更不要(playwright.config.tsのwebServerが
+ * 既存のMailHogを検出すればそちらを再利用し、無ければfake-smtp-server.mjsを自動起動する)。
  * メール確認機能の追加により /posts/analyze が未確認ユーザーをブロックするようになったため、
  * E2Eの主要導線テストでも実際に確認メールを受信・突破する必要がある。
  */

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { fetchVerificationLink } from "./mailhog";
+import { fetchVerificationLink } from "./mail-catcher";
 import { expectNoA11yViolations } from "./a11y";
 
 /**
