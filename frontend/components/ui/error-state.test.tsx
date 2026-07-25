@@ -1,9 +1,26 @@
-import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ErrorState } from "./error-state";
 import { ApiError } from "@/lib/types/common";
+import { authApi } from "@/lib/api";
+
+const testUser = { id: "user-1", email: "user@example.com", displayName: "Test User", emailVerified: false };
+
+vi.mock("@/lib/auth/auth-context", () => ({
+  useAuth: () => ({ user: testUser }),
+}));
+
+vi.mock("@/lib/api", () => ({
+  authApi: {
+    resendEmailVerification: vi.fn(),
+  },
+}));
 
 describe("ErrorState", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("shows a generic message for non-ApiError values", () => {
     render(<ErrorState error={new Error("boom")} />);
 
@@ -56,5 +73,26 @@ describe("ErrorState", () => {
 
     expect(screen.queryByRole("link", { name: "プランを見る" })).not.toBeInTheDocument();
     expect(screen.getByText("不正なリクエストです。")).toBeInTheDocument();
+  });
+
+  it("shows a resend-verification CTA when the free trial analysis is already used while unverified", async () => {
+    vi.mocked(authApi.resendEmailVerification).mockResolvedValue(undefined);
+    render(
+      <ErrorState
+        error={
+          new ApiError(400, {
+            message: "無料お試し分析は既にご利用いただきました。",
+            code: "EMAIL_NOT_VERIFIED",
+          })
+        }
+      />,
+    );
+
+    expect(screen.getByText("無料お試し分析は既にご利用いただきました")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "確認メールを再送する" }));
+
+    await waitFor(() => expect(authApi.resendEmailVerification).toHaveBeenCalledWith({ email: "user@example.com" }));
+    expect(await screen.findByText("確認メールを再送しました")).toBeInTheDocument();
   });
 });

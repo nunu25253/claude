@@ -18,9 +18,11 @@ public class User {
     private boolean emailVerified;
     private final OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
+    /** メール未確認のまま投稿分析を無料体験した日時。null=未使用。1ユーザーにつき1回のみ許可する。 */
+    private OffsetDateTime trialAnalysisUsedAt;
 
     public User(UUID id, String email, String passwordHash, String displayName, Role role, boolean emailVerified,
-                OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+                OffsetDateTime createdAt, OffsetDateTime updatedAt, OffsetDateTime trialAnalysisUsedAt) {
         this.id = id;
         this.email = Objects.requireNonNull(email, "email must not be null");
         this.passwordHash = Objects.requireNonNull(passwordHash, "passwordHash must not be null");
@@ -29,6 +31,13 @@ public class User {
         this.emailVerified = emailVerified;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.trialAnalysisUsedAt = trialAnalysisUsedAt;
+    }
+
+    /** trialAnalysisUsedAtを指定しない既存呼び出し互換用(未使用として扱う)。 */
+    public User(UUID id, String email, String passwordHash, String displayName, Role role, boolean emailVerified,
+                OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+        this(id, email, passwordHash, displayName, role, emailVerified, createdAt, updatedAt, null);
     }
 
     /** 新規登録時点ではメールアドレス未確認(emailVerified=false)として作成する。 */
@@ -51,6 +60,18 @@ public class User {
     public void verifyEmail() {
         this.emailVerified = true;
         this.updatedAt = OffsetDateTime.now();
+    }
+
+    /** メール未確認のまま無料体験分析を1回使用したことを記録する。既に使用済みなら何もしない(冪等)。 */
+    public void markTrialAnalysisUsed() {
+        if (trialAnalysisUsedAt == null) {
+            this.trialAnalysisUsedAt = OffsetDateTime.now();
+            this.updatedAt = OffsetDateTime.now();
+        }
+    }
+
+    public boolean hasUsedTrialAnalysis() {
+        return trialAnalysisUsedAt != null;
     }
 
     public UUID getId() {
@@ -83,5 +104,9 @@ public class User {
 
     public OffsetDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public OffsetDateTime getTrialAnalysisUsedAt() {
+        return trialAnalysisUsedAt;
     }
 }

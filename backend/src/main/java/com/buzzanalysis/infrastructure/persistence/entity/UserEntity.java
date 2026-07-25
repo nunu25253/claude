@@ -40,12 +40,16 @@ public class UserEntity {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    @Column(name = "trial_analysis_used_at")
+    private OffsetDateTime trialAnalysisUsedAt;
+
     protected UserEntity() {
         // JPA用
     }
 
     public UserEntity(UUID id, String email, String passwordHash, String displayName, RoleEnum role,
-                       boolean emailVerified, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+                       boolean emailVerified, OffsetDateTime createdAt, OffsetDateTime updatedAt,
+                       OffsetDateTime trialAnalysisUsedAt) {
         this.id = id;
         this.email = email;
         this.passwordHash = passwordHash;
@@ -54,6 +58,7 @@ public class UserEntity {
         this.emailVerified = emailVerified;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.trialAnalysisUsedAt = trialAnalysisUsedAt;
     }
 
     public enum RoleEnum {
@@ -90,5 +95,9 @@ public class UserEntity {
 
     public OffsetDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public OffsetDateTime getTrialAnalysisUsedAt() {
+        return trialAnalysisUsedAt;
     }
 }

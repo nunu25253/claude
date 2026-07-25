@@ -185,16 +185,39 @@ class PostAnalysisApplicationServiceTest {
     }
 
     @Test
-    void analyze_throwsBusinessRuleViolation_whenEmailNotVerified() {
-        when(userRepository.findById(requestingUserId)).thenReturn(Optional.of(
-                new User(requestingUserId, "user@example.com", "hash", "User", Role.USER, false,
-                        OffsetDateTime.now(), OffsetDateTime.now())));
+    void analyze_marksTrialAnalysisUsedAndSucceeds_whenEmailNotVerifiedAndTrialNotYetUsed() {
+        // 登録直後にメール確認を必須にすると初回体験の離脱率が上がるため、メール未確認でも
+        // 1回だけ無料で試せるようにしている(改善計画)。
+        User unverifiedUser = new User(requestingUserId, "user@example.com", "hash", "User", Role.USER, false,
+                OffsetDateTime.now(), OffsetDateTime.now());
+        when(userRepository.findById(requestingUserId)).thenReturn(Optional.of(unverifiedUser));
+        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(analysisResultRepository.findByPostId(postId)).thenReturn(Optional.empty());
+        when(buzzScoreRepository.findByPostId(postId)).thenReturn(Optional.empty());
 
-        org.junit.jupiter.api.Assertions.assertThrows(BusinessRuleViolationException.class,
-                () -> service.analyze(new AnalyzePostCommand("https://x.com/user/status/12345", requestingUserId)));
+        AnalyzePostResult result = service.analyze(new AnalyzePostCommand("https://x.com/user/status/12345", requestingUserId));
+
+        assertThat(result.analysis()).isNotNull();
+        ArgumentCaptor<User> savedUserCaptor = ArgumentCaptor.forClass(User.class);
+        org.mockito.Mockito.verify(userRepository).save(savedUserCaptor.capture());
+        assertThat(savedUserCaptor.getValue().hasUsedTrialAnalysis()).isTrue();
+    }
+
+    @Test
+    void analyze_throwsBusinessRuleViolation_withEmailNotVerifiedCode_whenTrialAlreadyUsed() {
+        User unverifiedUserWithTrialUsed = new User(requestingUserId, "user@example.com", "hash", "User", Role.USER,
+                false, OffsetDateTime.now(), OffsetDateTime.now(), OffsetDateTime.now());
+        when(userRepository.findById(requestingUserId)).thenReturn(Optional.of(unverifiedUserWithTrialUsed));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> service.analyze(new AnalyzePostCommand("https://x.com/user/status/12345", requestingUserId)))
+                .isInstanceOf(BusinessRuleViolationException.class)
+                .satisfies(e -> assertThat(((BusinessRuleViolationException) e).getErrorCode())
+                        .isEqualTo(PostAnalysisApplicationService.EMAIL_NOT_VERIFIED_CODE));
 
         org.mockito.Mockito.verifyNoInteractions(usageQuotaService);
         org.mockito.Mockito.verifyNoInteractions(platformFactory);
+        org.mockito.Mockito.verify(userRepository, org.mockito.Mockito.never()).save(any());
     }
 
     private FetchedPostData fetchedPost() {

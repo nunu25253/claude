@@ -12,14 +12,16 @@ public class UserMapper {
     public UserEntity toEntity(User user) {
         return new UserEntity(
                 user.getId(), user.getEmail(), user.getPasswordHash(), user.getDisplayName(),
-                toEntityRole(user.getRole()), user.isEmailVerified(), user.getCreatedAt(), user.getUpdatedAt()
+                toEntityRole(user.getRole()), user.isEmailVerified(), user.getCreatedAt(), user.getUpdatedAt(),
+                user.getTrialAnalysisUsedAt()
         );
     }
 
     public User toDomain(UserEntity entity) {
         return new User(
                 entity.getId(), entity.getEmail(), entity.getPasswordHash(), entity.getDisplayName(),
-                toDomainRole(entity.getRole()), entity.isEmailVerified(), entity.getCreatedAt(), entity.getUpdatedAt()
+                toDomainRole(entity.getRole()), entity.isEmailVerified(), entity.getCreatedAt(), entity.getUpdatedAt(),
+                entity.getTrialAnalysisUsedAt()
         );
     }
 

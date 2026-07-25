@@ -45,6 +45,13 @@ import java.util.UUID;
 @Service
 public class PostAnalysisApplicationService {
 
+    /**
+     * メール未確認かつ無料お試し分析を既に使い切っている場合にフロントエンドが判別するためのerrorCode。
+     * (改善計画: 登録直後にメール確認を必須にすると初回体験の離脱率が上がるため、1回だけ未確認でも
+     * 試せるようにした。2回目以降はこのコードを見てフロントエンドが確認メール再送を促すCTAを出す。)
+     */
+    public static final String EMAIL_NOT_VERIFIED_CODE = "EMAIL_NOT_VERIFIED";
+
     private final PlatformFactory platformFactory;
     private final SocialAccountRepository socialAccountRepository;
     private final PostRepository postRepository;
@@ -86,8 +93,16 @@ public class PostAnalysisApplicationService {
         User requestingUser = userRepository.findById(command.requestingUserId())
                 .orElseThrow(() -> EntityNotFoundException.of("User", command.requestingUserId()));
         if (!requestingUser.isEmailVerified()) {
-            throw new BusinessRuleViolationException(
-                    "メールアドレスの確認が完了していません。登録時に送信された確認メールのリンクからご確認ください。");
+            if (requestingUser.hasUsedTrialAnalysis()) {
+                throw new BusinessRuleViolationException(
+                        "無料お試し分析は既にご利用いただきました。引き続きご利用いただくには、"
+                                + "登録時に送信された確認メールのリンクからメールアドレスをご確認ください。",
+                        EMAIL_NOT_VERIFIED_CODE);
+            }
+            // メール未確認でも1回だけ体験できるようにする(登録直後にメール確認を必須にすると
+            // 初回体験の離脱率が上がるため)。ここで消費を記録してから分析を続行する。
+            requestingUser.markTrialAnalysisUsed();
+            userRepository.save(requestingUser);
         }
         if (!usageQuotaService.tryConsume(command.requestingUserId())) {
             throw new BusinessRuleViolationException("本日の投稿分析の利用回数上限に達しました。明日以降に再度お試しください。",
