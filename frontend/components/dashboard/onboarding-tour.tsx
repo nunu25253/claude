@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/auth-context";
 
 const STORAGE_KEY_PREFIX = "sns_buzz_onboarding_dismissed_";
+
+const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 interface OnboardingStep {
   href: string;
@@ -43,6 +45,8 @@ const STEPS: OnboardingStep[] = [
 export function OnboardingTour() {
   const { user } = useAuth();
   const [visible, setVisible] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -52,12 +56,51 @@ export function OnboardingTour() {
     }
   }, [user]);
 
-  const dismiss = () => {
+  const dismiss = useCallback(() => {
     if (user) {
       window.localStorage.setItem(`${STORAGE_KEY_PREFIX}${user.id}`, "1");
     }
     setVisible(false);
-  };
+  }, [user]);
+
+  // モーダル表示時にフォーカスを内部の最初の要素へ移し、閉じたら開く直前にフォーカスされていた
+  // 要素へ戻す(キーボード/スクリーンリーダー利用者がモーダルの外へフォーカスを見失わないため)。
+  useEffect(() => {
+    if (!visible) return;
+    previouslyFocusedElementRef.current = document.activeElement as HTMLElement | null;
+    panelRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR)?.focus();
+
+    return () => {
+      previouslyFocusedElementRef.current?.focus();
+    };
+  }, [visible]);
+
+  // Tab/Shift+Tabをモーダル内の要素間のみで循環させ(フォーカストラップ)、
+  // Escapeキーで閉じられるようにする。
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        dismiss();
+        return;
+      }
+      if (event.key !== "Tab" || !panelRef.current) return;
+
+      const focusable = Array.from(panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first || !last) return;
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    },
+    [dismiss],
+  );
 
   if (!visible) return null;
 
@@ -67,8 +110,9 @@ export function OnboardingTour() {
       role="dialog"
       aria-modal="true"
       aria-labelledby="onboarding-title"
+      onKeyDown={handleKeyDown}
     >
-      <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900">
+      <div ref={panelRef} className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900">
         <h2 id="onboarding-title" className="text-lg font-bold text-slate-900 dark:text-slate-100">
           ようこそ、Buzzlyへ
         </h2>
