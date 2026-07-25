@@ -18,7 +18,6 @@ import com.buzzanalysis.domain.score.BuzzScoreRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -89,17 +88,24 @@ public class ReportGenerationApplicationService {
         return ReportDto.from(saved, downloadUrl);
     }
 
-    /** ログイン中ユーザーが生成したレポートの履歴一覧（新しい順）。 */
+    /**
+     * ログイン中ユーザーが生成したレポートの履歴一覧（新しい順）。
+     * 件数分のfindByIdをループで叩くN+1クエリになっていたため、投稿IDをまとめてバッチ取得する
+     * （SavedAnalysisApplicationService.listと同じ方針）。
+     */
     @Transactional(readOnly = true)
     public List<ReportHistoryItemDto> getHistory(UUID userId) {
         List<Report> reports = reportRepository.findByUserIdOrderByGeneratedAtDesc(userId);
-        List<ReportHistoryItemDto> history = new ArrayList<>();
-        for (Report report : reports) {
-            Optional<Post> post = postRepository.findById(report.getPostId());
-            String caption = post.map(Post::getCaption).orElse(null);
-            String downloadUrl = storagePort.generateAccessUrl(report.getStorageKey());
-            history.add(ReportHistoryItemDto.from(report, caption, downloadUrl));
-        }
-        return history;
+        List<UUID> postIds = reports.stream().map(Report::getPostId).distinct().toList();
+        Map<UUID, Post> postsById = postRepository.findByIdIn(postIds).stream()
+                .collect(Collectors.toMap(Post::getId, Function.identity()));
+
+        return reports.stream()
+                .map(report -> {
+                    String caption = Optional.ofNullable(postsById.get(report.getPostId())).map(Post::getCaption).orElse(null);
+                    String downloadUrl = storagePort.generateAccessUrl(report.getStorageKey());
+                    return ReportHistoryItemDto.from(report, caption, downloadUrl);
+                })
+                .toList();
     }
 }

@@ -80,7 +80,7 @@ class CompetitorAnalysisApplicationServiceTest {
         Post carousel = post(accountId, PostType.CAROUSEL, 5000L, 2);
         Post reel = post(accountId, PostType.REEL, 8000L, null);
         when(postRepository.search(any())).thenReturn(new PostSearchResult(List.of(carousel, reel), 0, 500, 2));
-        when(analysisResultRepository.findByPostId(any())).thenReturn(Optional.empty());
+        when(analysisResultRepository.findByPostIdIn(any())).thenReturn(List.of());
 
         CompetitorStatsDto result = service.getStats(accountId);
 
@@ -95,9 +95,8 @@ class CompetitorAnalysisApplicationServiceTest {
         Post analyzed = post(accountId, PostType.REEL, 1000L, null);
         Post unanalyzed = post(accountId, PostType.REEL, 1000L, null);
         when(postRepository.search(any())).thenReturn(new PostSearchResult(List.of(analyzed, unanalyzed), 0, 500, 2));
-        when(analysisResultRepository.findByPostId(analyzed.getId())).thenReturn(
-                Optional.of(AnalysisResult.builder().postId(analyzed.getId()).genre("美容").build()));
-        when(analysisResultRepository.findByPostId(unanalyzed.getId())).thenReturn(Optional.empty());
+        when(analysisResultRepository.findByPostIdIn(any())).thenReturn(
+                List.of(AnalysisResult.builder().postId(analyzed.getId()).genre("美容").build()));
 
         CompetitorStatsDto result = service.getStats(accountId);
 

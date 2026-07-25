@@ -133,11 +133,20 @@ public class CompetitorAnalysisApplicationService {
         return toPercentageMap(counts, preprocessedPosts.size());
     }
 
-    /** ジャンルはPhase5のAnalysisResultが存在する投稿のみ対象とする（未分析投稿は集計から除外）。 */
+    /**
+     * ジャンルはPhase5のAnalysisResultが存在する投稿のみ対象とする（未分析投稿は集計から除外）。
+     * 投稿件数分のfindByPostIdをループで叩くN+1クエリ（最大500件/回）になっていたため、まとめてバッチ取得する
+     * （SavedAnalysisApplicationService.listと同じ方針）。
+     */
     private Map<String, Double> computeGenreDistribution(List<Post> posts) {
-        Map<String, Long> counts = posts.stream()
-                .map(post -> analysisResultRepository.findByPostId(post.getId()).map(ar -> ar.getGenre()).orElse(null))
-                .filter(genre -> genre != null && !genre.isBlank())
+        List<UUID> postIds = posts.stream().map(Post::getId).toList();
+        Map<UUID, String> genreByPostId = analysisResultRepository.findByPostIdIn(postIds).stream()
+                .filter(ar -> ar.getGenre() != null && !ar.getGenre().isBlank())
+                .collect(Collectors.toMap(ar -> ar.getPostId(), ar -> ar.getGenre(), (a, b) -> a));
+
+        Map<String, Long> counts = postIds.stream()
+                .map(genreByPostId::get)
+                .filter(genre -> genre != null)
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
         long total = counts.values().stream().mapToLong(Long::longValue).sum();
         return toPercentageMap(counts, total);

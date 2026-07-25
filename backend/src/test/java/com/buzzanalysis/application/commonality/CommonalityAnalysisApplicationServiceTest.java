@@ -25,7 +25,6 @@ import org.mockito.quality.Strictness;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -80,14 +79,12 @@ class CommonalityAnalysisApplicationServiceTest {
         UUID unanalyzedId = UUID.randomUUID();
         Post analyzedPost = post(analyzedId);
         Post unanalyzedPost = post(unanalyzedId);
-        when(postRepository.findById(analyzedId)).thenReturn(Optional.of(analyzedPost));
-        when(postRepository.findById(unanalyzedId)).thenReturn(Optional.of(unanalyzedPost));
+        when(postRepository.findByIdIn(any())).thenReturn(List.of(analyzedPost, unanalyzedPost));
         when(postNormalizer.normalize(any())).thenReturn(NormalizedPost.builder().postId(UUID.randomUUID()).build());
         when(postPreprocessor.preprocess(any())).thenReturn(PreprocessedPost.builder().postId(UUID.randomUUID()).build());
-        when(analysisResultRepository.findByPostId(analyzedId)).thenReturn(Optional.of(
+        when(analysisResultRepository.findByPostIdIn(any())).thenReturn(List.of(
                 AnalysisResult.builder().postId(analyzedId).titleAnalysis("タイトル").hook("フック")
                         .callToAction("CTA").postStructureAnalysis("構成").targetAudience("ターゲット").build()));
-        when(analysisResultRepository.findByPostId(unanalyzedId)).thenReturn(Optional.empty());
         when(statisticsCalculator.topHashtags(any())).thenReturn(List.of());
         when(statisticsCalculator.medianVideoDurationSeconds(any())).thenReturn(null);
         when(statisticsCalculator.mostCommonPostingHour(any())).thenReturn(null);
@@ -111,10 +108,10 @@ class CommonalityAnalysisApplicationServiceTest {
         UUID postId = UUID.randomUUID();
         Post post = post(postId);
         String longText = "あ".repeat(200);
-        when(postRepository.findById(postId)).thenReturn(Optional.of(post));
+        when(postRepository.findByIdIn(any())).thenReturn(List.of(post));
         when(postNormalizer.normalize(any())).thenReturn(NormalizedPost.builder().postId(UUID.randomUUID()).build());
         when(postPreprocessor.preprocess(any())).thenReturn(PreprocessedPost.builder().postId(UUID.randomUUID()).build());
-        when(analysisResultRepository.findByPostId(postId)).thenReturn(Optional.of(
+        when(analysisResultRepository.findByPostIdIn(any())).thenReturn(List.of(
                 AnalysisResult.builder().postId(postId).titleAnalysis(longText).build()));
         when(statisticsCalculator.topHashtags(any())).thenReturn(List.of());
         when(statisticsCalculator.medianVideoDurationSeconds(any())).thenReturn(null);

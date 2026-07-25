@@ -87,7 +87,7 @@ class ReportGenerationApplicationServiceTest {
         Report report = Report.builder().postId(postId).userId(userId).format(ReportFormat.MARKDOWN)
                 .title("t").storageKey("reports/x.md").contentSizeBytes(10).build();
         when(reportRepository.findByUserIdOrderByGeneratedAtDesc(userId)).thenReturn(List.of(report));
-        when(postRepository.findById(postId)).thenReturn(Optional.of(post(postId)));
+        when(postRepository.findByIdIn(any())).thenReturn(List.of(post(postId)));
         when(storagePort.generateAccessUrl("reports/x.md")).thenReturn("https://storage.example.com/x.md");
 
         List<ReportHistoryItemDto> result = service.getHistory(userId);
@@ -103,7 +103,7 @@ class ReportGenerationApplicationServiceTest {
         Report report = Report.builder().postId(postId).userId(userId).format(ReportFormat.PDF)
                 .title("t").storageKey("reports/y.pdf").contentSizeBytes(10).build();
         when(reportRepository.findByUserIdOrderByGeneratedAtDesc(userId)).thenReturn(List.of(report));
-        when(postRepository.findById(postId)).thenReturn(Optional.empty());
+        when(postRepository.findByIdIn(any())).thenReturn(List.of());
         when(storagePort.generateAccessUrl(any())).thenReturn("https://storage.example.com/y.pdf");
 
         List<ReportHistoryItemDto> result = service.getHistory(userId);

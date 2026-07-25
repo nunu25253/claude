@@ -23,8 +23,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 「ランキングAI」ユースケース（Phase7）。Phase6のユーザー条件分析結果（一致率付き候補）に対し、
@@ -62,14 +64,25 @@ public class ContentRankingApplicationService {
         int candidatePoolSize = Math.max(limit * 3, 30);
         List<MatchRateResultDto> matched = userConditionMatchApplicationService.evaluate(condition, candidatePoolSize);
 
+        // 候補件数分のfindById/findByPostIdをループで叩くN+1クエリになっていたため、まとめてバッチ取得する
+        // （SavedAnalysisApplicationService.listと同じ方針）。
+        List<UUID> postIds = matched.stream().map(m -> m.post().id()).toList();
+        Map<UUID, Post> postsById = postRepository.findByIdIn(postIds).stream()
+                .collect(Collectors.toMap(Post::getId, Function.identity()));
+        Map<UUID, AnalysisResult> analysisResultsByPostId = analysisResultRepository.findByPostIdIn(postIds).stream()
+                .collect(Collectors.toMap(AnalysisResult::getPostId, Function.identity()));
+        Map<UUID, BuzzScore> buzzScoresByPostId = buzzScoreRepository.findByPostIdIn(postIds).stream()
+                .collect(Collectors.toMap(BuzzScore::getPostId, Function.identity()));
+
         List<RankingScoreResultDto> results = new ArrayList<>();
         for (MatchRateResultDto match : matched) {
             UUID postId = match.post().id();
-            Optional<Post> post = postRepository.findById(postId);
-            if (post.isEmpty()) {
+            Post post = postsById.get(postId);
+            if (post == null) {
                 continue;
             }
-            results.add(scoreOne(post.get(), match.matchRatePercent()));
+            results.add(scoreOne(post, analysisResultsByPostId.get(postId), buzzScoresByPostId.get(postId),
+                    match.matchRatePercent()));
         }
 
         return results.stream()
@@ -78,9 +91,7 @@ public class ContentRankingApplicationService {
                 .toList();
     }
 
-    private RankingScoreResultDto scoreOne(Post post, double matchRatePercent) {
-        AnalysisResult analysisResult = analysisResultRepository.findByPostId(post.getId()).orElse(null);
-        BuzzScore buzzScore = buzzScoreRepository.findByPostId(post.getId()).orElse(null);
+    private RankingScoreResultDto scoreOne(Post post, AnalysisResult analysisResult, BuzzScore buzzScore, double matchRatePercent) {
         NormalizedPost normalizedPost = postNormalizer.normalize(post);
         PreprocessedPost preprocessedPost = postPreprocessor.preprocess(normalizedPost);
 

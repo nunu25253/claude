@@ -27,7 +27,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -73,8 +72,8 @@ class UserConditionMatchApplicationServiceTest {
         when(embeddingRepository.findNearest(eq(EmbeddingTarget.BODY), any(), anyInt()))
                 .thenReturn(List.of(new SimilarityMatch(postId, 0.9)));
         Post post = post(postId, Platform.INSTAGRAM);
-        when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-        when(analysisResultRepository.findByPostId(postId)).thenReturn(Optional.empty());
+        when(postRepository.findByIdIn(any())).thenReturn(List.of(post));
+        when(analysisResultRepository.findByPostIdIn(any())).thenReturn(List.of());
         when(postNormalizer.normalize(post)).thenReturn(NormalizedPost.builder().postId(postId).build());
         when(postPreprocessor.preprocess(any())).thenReturn(PreprocessedPost.builder().postId(postId).build());
         when(matchRateCalculator.calculate(any()))
@@ -93,8 +92,8 @@ class UserConditionMatchApplicationServiceTest {
         UserSearchCondition condition = UserSearchCondition.builder().platform(Platform.TIKTOK).build();
         Post post = post(postId, Platform.TIKTOK);
         when(postRepository.search(any())).thenReturn(new PostSearchResult(List.of(post), 0, 50, 1));
-        when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-        when(analysisResultRepository.findByPostId(postId)).thenReturn(Optional.empty());
+        when(postRepository.findByIdIn(any())).thenReturn(List.of(post));
+        when(analysisResultRepository.findByPostIdIn(any())).thenReturn(List.of());
         when(postNormalizer.normalize(post)).thenReturn(NormalizedPost.builder().postId(postId).build());
         when(postPreprocessor.preprocess(any())).thenReturn(PreprocessedPost.builder().postId(postId).build());
         when(matchRateCalculator.calculate(any()))
@@ -114,7 +113,7 @@ class UserConditionMatchApplicationServiceTest {
         when(embeddingRepository.findNearest(eq(EmbeddingTarget.BODY), any(), anyInt()))
                 .thenReturn(List.of(new SimilarityMatch(postId, 0.9)));
         Post post = post(postId, Platform.INSTAGRAM); // 条件のプラットフォーム(X)と不一致
-        when(postRepository.findById(postId)).thenReturn(Optional.of(post));
+        when(postRepository.findByIdIn(any())).thenReturn(List.of(post));
 
         List<MatchRateResultDto> results = service.evaluate(condition, 10);
 
@@ -129,9 +128,8 @@ class UserConditionMatchApplicationServiceTest {
         Post lowPost = post(lowId, Platform.INSTAGRAM);
         Post highPost = post(highId, Platform.INSTAGRAM);
         when(postRepository.search(any())).thenReturn(new PostSearchResult(List.of(lowPost, highPost), 0, 50, 2));
-        when(postRepository.findById(lowId)).thenReturn(Optional.of(lowPost));
-        when(postRepository.findById(highId)).thenReturn(Optional.of(highPost));
-        when(analysisResultRepository.findByPostId(any())).thenReturn(Optional.empty());
+        when(postRepository.findByIdIn(any())).thenReturn(List.of(lowPost, highPost));
+        when(analysisResultRepository.findByPostIdIn(any())).thenReturn(List.of());
         when(postNormalizer.normalize(any())).thenReturn(NormalizedPost.builder().postId(UUID.randomUUID()).build());
         when(postPreprocessor.preprocess(any())).thenReturn(PreprocessedPost.builder().postId(UUID.randomUUID()).build());
         when(matchRateCalculator.calculate(argThat(input -> input != null && input.post().getId().equals(lowId))))

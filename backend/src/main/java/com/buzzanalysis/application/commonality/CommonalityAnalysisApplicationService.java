@@ -17,8 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 「共通点分析」ユースケース（Phase8）。検索結果等の投稿群から、統計的な共通項目
@@ -66,10 +69,11 @@ public class CommonalityAnalysisApplicationService {
         }
         List<UUID> targetIds = postIds.size() > MAX_POSTS ? postIds.subList(0, MAX_POSTS) : postIds;
 
-        List<Post> posts = new ArrayList<>();
-        for (UUID postId : targetIds) {
-            postRepository.findById(postId).ifPresent(posts::add);
-        }
+        // 件数分のfindByIdをループで叩くN+1クエリになっていたため、まとめてバッチ取得しtargetIdsの順序で並べ直す
+        // (SavedAnalysisApplicationService.listと同じ方針)。
+        Map<UUID, Post> postsById = postRepository.findByIdIn(targetIds).stream()
+                .collect(Collectors.toMap(Post::getId, Function.identity()));
+        List<Post> posts = targetIds.stream().map(postsById::get).filter(Objects::nonNull).toList();
 
         List<PreprocessedPost> preprocessedPosts = posts.stream()
                 .map(post -> postPreprocessor.preprocess(postNormalizer.normalize(post)))
@@ -96,19 +100,23 @@ public class CommonalityAnalysisApplicationService {
     }
 
     private List<AiCommonalityAnalysisPort.PostSnippet> buildSnippets(List<Post> posts) {
+        List<Post> candidatePosts = posts.size() > AI_SAMPLE_SIZE ? posts.subList(0, AI_SAMPLE_SIZE) : posts;
+        List<UUID> candidateIds = candidatePosts.stream().map(Post::getId).toList();
+        Map<UUID, AnalysisResult> analysisResultsByPostId = analysisResultRepository.findByPostIdIn(candidateIds).stream()
+                .collect(Collectors.toMap(AnalysisResult::getPostId, Function.identity()));
+
         List<AiCommonalityAnalysisPort.PostSnippet> snippets = new ArrayList<>();
-        for (Post post : posts) {
-            if (snippets.size() >= AI_SAMPLE_SIZE) {
-                break;
+        for (Post post : candidatePosts) {
+            AnalysisResult ar = analysisResultsByPostId.get(post.getId());
+            if (ar != null) {
+                snippets.add(new AiCommonalityAnalysisPort.PostSnippet(
+                        truncate(ar.getTitleAnalysis()),
+                        truncate(ar.getHook()),
+                        truncate(ar.getCallToAction()),
+                        truncate(ar.getPostStructureAnalysis()),
+                        truncate(ar.getTargetAudience())
+                ));
             }
-            Optional<AnalysisResult> analysisResult = analysisResultRepository.findByPostId(post.getId());
-            analysisResult.ifPresent(ar -> snippets.add(new AiCommonalityAnalysisPort.PostSnippet(
-                    truncate(ar.getTitleAnalysis()),
-                    truncate(ar.getHook()),
-                    truncate(ar.getCallToAction()),
-                    truncate(ar.getPostStructureAnalysis()),
-                    truncate(ar.getTargetAudience())
-            )));
         }
         return snippets;
     }

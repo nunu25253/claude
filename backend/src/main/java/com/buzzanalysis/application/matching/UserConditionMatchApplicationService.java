@@ -25,8 +25,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 「ユーザー条件分析」ユースケース（Phase6）。ユーザーが指定した条件（キーワード・ジャンル・ターゲット等）と
@@ -67,16 +69,24 @@ public class UserConditionMatchApplicationService {
         int candidatePoolSize = Math.max(limit * 5, 50);
         List<CandidatePost> candidates = collectCandidates(condition, candidatePoolSize);
 
+        // 候補件数分のfindById/findByPostIdをループで叩くN+1クエリになっていたため、まとめてバッチ取得する
+        // （SavedAnalysisApplicationService.listと同じ方針）。
+        List<UUID> candidateIds = candidates.stream().map(CandidatePost::postId).toList();
+        Map<UUID, Post> postsById = postRepository.findByIdIn(candidateIds).stream()
+                .collect(Collectors.toMap(Post::getId, Function.identity()));
+        Map<UUID, AnalysisResult> analysisResultsByPostId = analysisResultRepository.findByPostIdIn(candidateIds).stream()
+                .collect(Collectors.toMap(AnalysisResult::getPostId, Function.identity()));
+
         List<MatchRateResultDto> results = new ArrayList<>();
         for (CandidatePost candidate : candidates) {
-            Optional<Post> post = postRepository.findById(candidate.postId());
-            if (post.isEmpty()) {
+            Post post = postsById.get(candidate.postId());
+            if (post == null) {
                 continue;
             }
-            if (condition.getPlatform() != null && post.get().getPlatform() != condition.getPlatform()) {
+            if (condition.getPlatform() != null && post.getPlatform() != condition.getPlatform()) {
                 continue;
             }
-            results.add(evaluateOne(post.get(), condition, candidate.similarity()));
+            results.add(evaluateOne(post, analysisResultsByPostId.get(post.getId()), condition, candidate.similarity()));
         }
 
         return results.stream()
@@ -85,8 +95,7 @@ public class UserConditionMatchApplicationService {
                 .toList();
     }
 
-    private MatchRateResultDto evaluateOne(Post post, UserSearchCondition condition, Double similarity) {
-        AnalysisResult analysisResult = analysisResultRepository.findByPostId(post.getId()).orElse(null);
+    private MatchRateResultDto evaluateOne(Post post, AnalysisResult analysisResult, UserSearchCondition condition, Double similarity) {
         NormalizedPost normalizedPost = postNormalizer.normalize(post);
         PreprocessedPost preprocessedPost = postPreprocessor.preprocess(normalizedPost);
 

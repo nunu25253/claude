@@ -25,7 +25,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -71,10 +70,9 @@ class ContentRankingApplicationServiceTest {
                         new MatchRateResultDto(PostDto.from(lowPost), 40.0, Map.of()),
                         new MatchRateResultDto(PostDto.from(highPost), 90.0, Map.of())
                 ));
-        when(postRepository.findById(lowId)).thenReturn(Optional.of(lowPost));
-        when(postRepository.findById(highId)).thenReturn(Optional.of(highPost));
-        when(analysisResultRepository.findByPostId(any())).thenReturn(Optional.empty());
-        when(buzzScoreRepository.findByPostId(any())).thenReturn(Optional.empty());
+        when(postRepository.findByIdIn(any())).thenReturn(List.of(lowPost, highPost));
+        when(analysisResultRepository.findByPostIdIn(any())).thenReturn(List.of());
+        when(buzzScoreRepository.findByPostIdIn(any())).thenReturn(List.of());
         when(postNormalizer.normalize(any())).thenReturn(NormalizedPost.builder().postId(UUID.randomUUID()).build());
         when(postPreprocessor.preprocess(any())).thenReturn(PreprocessedPost.builder().postId(UUID.randomUUID()).build());
         when(rankingScoreCalculator.calculate(argThat(input -> input != null && input.post().getId().equals(lowId))))
@@ -103,12 +101,9 @@ class ContentRankingApplicationServiceTest {
                         new MatchRateResultDto(PostDto.from(post1), 50.0, Map.of()),
                         new MatchRateResultDto(PostDto.from(post2), 60.0, Map.of())
                 ));
-        when(postRepository.findById(any())).thenAnswer(inv -> {
-            UUID id = inv.getArgument(0);
-            return id.equals(id1) ? Optional.of(post1) : Optional.of(post2);
-        });
-        when(analysisResultRepository.findByPostId(any())).thenReturn(Optional.empty());
-        when(buzzScoreRepository.findByPostId(any())).thenReturn(Optional.empty());
+        when(postRepository.findByIdIn(any())).thenReturn(List.of(post1, post2));
+        when(analysisResultRepository.findByPostIdIn(any())).thenReturn(List.of());
+        when(buzzScoreRepository.findByPostIdIn(any())).thenReturn(List.of());
         when(postNormalizer.normalize(any())).thenReturn(NormalizedPost.builder().postId(UUID.randomUUID()).build());
         when(postPreprocessor.preprocess(any())).thenReturn(PreprocessedPost.builder().postId(UUID.randomUUID()).build());
         when(rankingScoreCalculator.calculate(any()))
