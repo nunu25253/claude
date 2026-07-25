@@ -702,6 +702,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/system/data-mode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * SNS公式APIの連携状況取得
+         * @description 各プラットフォームの公式APIキーが実際に設定されているか(=実データを取得するか、疑似データにフォールバックするか)を返す。フロントエンドのデモデータ表示バナーに使用する。
+         */
+        get: operations["getDataMode"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/settings/api-key": {
         parameters: {
             query?: never;
@@ -1683,6 +1703,12 @@ export interface components {
         TrendResponseDto: {
             hashtags?: components["schemas"]["TrendHashtagDto"][];
             posts?: components["schemas"]["TrendPostDto"][];
+        };
+        DataModeResponse: {
+            instagramLive?: boolean;
+            tiktokLive?: boolean;
+            xLive?: boolean;
+            anyPlatformLive?: boolean;
         };
         SemanticSearchResultDto: {
             post?: components["schemas"]["PostDto"];
@@ -2812,6 +2838,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TrendReportDto"][];
+                };
+            };
+        };
+    };
+    getDataMode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DataModeResponse"];
                 };
             };
         };

@@ -10,7 +10,15 @@ import { FormField, inputClassName } from "@/components/ui/form-field";
 import { QueryState } from "@/components/dashboard/query-state";
 import { useCancelSubscription, useSubscription, useUpgradeSubscription } from "@/lib/hooks/use-billing";
 import { ApiError } from "@/lib/types/common";
-import { formatDateTime } from "@/lib/utils";
+import { formatDateTime, formatNumber } from "@/lib/utils";
+
+// バックエンドのUsageQuotaProperties(daily-openai-calls-free/pro)・GmoPaymentProperties
+// (pro-plan-monthly-amount)の既定値と一致させている。プラン一覧を返す専用APIが無いため、
+// 料金・上限は表示専用の静的な値として定義する(値を変える場合は両方を更新すること)。
+const PLAN_COMPARISON = {
+  free: { priceLabel: "無料", dailyAnalysisLimit: 50 },
+  pro: { priceLabel: `¥${formatNumber(4980)} / 月`, dailyAnalysisLimit: 500 },
+};
 
 const upgradeSchema = z.object({
   cardToken: z.string().min(1, "カードトークンを入力してください"),
@@ -76,6 +84,49 @@ export default function BillingPage() {
         </QueryState>
       </Card>
 
+      <Card>
+        <CardHeader title="プラン比較" description="FREEとPROでできることの違いです" />
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[420px] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 dark:border-slate-700">
+                <th scope="col" className="py-2 pr-4 text-left font-medium text-slate-500">
+                  項目
+                </th>
+                <th scope="col" className="py-2 px-4 text-left font-medium text-slate-500">
+                  FREE
+                </th>
+                <th scope="col" className="py-2 pl-4 text-left font-medium text-brand-600">
+                  PRO
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-slate-100 dark:border-slate-800">
+                <th scope="row" className="py-2 pr-4 text-left font-normal text-slate-600 dark:text-slate-300">
+                  料金
+                </th>
+                <td className="py-2 px-4 text-slate-900 dark:text-slate-100">{PLAN_COMPARISON.free.priceLabel}</td>
+                <td className="py-2 pl-4 font-semibold text-slate-900 dark:text-slate-100">
+                  {PLAN_COMPARISON.pro.priceLabel}
+                </td>
+              </tr>
+              <tr>
+                <th scope="row" className="py-2 pr-4 text-left font-normal text-slate-600 dark:text-slate-300">
+                  1日あたりの投稿分析上限
+                </th>
+                <td className="py-2 px-4 text-slate-900 dark:text-slate-100">
+                  {PLAN_COMPARISON.free.dailyAnalysisLimit}回
+                </td>
+                <td className="py-2 pl-4 font-semibold text-slate-900 dark:text-slate-100">
+                  {PLAN_COMPARISON.pro.dailyAnalysisLimit}回
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
       {subscription?.plan === "FREE" && (
         <Card>
           <CardHeader
@@ -83,8 +134,16 @@ export default function BillingPage() {
             description="決済代行事業者のクライアントサイドJSでトークン化されたカード情報を使用します(生のカード番号は送信されません)"
           />
           <form onSubmit={handleSubmit(onUpgrade)} noValidate className="space-y-4">
-            <FormField label="カードトークン" htmlFor="cardToken" error={errors.cardToken?.message}
-                       hint="開発/評価環境では任意の文字列で疑似決済が成功します">
+            <FormField
+              label="カードトークン"
+              htmlFor="cardToken"
+              error={errors.cardToken?.message}
+              // このヒントは決済ゲートウェイが実際にモック実装(常に成功する疑似決済)の場合にのみ
+              // 意味を持つ開発者向け情報であり、本番相当の環境(疑似決済ゲートウェイのfail-fastガードが
+              // 起動を拒否する状況)でユーザーに表示されてはならない。ビルド時にprocess.env.NODE_ENVで
+              // 静的に分岐するため本番ビルドからは完全に除去される。
+              hint={process.env.NODE_ENV !== "production" ? "開発/評価環境では任意の文字列で疑似決済が成功します" : undefined}
+            >
               <input
                 id="cardToken"
                 placeholder="tok_xxxxxxxx"

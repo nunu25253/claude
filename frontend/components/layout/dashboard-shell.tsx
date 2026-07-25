@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
 import { EmailVerificationBanner } from "./email-verification-banner";
+import { DemoDataBanner } from "./demo-data-banner";
 import { OnboardingTour } from "@/components/dashboard/onboarding-tour";
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
@@ -34,6 +35,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <Header onMenuClick={() => setIsMobileNavOpen(true)} />
         <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
           <EmailVerificationBanner />
+          <DemoDataBanner />
           {children}
         </main>
       </div>

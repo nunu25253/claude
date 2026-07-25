@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { Brain, TrendingUp, Trophy, Bookmark, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
 
 const STORAGE_KEY_PREFIX = "sns_buzz_onboarding_dismissed_";
@@ -10,33 +11,35 @@ const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input, select, text
 
 interface OnboardingStep {
   href: string;
-  icon: string;
+  icon: LucideIcon;
   title: string;
   description: string;
 }
 
+// サイドバー(nav-items.ts)・トップページ(app/welcome/page.tsx)と同じLucideアイコンを使い、
+// 絵文字とのブランド不統一を解消する。
 const STEPS: OnboardingStep[] = [
   {
     href: "/posts/analyze",
-    icon: "🧠",
+    icon: Brain,
     title: "投稿分析",
     description: "InstagramやTikTokの投稿URLを入力するだけで、AIがバズった理由と改善案を提案します。",
   },
   {
     href: "/trend",
-    icon: "📈",
+    icon: TrendingUp,
     title: "トレンド",
     description: "ジャンル別に今伸びている投稿の傾向をチェックできます。",
   },
   {
     href: "/rankings",
-    icon: "🏆",
+    icon: Trophy,
     title: "ランキング",
     description: "分析済み投稿をBuzzScoreの高い順に並べて比較できます。",
   },
   {
     href: "/saved",
-    icon: "🔖",
+    icon: Bookmark,
     title: "保存済み分析",
     description: "気になる分析結果を保存し、あとから見返したりCSVで書き出せます。",
   },
@@ -126,8 +129,8 @@ export function OnboardingTour() {
                 onClick={dismiss}
                 className="flex items-start gap-3 rounded-xl border border-slate-200 p-3 transition hover:border-brand-300 hover:bg-brand-50 dark:border-slate-700 dark:hover:border-brand-700 dark:hover:bg-brand-950/40"
               >
-                <span className="text-xl" aria-hidden>
-                  {step.icon}
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-300">
+                  <step.icon className="h-4 w-4" aria-hidden />
                 </span>
                 <span>
                   <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">{step.title}</span>
