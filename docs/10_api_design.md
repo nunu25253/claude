@@ -80,7 +80,13 @@
 | POST | `/auth/login` | ログイン（JWT発行） |
 | POST | `/auth/refresh` | アクセストークン再発行 |
 | POST | `/auth/logout` | ログアウト（リフレッシュトークン失効） |
-| GET | `/auth/me` | ログイン中ユーザー情報取得 |
+| GET | `/auth/csrf` | CSRFトークンCookie発行 |
+| POST | `/auth/password-reset/request` | パスワードリセットメール送信依頼 |
+| POST | `/auth/password-reset/confirm` | パスワードリセット確定 |
+| POST | `/auth/email-verification/resend` | メールアドレス確認メールの再送依頼 |
+| POST | `/auth/email-verification/confirm` | メールアドレス確認の確定 |
+| DELETE | `/auth/account` | アカウント削除（退会） |
+| GET | `/auth/account/export` | アカウントデータのエクスポート（個人情報保護法上の開示請求対応） |
 
 **POST `/auth/login` リクエスト例**
 ```json
@@ -88,13 +94,18 @@
 ```
 
 **POST `/auth/login` レスポンス例（200 OK）**
+
+アクセス/リフレッシュトークンは生の値をレスポンスボディに含めず、HttpOnly Cookie
+（`access_token`/`refresh_token`）として発行する（JSからトークンに触れる経路を無くし、
+XSS時の窃取面を減らすため）。
+
 ```json
 {
-  "accessToken": "eyJhbGciOiJIUzI1NiIs...",
-  "refreshToken": "eyJhbGciOiJIUzI1NiIs...",
-  "tokenType": "Bearer",
-  "expiresIn": 900,
-  "user": { "id": "6f1a...", "email": "user@example.com", "name": "山田太郎", "role": "USER", "plan": "FREE" }
+  "userId": "6f1a...",
+  "email": "user@example.com",
+  "displayName": "山田太郎",
+  "emailVerified": true,
+  "accessTokenExpiresInSeconds": 1800
 }
 ```
 

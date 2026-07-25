@@ -1,13 +1,13 @@
 openapi: 3.0.3
 info:
-  title: SNS AIバズ分析プラットフォーム API
+  title: Buzzly API
   description: >
     Instagram / TikTok / X の公開投稿データ（公式API経由で取得可能な範囲）を分析し、
     AIによるバズ理由分析・BuzzScore算出・競合分析・ランキング・レポート出力を提供するAPI。
     非公開データ（インプレッション・リーチ・保存数等）は取得・提供対象外。
   version: "1.0.0"
   contact:
-    name: SNS AIバズ分析プラットフォーム開発チーム
+    name: Buzzly開発チーム
 servers:
   - url: https://api.example.com/api/v1
     description: 本番環境
@@ -160,17 +160,120 @@ paths:
         "204":
           description: 発行成功
 
-  /auth/me:
+  /auth/password-reset/request:
+    post:
+      tags: [Auth]
+      summary: パスワードリセットメール送信依頼
+      description: >-
+        指定メールアドレス宛にリセットリンクを送信する。メールアドレスが存在しない場合も
+        同じ204を返す(アカウント列挙防止)。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetRequestRequest"
+      responses:
+        "204":
+          description: 受付成功
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /auth/password-reset/confirm:
+    post:
+      tags: [Auth]
+      summary: パスワードリセット確定
+      description: リセットリンクのトークンと新パスワードを受け取り、パスワードを更新する。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetConfirmRequest"
+      responses:
+        "204":
+          description: 更新成功
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /auth/email-verification/resend:
+    post:
+      tags: [Auth]
+      summary: メールアドレス確認メールの再送依頼
+      description: >-
+        指定メールアドレス宛に確認リンクを再送する。メールアドレスが存在しない/既に確認済みの
+        場合も同じ204を返す(アカウント列挙防止)。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailVerificationResendRequest"
+      responses:
+        "204":
+          description: 受付成功
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /auth/email-verification/confirm:
+    post:
+      tags: [Auth]
+      summary: メールアドレス確認の確定
+      description: 確認リンクのトークンを受け取り、メールアドレスを確認済みにする。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailVerificationConfirmRequest"
+      responses:
+        "204":
+          description: 確認成功
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /auth/account:
+    delete:
+      tags: [Auth]
+      summary: アカウント削除(退会)
+      description: >-
+        現在のパスワードを確認した上でアカウントと関連データ(保存済み分析・チーム所属・購読等)を
+        削除し、認証Cookieを削除する。取り消しはできない。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteAccountRequest"
+      responses:
+        "204":
+          description: 削除成功
+        "400":
+          description: 現在のパスワードが正しくない、またはバリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/account/export:
     get:
       tags: [Auth]
-      summary: ログイン中ユーザー情報取得
+      summary: アカウントデータのエクスポート
+      description: >-
+        個人情報保護法上の開示請求対応。プロフィール・通知設定・保存済み分析・チーム所属・
+        購読状況・レポート履歴をダウンロード可能な形式(JSON)で返す。パスワードハッシュや
+        APIキーの値そのものなど漏洩リスクのある秘匿情報は含めない。
       responses:
         "200":
           description: 取得成功
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
+                $ref: "#/components/schemas/AccountDataExportResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -1726,14 +1829,6 @@ components:
       type: string
       enum: [TRENDING, WEEKLY, MONTHLY, GENRE, PLATFORM]
 
-    UserRole:
-      type: string
-      enum: [USER, ADMIN]
-
-    UserPlan:
-      type: string
-      enum: [FREE, PRO, ENTERPRISE]
-
     ReportFormat:
       type: string
       enum: [PDF, MARKDOWN, HTML]
@@ -1757,28 +1852,9 @@ components:
         isActive:
           type: boolean
 
-    User:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        email:
-          type: string
-          format: email
-        name:
-          type: string
-        role:
-          $ref: "#/components/schemas/UserRole"
-        plan:
-          $ref: "#/components/schemas/UserPlan"
-        createdAt:
-          type: string
-          format: date-time
-
     RegisterRequest:
       type: object
-      required: [email, password, name]
+      required: [email, password, displayName]
       properties:
         email:
           type: string
@@ -1787,8 +1863,15 @@ components:
           type: string
           format: password
           minLength: 8
-        name:
+          maxLength: 100
+        displayName:
           type: string
+          maxLength: 100
+        captchaToken:
+          type: string
+          description: >-
+            Cloudflare Turnstileウィジェットが発行するトークン。app.captcha.enabled=false
+            (既定)の環境では未指定でも登録できる。
 
     LoginRequest:
       type: object
@@ -1818,6 +1901,177 @@ components:
         accessTokenExpiresInSeconds:
           type: integer
           description: アクセストークン有効期限（秒）
+
+    PasswordResetRequestRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
+    PasswordResetConfirmRequest:
+      type: object
+      required: [token, newPassword]
+      properties:
+        token:
+          type: string
+        newPassword:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 100
+
+    EmailVerificationResendRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
+    EmailVerificationConfirmRequest:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+
+    DeleteAccountRequest:
+      type: object
+      description: 誤操作防止のため現在のパスワードの再入力を必須とする。
+      required: [currentPassword]
+      properties:
+        currentPassword:
+          type: string
+          format: password
+
+    AccountDataExportResponse:
+      type: object
+      description: >-
+        個人情報保護法上の開示請求対応のためのアカウントデータエクスポート。パスワードハッシュや
+        APIキーの値そのものなど、漏洩リスクのある秘匿情報は含めない。
+      properties:
+        exportedAt:
+          type: string
+          format: date-time
+        profile:
+          type: object
+          properties:
+            userId:
+              type: string
+              format: uuid
+            email:
+              type: string
+              format: email
+            displayName:
+              type: string
+            role:
+              type: string
+              enum: [USER, ADMIN]
+            emailVerified:
+              type: boolean
+            createdAt:
+              type: string
+              format: date-time
+        settings:
+          type: object
+          nullable: true
+          description: 通知設定を一度も保存していないユーザーはnull。
+          properties:
+            emailOnAnalysisComplete:
+              type: boolean
+            emailWeeklyDigest:
+              type: boolean
+            emailTrendingAlert:
+              type: boolean
+            hasApiKey:
+              type: boolean
+              description: APIキーの値自体は含めず、発行有無のみ示す。
+            apiKeyCreatedAt:
+              type: string
+              format: date-time
+              nullable: true
+        savedAnalyses:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              postId:
+                type: string
+                format: uuid
+              note:
+                type: string
+                nullable: true
+              createdAt:
+                type: string
+                format: date-time
+              alertThreshold:
+                type: number
+                format: double
+                nullable: true
+              alertTriggeredAt:
+                type: string
+                format: date-time
+                nullable: true
+        organizationMemberships:
+          type: array
+          items:
+            type: object
+            properties:
+              organizationId:
+                type: string
+                format: uuid
+              organizationName:
+                type: string
+                nullable: true
+              role:
+                type: string
+                enum: [OWNER, MEMBER]
+              joinedAt:
+                type: string
+                format: date-time
+        subscription:
+          type: object
+          nullable: true
+          description: 一度もアップグレードしていないユーザーはnull(FREE相当)。
+          properties:
+            plan:
+              type: string
+              enum: [FREE, PRO]
+            status:
+              type: string
+              enum: [ACTIVE, CANCELED]
+            currentPeriodEnd:
+              type: string
+              format: date-time
+              nullable: true
+            createdAt:
+              type: string
+              format: date-time
+        reports:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              postId:
+                type: string
+                format: uuid
+              format:
+                type: string
+                enum: [PDF, MARKDOWN, HTML]
+              title:
+                type: string
+                nullable: true
+              generatedAt:
+                type: string
+                format: date-time
 
     Hashtag:
       type: object
@@ -3174,7 +3428,7 @@ components:
       type: object
       properties:
         savedAnalysis:
-          $ref: "#/components/schemas/SavedAnalysisDetailDto"
+          $ref: "#/components/schemas/SavedAnalysis"
         savedByUserId:
           type: string
           format: uuid
