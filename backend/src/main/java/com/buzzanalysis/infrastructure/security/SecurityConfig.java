@@ -68,8 +68,21 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    /**
+     * 未認証でアクセス可能なパス。以前は"/api/v1/auth/**"を丸ごとpermitAllにしていたため、
+     * 実際には認証必須の{@code DELETE /auth/account}や{@code GET /auth/account/export}まで
+     * 未認証で到達可能になり、コントローラ内の{@code Authentication.getName()}呼び出しが
+     * 想定外の値でUUID変換に失敗して401ではなく400を返してしまっていた(レビューで発覚)。
+     * 認証不要な個別パスのみを列挙する形に絞り込む。
+     */
     private static final String[] PUBLIC_PATHS = {
-            "/api/v1/auth/**",
+            "/api/v1/auth/login",
+            "/api/v1/auth/register",
+            "/api/v1/auth/refresh",
+            "/api/v1/auth/logout",
+            "/api/v1/auth/csrf",
+            "/api/v1/auth/password-reset/**",
+            "/api/v1/auth/email-verification/**",
             "/swagger-ui.html",
             "/swagger-ui/**",
             "/v3/api-docs/**",
@@ -106,6 +119,9 @@ public class SecurityConfig {
                         .ignoringRequestMatchers(PUBLIC_PATHS))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(new RestAuthenticationEntryPoint(objectMapper))
+                        .accessDeniedHandler(new RestAccessDeniedHandler(objectMapper)))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_PATHS).permitAll()
                         .anyRequest().authenticated())
