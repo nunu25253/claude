@@ -1,5 +1,6 @@
 package com.buzzanalysis.presentation.controller;
 
+import com.buzzanalysis.application.auth.AccountDataExportApplicationService;
 import com.buzzanalysis.application.auth.AuthApplicationService;
 import com.buzzanalysis.application.auth.AuthCookieNames;
 import com.buzzanalysis.application.auth.EmailVerificationApplicationService;
@@ -16,6 +17,7 @@ import com.buzzanalysis.presentation.dto.request.LoginRequest;
 import com.buzzanalysis.presentation.dto.request.PasswordResetConfirmRequest;
 import com.buzzanalysis.presentation.dto.request.PasswordResetRequestRequest;
 import com.buzzanalysis.presentation.dto.request.RegisterRequest;
+import com.buzzanalysis.presentation.dto.response.AccountDataExportResponse;
 import com.buzzanalysis.presentation.dto.response.AuthResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -46,15 +48,18 @@ public class AuthController {
     private final AuthApplicationService authApplicationService;
     private final PasswordResetApplicationService passwordResetApplicationService;
     private final EmailVerificationApplicationService emailVerificationApplicationService;
+    private final AccountDataExportApplicationService accountDataExportApplicationService;
     private final JwtProperties jwtProperties;
 
     public AuthController(AuthApplicationService authApplicationService,
                            PasswordResetApplicationService passwordResetApplicationService,
                            EmailVerificationApplicationService emailVerificationApplicationService,
+                           AccountDataExportApplicationService accountDataExportApplicationService,
                            JwtProperties jwtProperties) {
         this.authApplicationService = authApplicationService;
         this.passwordResetApplicationService = passwordResetApplicationService;
         this.emailVerificationApplicationService = emailVerificationApplicationService;
+        this.accountDataExportApplicationService = accountDataExportApplicationService;
         this.jwtProperties = jwtProperties;
     }
 
@@ -109,6 +114,15 @@ public class AuthController {
                 .header(HttpHeaders.SET_COOKIE, clearCookie(AuthCookieNames.ACCESS_TOKEN).toString())
                 .header(HttpHeaders.SET_COOKIE, clearCookie(AuthCookieNames.REFRESH_TOKEN).toString())
                 .build();
+    }
+
+    @Operation(summary = "アカウントデータのエクスポート",
+            description = "個人情報保護法上の開示請求対応。プロフィール・通知設定・保存済み分析・チーム所属・"
+                    + "購読状況・レポート履歴をダウンロード可能な形式(JSON)で返す。")
+    @GetMapping("/account/export")
+    public AccountDataExportResponse exportAccountData(Authentication authentication) {
+        UUID userId = UUID.fromString(authentication.getName());
+        return accountDataExportApplicationService.export(userId);
     }
 
     @Operation(summary = "CSRFトークンCookie発行",

@@ -1089,6 +1089,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/account/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * アカウントデータのエクスポート
+         * @description 個人情報保護法上の開示請求対応。プロフィール・通知設定・保存済み分析・チーム所属・購読状況・レポート履歴をダウンロード可能な形式(JSON)で返す。
+         */
+        get: operations["exportAccountData"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/saved-analyses/{id}": {
         parameters: {
             query?: never;
@@ -1817,6 +1837,73 @@ export interface components {
             parameterName?: string;
             token?: string;
             headerName?: string;
+        };
+        AccountDataExportResponse: {
+            /** Format: date-time */
+            exportedAt?: string;
+            profile?: components["schemas"]["ProfileExport"];
+            settings?: components["schemas"]["SettingsExport"];
+            savedAnalyses?: components["schemas"]["SavedAnalysisExport"][];
+            organizationMemberships?: components["schemas"]["OrganizationMembershipExport"][];
+            subscription?: components["schemas"]["SubscriptionExport"];
+            reports?: components["schemas"]["ReportExport"][];
+        };
+        OrganizationMembershipExport: {
+            /** Format: uuid */
+            organizationId?: string;
+            organizationName?: string;
+            role?: string;
+            /** Format: date-time */
+            joinedAt?: string;
+        };
+        ProfileExport: {
+            /** Format: uuid */
+            userId?: string;
+            email?: string;
+            displayName?: string;
+            role?: string;
+            emailVerified?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        ReportExport: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            postId?: string;
+            format?: string;
+            title?: string;
+            /** Format: date-time */
+            generatedAt?: string;
+        };
+        SavedAnalysisExport: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            postId?: string;
+            note?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: double */
+            alertThreshold?: number;
+            /** Format: date-time */
+            alertTriggeredAt?: string;
+        };
+        SettingsExport: {
+            emailOnAnalysisComplete?: boolean;
+            emailWeeklyDigest?: boolean;
+            emailTrendingAlert?: boolean;
+            hasApiKey?: boolean;
+            /** Format: date-time */
+            apiKeyCreatedAt?: string;
+        };
+        SubscriptionExport: {
+            plan?: string;
+            status?: string;
+            /** Format: date-time */
+            currentPeriodEnd?: string;
+            /** Format: date-time */
+            createdAt?: string;
         };
         DeleteAccountRequest: {
             currentPassword: string;
@@ -3178,6 +3265,26 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    exportAccountData: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AccountDataExportResponse"];
+                };
             };
         };
     };

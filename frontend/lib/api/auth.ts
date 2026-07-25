@@ -1,5 +1,6 @@
 import { apiClient } from "../api-client";
 import type {
+  AccountDataExport,
   AuthResponse,
   DeleteAccountRequest,
   EmailVerificationConfirmRequest,
@@ -39,4 +40,6 @@ export const authApi = {
   // 行う必要があるため実際にAPIを呼ぶ。
   deleteAccount: (payload: DeleteAccountRequest) =>
     apiClient.delete<void>("/auth/account", payload),
+
+  exportAccountData: () => apiClient.get<AccountDataExport>("/auth/account/export"),
 };

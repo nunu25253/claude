@@ -1,5 +1,6 @@
 package com.buzzanalysis.presentation.controller;
 
+import com.buzzanalysis.application.auth.AccountDataExportApplicationService;
 import com.buzzanalysis.application.auth.AuthApplicationService;
 import com.buzzanalysis.application.auth.EmailVerificationApplicationService;
 import com.buzzanalysis.application.auth.PasswordResetApplicationService;
@@ -8,6 +9,7 @@ import com.buzzanalysis.application.auth.dto.LoginCommand;
 import com.buzzanalysis.application.auth.dto.RegisterCommand;
 import com.buzzanalysis.domain.common.exception.BusinessRuleViolationException;
 import com.buzzanalysis.infrastructure.security.JwtProperties;
+import com.buzzanalysis.presentation.dto.response.AccountDataExportResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,6 +20,8 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -27,6 +31,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -55,6 +60,9 @@ class AuthControllerTest {
 
     @MockBean
     private EmailVerificationApplicationService emailVerificationApplicationService;
+
+    @MockBean
+    private AccountDataExportApplicationService accountDataExportApplicationService;
 
     @MockBean
     private JwtProperties jwtProperties;
@@ -206,5 +214,23 @@ class AuthControllerTest {
                         .content(requestBody)
                         .principal(new UsernamePasswordAuthenticationToken(userId.toString(), null)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void exportAccountData_returns200WithExportedData() throws Exception {
+        UUID userId = UUID.randomUUID();
+        var profile = new AccountDataExportResponse.ProfileExport(userId, "user@example.com", "Test User",
+                "USER", true, OffsetDateTime.now());
+        AccountDataExportResponse mockResult = new AccountDataExportResponse(
+                OffsetDateTime.now(), profile, null, List.of(), List.of(), null, List.of());
+        when(accountDataExportApplicationService.export(userId)).thenReturn(mockResult);
+
+        mockMvc.perform(get("/api/v1/auth/account/export")
+                        .principal(new UsernamePasswordAuthenticationToken(userId.toString(), null)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.profile.email").value("user@example.com"))
+                .andExpect(jsonPath("$.profile.displayName").value("Test User"))
+                .andExpect(jsonPath("$.settings").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.savedAnalyses").isArray());
     }
 }

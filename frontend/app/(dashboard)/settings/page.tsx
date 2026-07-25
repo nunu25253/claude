@@ -2,6 +2,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { ProfileSettingsForm } from "@/components/dashboard/settings/profile-settings-form";
 import { NotificationSettingsForm } from "@/components/dashboard/settings/notification-settings-form";
 import { ApiKeySettingsPanel } from "@/components/dashboard/settings/api-key-settings";
+import { DataExportSection } from "@/components/dashboard/settings/data-export-section";
 import { DeleteAccountSection } from "@/components/dashboard/settings/delete-account-section";
 
 export default function SettingsPage() {
@@ -20,6 +21,11 @@ export default function SettingsPage() {
       <Card>
         <CardHeader title="通知設定" description="メール通知のオン・オフを切り替えます" />
         <NotificationSettingsForm />
+      </Card>
+
+      <Card>
+        <CardHeader title="データのエクスポート" description="保有している個人データをダウンロードします" />
+        <DataExportSection />
       </Card>
 
       <Card>
