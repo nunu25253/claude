@@ -92,8 +92,9 @@ export const config = {
     /*
      * 静的ファイル・APIルート・OGP/favicon等のメタデータルートを除いた全パスに適用。
      * これらを除外しないとSNSクローラーやブラウザタブアイコン取得が/loginへリダイレクトされ、
-     * OGPプレビューやfaviconが機能しなくなる。
+     * OGPプレビューやfaviconが機能しなくなる。manifest.webmanifest/sw.jsも同様に、未ログインの
+     * /welcome訪問者がPWAとしてインストールできるよう除外する(認証ガード対象外の静的アセット)。
      */
-    "/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon|opengraph-image|twitter-image|robots.txt|sitemap.xml|api).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon|opengraph-image|twitter-image|robots.txt|sitemap.xml|manifest.webmanifest|sw.js|api).*)",
   ],
 };

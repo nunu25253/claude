@@ -28,11 +28,17 @@ export const metadata: Metadata = {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: SITE_TITLE,
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  themeColor: "#4a63f5",
 };
 
 // ダークモード設定をハイドレーション前に適用し、切り替え時のちらつき(FOUC)を防ぐ。
