@@ -1,13 +1,34 @@
 # PROGRESS
 
 ## 現在地
-- 完了済み: Phase 0, 1
-- 次: Phase 2
+- 完了済み: Phase 0, 1, 2
+- 次: Phase 3
 
 ## 将来メモ(スコープ外の提案置き場)
 - (まだなし)
 
 ## ログ
+
+### 2026-07-26 Phase 2 完了
+- 完了: `core/security.py`(sanitize_free_text / SUSPICIOUS_PATTERNS)、
+  `services/design_service.py`(build_cache_key / seed_from_cache_key /
+  build_prompt / DesignService)を実装。test_security(15件のparametrize含む) /
+  test_design_serviceを追加(計37テスト)。
+- 未解決: なし。DB保存はPhase 3で追加予定(現状はインメモリのLRUTTLCacheのみ)。
+- 判断と理由:
+  1. sanitize_free_text(§6.5のセキュリティ検証)と、キャッシュキー用の
+     正規化(§6.4: NFKC→strip→小文字化→空白圧縮)は目的が異なるため別関数に
+     分離した。前者は例外を送出して拒否、後者はキー安定化のための追加変換のみ。
+  2. `build_prompt`はcore/security.pyではなくservices/design_service.pyに置いた
+     (§6.5が「将来のプロンプト構築用にservicesに用意」と明記しているため)。
+     ユーザー入力は`<user_input>`タグ内にのみ埋め込み、指示文セクションへの
+     f-string混入は行わない設計をdocstringとテストの両方で担保した。
+  3. `DesignService.generate()`はキャッシュヒット時に新しい`GenerationResult`
+     (cache_hit=Trueのみ変えたコピー)を返す。キャッシュに保存した値自体は
+     不変に保つことで、"ヒット時はCostGuardもProviderも呼ばない"という
+     不変条件を壊さないようにした。
+  4. core/services/providersのカバレッジは100%(Phase 5要件の80%を上回る)。
+
 
 ### 2026-07-26 Phase 1 完了
 - 完了: `domain.py`(§5のenum/モデル)、`providers/base.py`(AIProvider Protocol)、
