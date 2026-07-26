@@ -24,6 +24,7 @@ test("チームの作成・招待・メンバー閲覧・削除が壊れない",
     await page.fill("#email", email);
     await page.fill("#password", "password123");
     await page.fill("#passwordConfirm", "password123");
+    await page.getByRole("checkbox").check();
     await page.click('button[type="submit"]');
     await expect(page).toHaveURL("/", { timeout: 15_000 });
     // オンボーディングツアーのモーダルは非同期でマウントされるため、即座のisVisible()チェックでは

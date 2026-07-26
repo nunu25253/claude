@@ -18,6 +18,7 @@ test("新規登録から投稿分析・保存・CSVエクスポートまでの�
   await page.fill("#email", uniqueEmail);
   await page.fill("#password", "password123");
   await page.fill("#passwordConfirm", "password123");
+  await page.getByRole("checkbox").check();
   await page.click('button[type="submit"]');
 
   // 登録成功後はダッシュボードのトップに遷移する

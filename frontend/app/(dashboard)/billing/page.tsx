@@ -1,13 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FormField, inputClassName } from "@/components/ui/form-field";
 import { QueryState } from "@/components/dashboard/query-state";
+import { GmoCardTokenForm } from "@/components/billing/gmo-card-token-form";
 import { useCancelSubscription, useSubscription, useUpgradeSubscription } from "@/lib/hooks/use-billing";
 import { ApiError } from "@/lib/types/common";
 import { formatDateTime, formatNumber } from "@/lib/utils";
@@ -20,30 +17,16 @@ const PLAN_COMPARISON = {
   pro: { priceLabel: `¥${formatNumber(4980)} / 月`, dailyAnalysisLimit: 500 },
 };
 
-const upgradeSchema = z.object({
-  cardToken: z.string().min(1, "カードトークンを入力してください"),
-});
-
-type UpgradeFormValues = z.infer<typeof upgradeSchema>;
-
 export default function BillingPage() {
   const subscriptionQuery = useSubscription();
   const upgradeMutation = useUpgradeSubscription();
   const cancelMutation = useCancelSubscription();
   const [upgradeError, setUpgradeError] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<UpgradeFormValues>({ resolver: zodResolver(upgradeSchema) });
-
-  const onUpgrade = async (values: UpgradeFormValues) => {
+  const onUpgrade = async (cardToken: string) => {
     setUpgradeError(null);
     try {
-      await upgradeMutation.mutateAsync(values);
-      reset();
+      await upgradeMutation.mutateAsync({ cardToken });
     } catch (err) {
       setUpgradeError(
         err instanceof ApiError ? err.message : "アップグレードに失敗しました。時間をおいて再度お試しください。",
@@ -131,35 +114,14 @@ export default function BillingPage() {
         <Card>
           <CardHeader
             title="PROプランへアップグレード"
-            description="決済代行事業者のクライアントサイドJSでトークン化されたカード情報を使用します(生のカード番号は送信されません)"
+            description="決済代行事業者のクライアントサイドJSでカード情報をその場でトークン化します(生のカード番号は当社サーバーに送信されません)"
           />
-          <form onSubmit={handleSubmit(onUpgrade)} noValidate className="space-y-4">
-            <FormField
-              label="カードトークン"
-              htmlFor="cardToken"
-              error={errors.cardToken?.message}
-              // このヒントは決済ゲートウェイが実際にモック実装(常に成功する疑似決済)の場合にのみ
-              // 意味を持つ開発者向け情報であり、本番相当の環境(疑似決済ゲートウェイのfail-fastガードが
-              // 起動を拒否する状況)でユーザーに表示されてはならない。ビルド時にprocess.env.NODE_ENVで
-              // 静的に分岐するため本番ビルドからは完全に除去される。
-              hint={process.env.NODE_ENV !== "production" ? "開発/評価環境では任意の文字列で疑似決済が成功します" : undefined}
-            >
-              <input
-                id="cardToken"
-                placeholder="tok_xxxxxxxx"
-                className={inputClassName(!!errors.cardToken)}
-                {...register("cardToken")}
-              />
-            </FormField>
-            {upgradeError && (
-              <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
-                {upgradeError}
-              </p>
-            )}
-            <Button type="submit" isLoading={upgradeMutation.isPending}>
-              アップグレードする
-            </Button>
-          </form>
+          <GmoCardTokenForm onToken={onUpgrade} isSubmitting={upgradeMutation.isPending} />
+          {upgradeError && (
+            <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+              {upgradeError}
+            </p>
+          )}
         </Card>
       )}
 

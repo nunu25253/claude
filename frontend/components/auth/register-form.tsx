@@ -18,6 +18,9 @@ const registerSchema = z
     email: z.string().min(1, "メールアドレスを入力してください").email("メールアドレスの形式が正しくありません"),
     password: z.string().min(8, "パスワードは8文字以上で入力してください"),
     passwordConfirm: z.string().min(1, "確認用パスワードを入力してください"),
+    termsAccepted: z.boolean().refine((v) => v, {
+      message: "利用規約とプライバシーポリシーへの同意が必要です",
+    }),
   })
   .refine((data) => data.password === data.passwordConfirm, {
     message: "パスワードが一致しません",
@@ -38,6 +41,7 @@ export function RegisterForm() {
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
+    defaultValues: { termsAccepted: false },
   });
 
   const onSubmit = async (values: RegisterFormValues) => {
@@ -106,6 +110,29 @@ export function RegisterForm() {
           {...register("passwordConfirm")}
         />
       </FormField>
+
+      <div>
+        <label className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+          <input
+            type="checkbox"
+            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+            {...register("termsAccepted")}
+          />
+          <span>
+            <Link href="/terms" target="_blank" className="text-brand-600 hover:underline">
+              利用規約
+            </Link>
+            と
+            <Link href="/privacy" target="_blank" className="text-brand-600 hover:underline">
+              プライバシーポリシー
+            </Link>
+            に同意します
+          </span>
+        </label>
+        {errors.termsAccepted && (
+          <p className="mt-1 text-xs text-red-600">{errors.termsAccepted.message}</p>
+        )}
+      </div>
 
       <TurnstileWidget onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(undefined)} />
 

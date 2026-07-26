@@ -7,7 +7,17 @@ import { NextRequest, NextResponse } from "next/server";
 const ACCESS_TOKEN_COOKIE = "access_token";
 
 // ログイン不要でアクセスできるパス
-const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email", "/welcome"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/verify-email",
+  "/welcome",
+  "/terms",
+  "/privacy",
+  "/legal",
+];
 // ログイン済みならダッシュボードへ戻すパス(/verify-email は登録直後の
 // ログイン済みユーザーもアクセスするため対象外とする)
 const AUTH_ONLY_PATHS = ["/login", "/register", "/forgot-password", "/reset-password"];
@@ -34,7 +44,10 @@ function buildCspHeader(nonce: string): string {
     "img-src 'self' https: data:",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'"}`,
     `style-src 'self' 'nonce-${nonce}'`,
-    `connect-src 'self' ${apiOrigin()}`.trim(),
+    // GMO-PGのカードトークン化JS(gmo-card-token-form.tsx)がトークン発行のために呼び出す
+    // 先。バックエンドのGmoPaymentGatewayAdapterと同様、実契約での疎通確認は行っていない
+    // ドメインのため、契約時に提供される技術仕様書と突き合わせて要修正。
+    `connect-src 'self' ${apiOrigin()} https://static.mul-pay.jp`.trim(),
     "object-src 'none'",
     "base-uri 'self'",
     "frame-ancestors 'none'",

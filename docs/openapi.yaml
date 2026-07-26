@@ -351,6 +351,22 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /posts/{postId}/comparison:
+    get:
+      tags: [Posts]
+      summary: 投稿のBuzzScoreを「前回投稿比」「同ジャンル平均比」で相対評価する
+      parameters:
+        - $ref: "#/components/parameters/PostIdPath"
+      responses:
+        "200":
+          description: 取得成功(比較対象が無い項目はnull)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostScoreComparison"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /posts:
     get:
       tags: [Posts]
@@ -3047,6 +3063,23 @@ components:
           format: float
           minimum: 0
           maximum: 100
+
+    PostScoreComparison:
+      type: object
+      properties:
+        previousPostScore:
+          type: number
+          format: float
+          nullable: true
+          description: 同一アカウントの直前投稿のBuzzScore(比較対象が無い場合null)
+        genreAverageScore:
+          type: number
+          format: float
+          nullable: true
+          description: 正規化後ジャンルが一致する直近投稿群の平均BuzzScore(比較対象が無い場合null)
+        genreSampleSize:
+          type: integer
+          description: genreAverageScoreの算出に使用した投稿数
 
     BuzzScore:
       type: object

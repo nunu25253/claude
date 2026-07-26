@@ -53,6 +53,26 @@ body {
   }
 }
 
+/* 利用規約・プライバシーポリシー等、Markdown的な見出し構造を持つ長文ページ用の最小限のスタイル
+   (@tailwindcss/typographyは未導入のため、必要な要素だけ手動でスタイリングする)。 */
+.legal-content h2 {
+  @apply mt-8 text-lg font-semibold text-slate-900 first:mt-0 dark:text-slate-100;
+}
+.legal-content h3 {
+  @apply mt-5 text-sm font-semibold text-slate-900 dark:text-slate-100;
+}
+.legal-content p {
+  @apply mt-3;
+}
+.legal-content ul,
+.legal-content ol {
+  @apply mt-3 list-outside list-disc space-y-1.5 pl-5;
+}
+.legal-content li > ul,
+.legal-content li > ol {
+  @apply mt-1.5;
+}
+
 /* スクロールバーを目立たせすぎない程度に */
 ::-webkit-scrollbar {
   width: 8px;

@@ -14,6 +14,7 @@ test("課金プランのアップグレード・解約が壊れない", async ({
   await page.fill("#email", uniqueEmail);
   await page.fill("#password", "password123");
   await page.fill("#passwordConfirm", "password123");
+  await page.getByRole("checkbox").check();
   await page.click('button[type="submit"]');
   await expect(page).toHaveURL("/", { timeout: 15_000 });
   // オンボーディングツアーのモーダルは初回ユーザー情報取得後に非同期でマウントされるため、

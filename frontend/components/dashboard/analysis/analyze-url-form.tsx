@@ -47,6 +47,10 @@ export function AnalyzeUrlForm({ onSubmit, isSubmitting }: AnalyzeUrlFormProps) 
             {...register("url")}
           />
         </FormField>
+        <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+          自分の投稿でなくてもOKです。Instagram/TikTok/Xアプリで気になる投稿を開き、共有メニューから
+          「リンクをコピー」したURLを貼り付けてください。まずは他人のバズった投稿で試すのもおすすめです。
+        </p>
       </div>
       <Button type="submit" isLoading={isSubmitting} className="mt-0 shrink-0 sm:mt-6">
         AIで分析する

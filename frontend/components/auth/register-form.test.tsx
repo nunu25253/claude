@@ -22,6 +22,7 @@ function fillAndSubmit(values: {
   email?: string;
   password?: string;
   passwordConfirm?: string;
+  acceptTerms?: boolean;
 }) {
   if (values.displayName !== undefined) {
     fireEvent.change(screen.getByLabelText("表示名"), { target: { value: values.displayName } });
@@ -36,6 +37,9 @@ function fillAndSubmit(values: {
     fireEvent.change(screen.getByLabelText("パスワード（確認）"), {
       target: { value: values.passwordConfirm },
     });
+  }
+  if (values.acceptTerms ?? true) {
+    fireEvent.click(screen.getByRole("checkbox"));
   }
   fireEvent.click(screen.getByRole("button", { name: "新規登録" }));
 }
@@ -54,6 +58,22 @@ describe("RegisterForm", () => {
     expect(screen.getByText("メールアドレスを入力してください")).toBeInTheDocument();
     expect(screen.getByText("パスワードは8文字以上で入力してください")).toBeInTheDocument();
     expect(screen.getByText("確認用パスワードを入力してください")).toBeInTheDocument();
+    expect(screen.getByText("利用規約とプライバシーポリシーへの同意が必要です")).toBeInTheDocument();
+    expect(registerMock).not.toHaveBeenCalled();
+  });
+
+  it("blocks submission when the terms checkbox is left unchecked", async () => {
+    render(<RegisterForm />);
+
+    fillAndSubmit({
+      displayName: "テストユーザー",
+      email: "user@example.com",
+      password: "password123",
+      passwordConfirm: "password123",
+      acceptTerms: false,
+    });
+
+    expect(await screen.findByText("利用規約とプライバシーポリシーへの同意が必要です")).toBeInTheDocument();
     expect(registerMock).not.toHaveBeenCalled();
   });
 
