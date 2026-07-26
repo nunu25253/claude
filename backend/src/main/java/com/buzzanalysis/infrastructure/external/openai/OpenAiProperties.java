@@ -1,0 +1,70 @@
+package com.buzzanalysis.infrastructure.external.openai;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+/** OpenAI API接続設定。application.ymlの {@code openai.*} にバインドされる。 */
+@ConfigurationProperties(prefix = "openai")
+public class OpenAiProperties {
+
+    /** OpenAI APIキー。未設定の場合はルールベースのフォールバック分析を使用する。 */
+    private String apiKey = "";
+    private String baseUrl = "https://api.openai.com/v1";
+    private String model = "gpt-4o-mini";
+    private int timeoutSeconds = 30;
+    /** Embedding生成に使用するモデル（Phase3）。 */
+    private String embeddingModel = "text-embedding-3-small";
+    /** {@code embeddingModel} が出力するベクトルの次元数。DBの {@code vector(N)} 列と一致させること。 */
+    private int embeddingDimensions = 1536;
+
+    public String getApiKey() {
+        return apiKey;
+    }
+
+    public void setApiKey(String apiKey) {
+        this.apiKey = apiKey;
+    }
+
+    public String getBaseUrl() {
+        return baseUrl;
+    }
+
+    public void setBaseUrl(String baseUrl) {
+        this.baseUrl = baseUrl;
+    }
+
+    public String getModel() {
+        return model;
+    }
+
+    public void setModel(String model) {
+        this.model = model;
+    }
+
+    public int getTimeoutSeconds() {
+        return timeoutSeconds;
+    }
+
+    public void setTimeoutSeconds(int timeoutSeconds) {
+        this.timeoutSeconds = timeoutSeconds;
+    }
+
+    public String getEmbeddingModel() {
+        return embeddingModel;
+    }
+
+    public void setEmbeddingModel(String embeddingModel) {
+        this.embeddingModel = embeddingModel;
+    }
+
+    public int getEmbeddingDimensions() {
+        return embeddingDimensions;
+    }
+
+    public void setEmbeddingDimensions(int embeddingDimensions) {
+        this.embeddingDimensions = embeddingDimensions;
+    }
+
+    public boolean isConfigured() {
+        return apiKey != null && !apiKey.isBlank();
+    }
+}

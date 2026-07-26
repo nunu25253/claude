@@ -1,0 +1,269 @@
+spring:
+  application:
+    name: buzz-analysis-backend
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:buzz_analysis}
+    username: ${DB_USERNAME:buzz_user}
+    password: ${DB_PASSWORD:buzz_password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  mail:
+    # ローカル開発では docker-compose の MailHog(SMTP互換のテスト用メールキャッチャー、
+    # http://localhost:8025 でWeb UI閲覧可)宛に送信する。本番は環境変数で実SMTPに差し替える。
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS:false}
+          # SMTPサーバーが応答不能/低速な場合でも一定時間で諦めるためのタイムアウト(ミリ秒)。
+          # 未設定だとJavaMail既定のタイムアウト(実質無制限に近い)になり、送信自体は
+          # @Asyncでリクエストスレッドから切り離しているとはいえ、専用スレッドプールが
+          # 詰まり続けるおそれがあるため必ず設定する。
+          connectiontimeout: ${MAIL_SMTP_CONNECTION_TIMEOUT_MS:5000}
+          timeout: ${MAIL_SMTP_TIMEOUT_MS:5000}
+          writetimeout: ${MAIL_SMTP_WRITE_TIMEOUT_MS:5000}
+
+server:
+  port: ${SERVER_PORT:8080}
+
+jwt:
+  secret: ${JWT_SECRET:change-this-secret-in-production-please-0123456789abcdef}
+  issuer: ${JWT_ISSUER:buzz-analysis-platform}
+  access-token-expiration-minutes: ${JWT_ACCESS_EXPIRATION_MINUTES:30}
+  refresh-token-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS:14}
+  # 認証Cookie(HttpOnly)の属性。ローカル開発はHTTPのためSecure=falseが既定。
+  # 本番(HTTPS)では必ずJWT_COOKIE_SECURE=trueにすること。
+  cookie-secure: ${JWT_COOKIE_SECURE:false}
+  # フロント/バックエンドを app.example.com / api.example.com のようにサブドメインで分ける場合、
+  # 共通の親ドメイン(例: .example.com)を設定する。同一ホスト(ポートのみ違う)の開発環境では空でよい。
+  cookie-domain: ${JWT_COOKIE_DOMAIN:}
+  cookie-same-site: ${JWT_COOKIE_SAME_SITE:Lax}
+
+app:
+  cors:
+    # フロントエンド(Next.js)は別オリジン(別ポート)からブラウザ経由でAPIを呼び出すため、
+    # CORS許可オリジンの設定が必要。カンマ区切りで複数指定可能。
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  # レポートのローカルストレージ配信URL(storage.provider=local時)の組み立てに使う自ホストのベースURL。
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+  quota:
+    # ユーザー単位・1日あたりの投稿分析(OpenAI呼び出しを伴う)回数の上限。課金プラン(No.11)によりFREE/PROで異なる。
+    daily-openai-calls-free: ${QUOTA_DAILY_OPENAI_CALLS_FREE:50}
+    daily-openai-calls-pro: ${QUOTA_DAILY_OPENAI_CALLS_PRO:500}
+  rate-limit:
+    # ログイン/登録エンドポイントへの、送信元IPごとの試行回数上限(ブルートフォース対策)。
+    auth-max-attempts: ${RATE_LIMIT_AUTH_MAX_ATTEMPTS:10}
+    auth-window-minutes: ${RATE_LIMIT_AUTH_WINDOW_MINUTES:15}
+  account-lockout:
+    # アカウント(メールアドレス)単位のログイン失敗回数によるロックアウト。分散IPからの
+    # クレデンシャルスタッフィング対策としてrate-limitのIPベース制限を補完する。
+    max-failed-attempts: ${ACCOUNT_LOCKOUT_MAX_FAILED_ATTEMPTS:10}
+    failure-window-minutes: ${ACCOUNT_LOCKOUT_FAILURE_WINDOW_MINUTES:15}
+    lockout-minutes: ${ACCOUNT_LOCKOUT_MINUTES:15}
+  captcha:
+    # 登録エンドポイントのBot対策(Cloudflare Turnstile)。既定は無効(ローカル開発・CI用)。
+    # 本番で有効化する場合はCAPTCHA_ENABLED=trueとCAPTCHA_SECRET_KEYを設定すること。
+    enabled: ${CAPTCHA_ENABLED:false}
+    secret-key: ${CAPTCHA_SECRET_KEY:}
+    verify-url: ${CAPTCHA_VERIFY_URL:https://challenges.cloudflare.com/turnstile/v0/siteverify}
+  mail:
+    # パスワードリセットメールに載せるリンクの遷移先(フロントエンドのパスワード再設定ページ)。
+    reset-link-base-url: ${MAIL_RESET_LINK_BASE_URL:http://localhost:3000/reset-password}
+    # メールアドレス確認メールに載せるリンクの遷移先(フロントエンドのメール確認ページ)。
+    verification-link-base-url: ${MAIL_VERIFICATION_LINK_BASE_URL:http://localhost:3000/verify-email}
+    # しきい値アラートメールに載せるリンクの遷移先(フロントエンドの保存済み分析一覧ページ)。
+    saved-analyses-url: ${MAIL_SAVED_ANALYSES_URL:http://localhost:3000/saved}
+    from-address: ${MAIL_FROM_ADDRESS:no-reply@buzz-analysis.local}
+
+openai:
+  api-key: ${OPENAI_API_KEY:}
+  base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+  model: ${OPENAI_MODEL:gpt-4o-mini}
+  timeout-seconds: ${OPENAI_TIMEOUT_SECONDS:30}
+  embedding-model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+  embedding-dimensions: ${OPENAI_EMBEDDING_DIMENSIONS:1536}
+
+resilience4j:
+  retry:
+    instances:
+      openai:
+        # タイムアウトや5xx等の一時的な失敗を想定し、短い間隔で数回だけ再試行する
+        # (無限に待たせず、ユーザー体感のレイテンシ増加は最小限に抑える)。
+        max-attempts: ${OPENAI_RETRY_MAX_ATTEMPTS:3}
+        wait-duration: ${OPENAI_RETRY_WAIT_DURATION:500ms}
+        retry-exceptions:
+          - com.buzzanalysis.domain.common.exception.ExternalApiException
+  circuitbreaker:
+    instances:
+      openai:
+        # 直近N件中X%以上が失敗したらOPENにし、以降一定時間は実際の呼び出しをせず即座に
+        # フォールバック(502エラー)を返す。障害中に全リクエストがタイムアウト待ちで
+        # 詰まる(スレッドプール枯渇)ことを防ぐのが目的。
+        sliding-window-size: ${OPENAI_CIRCUIT_BREAKER_SLIDING_WINDOW_SIZE:10}
+        minimum-number-of-calls: ${OPENAI_CIRCUIT_BREAKER_MINIMUM_CALLS:5}
+        failure-rate-threshold: ${OPENAI_CIRCUIT_BREAKER_FAILURE_RATE_THRESHOLD:50}
+        wait-duration-in-open-state: ${OPENAI_CIRCUIT_BREAKER_WAIT_DURATION_IN_OPEN_STATE:10s}
+        permitted-number-of-calls-in-half-open-state: ${OPENAI_CIRCUIT_BREAKER_PERMITTED_CALLS_HALF_OPEN:3}
+        record-exceptions:
+          - com.buzzanalysis.domain.common.exception.ExternalApiException
+
+sns:
+  # 各SNSともアクセストークン(等)が未設定の場合はモックデータにフォールバックする(開発・デモ用)。
+  # 実際の取得元・取得可能な範囲はREADMEの「SNS公式API連携」セクションを参照。
+  instagram:
+    access-token: ${INSTAGRAM_ACCESS_TOKEN:}
+    # Business Discovery呼び出しの起点となる、自社のInstagramビジネス/クリエイターアカウントのIG User ID。
+    business-account-id: ${INSTAGRAM_BUSINESS_ACCOUNT_ID:}
+    graph-api-base-url: ${INSTAGRAM_GRAPH_API_BASE_URL:https://graph.facebook.com/v19.0}
+  tiktok:
+    # TikTok Login KitのOAuth認可で取得したアクセストークン(認可元アカウント自身のデータのみ取得可能)。
+    access-token: ${TIKTOK_ACCESS_TOKEN:}
+    api-base-url: ${TIKTOK_API_BASE_URL:https://open.tiktokapis.com/v2}
+  x:
+    bearer-token: ${X_BEARER_TOKEN:}
+    api-base-url: ${X_API_BASE_URL:https://api.twitter.com/2}
+
+batch:
+  sync:
+    # 定期データ取得バッチ（自動化）。デフォルトはOFF。有効化すると、追跡対象アカウントの最新公開投稿を
+    # cronスケジュールで定期的に取得し、BuzzScore・ランキングを自動更新する（公式API/スタブへのアクセスが発生する）。
+    enabled: ${BATCH_SYNC_ENABLED:false}
+    cron: ${BATCH_SYNC_CRON:0 0 * * * *}
+    post-limit-per-account: ${BATCH_SYNC_POST_LIMIT:20}
+    delay-between-accounts-ms: ${BATCH_SYNC_DELAY_MS:500}
+    ranking-candidate-pool-size: ${BATCH_SYNC_RANKING_POOL_SIZE:200}
+    ranking-top-n: ${BATCH_SYNC_RANKING_TOP_N:20}
+  trend:
+    # トレンド分析の日次自動実行（AIマーケティングOS Phase15）。デフォルトはOFF。
+    # 蓄積済みデータのみを対象とするため、有効化しても外部APIへの新規アクセスは発生しない。
+    enabled: ${BATCH_TREND_ENABLED:false}
+    cron: ${BATCH_TREND_CRON:0 0 3 * * *}
+    recent-window-days: ${BATCH_TREND_RECENT_WINDOW_DAYS:7}
+    baseline-window-days: ${BATCH_TREND_BASELINE_WINDOW_DAYS:21}
+  alert:
+    # 保存済み分析に設定されたBuzzScoreしきい値の超過チェック・メール通知バッチ。デフォルトはOFF。
+    # 蓄積済みデータのみを参照する(外部SNS APIへのアクセスは発生しない)。
+    enabled: ${BATCH_ALERT_ENABLED:false}
+    cron: ${BATCH_ALERT_CRON:0 0 * * * *}
+  weekly-digest:
+    # 週次AIダイジェストメール配信バッチ(戦略監査レポートPhase2: 定着率計測の第一弾)。デフォルトはOFF。
+    # 蓄積済みデータのみを参照する(外部SNS APIへのアクセスは発生しない)。
+    enabled: ${BATCH_WEEKLY_DIGEST_ENABLED:false}
+    cron: ${BATCH_WEEKLY_DIGEST_CRON:0 0 9 * * MON}
+  billing-renewal:
+    # PRO契約の月次更新課金バッチ(改善計画No.11)。決済処理を伴うため、他バッチと同様デフォルトはOFF。
+    enabled: ${BATCH_BILLING_RENEWAL_ENABLED:false}
+    cron: ${BATCH_BILLING_RENEWAL_CRON:0 0 3 * * *}
+
+payment:
+  gateway:
+    # mock: 決済代行事業者と未契約の開発/評価環境向けの既定値(常に成功する疑似決済)。
+    # gmo: GMOペイメントゲートウェイ(GMO-PG)と実連携する(本番投入前にpayment.gmo.*の技術仕様確認が必須)。
+    provider: ${PAYMENT_GATEWAY_PROVIDER:mock}
+  gmo:
+    base-url: ${GMO_PAYMENT_BASE_URL:https://pt01.mul-pay.jp}
+    shop-id: ${GMO_PAYMENT_SHOP_ID:}
+    shop-pass: ${GMO_PAYMENT_SHOP_PASS:}
+    pro-plan-monthly-amount: ${GMO_PAYMENT_PRO_PLAN_MONTHLY_AMOUNT:4980}
+
+storage:
+  # local: ファイルシステムにレポートを保存する既定値(Docker/MinIOなしでも動作する)。
+  # s3: AWS S3 / MinIO等のS3互換ストレージを使う(docker-composeプロファイルでは既定でこちらに切り替わる)。
+  provider: ${STORAGE_PROVIDER:local}
+  local:
+    base-dir: ${STORAGE_LOCAL_BASE_DIR:./data/reports}
+    # S3の署名付きURLと同じ考え方で、ダウンロードURLに有効期限(分)を持たせる。
+    presigned-url-expiration-minutes: ${STORAGE_LOCAL_PRESIGNED_URL_EXPIRATION_MINUTES:60}
+    # ダウンロードURLの署名に使うHMAC鍵。JWT_SECRET同様、本番では必ず環境変数で上書きすること。
+    signing-secret: ${STORAGE_LOCAL_SIGNING_SECRET:change-this-secret-in-production-please-0123456789abcdef}
+  s3:
+    endpoint: ${S3_ENDPOINT:}
+    region: ${S3_REGION:ap-northeast-1}
+    bucket: ${S3_BUCKET:buzz-analysis-reports}
+    access-key: ${S3_ACCESS_KEY:}
+    secret-key: ${S3_SECRET_KEY:}
+    path-style-access: ${S3_PATH_STYLE_ACCESS:true}
+    presigned-url-expiration-minutes: ${S3_PRESIGNED_URL_EXPIRATION_MINUTES:60}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+  health:
+    # メール送信は失敗してもログに残すだけでリクエスト自体は成功させる設計(SmtpMailSenderAdapter)
+    # のため、SMTPリレーの一時的な不通で/actuator/health全体がDOWNになりDockerヘルスチェックが
+    # 落ちるのを防ぐ。
+    mail:
+      enabled: false
+  tracing:
+    sampling:
+      # 開発時は全リクエストをトレースする。本番でトレーシング基盤への負荷・コストを抑えたい場合は
+      # 0.0-1.0の範囲でサンプリング率を下げる(例: 0.1 = 10%のみトレース)。
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+  zipkin:
+    tracing:
+      # docker-composeで起動するZipkin(http://localhost:9411 でUI閲覧可)へスパンを送信する。
+      endpoint: ${ZIPKIN_ENDPOINT:http://localhost:9411/api/v2/spans}
+
+logging:
+  level:
+    com.buzzanalysis: INFO
+  pattern:
+    # requestId(相関ID)に加えてtraceId/spanIdも含める。requestIdは1リクエスト内のログを、
+    # traceId/spanIdはZipkin UI上の分散トレースとログを突き合わせるのに使う
+    # (RequestIdFilterがMDCに設定するrequestIdとは別に、Micrometer Tracingがtraced/spanIdを自動設定する)。
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [reqId=%X{requestId:-none},traceId=%X{traceId:-none},spanId=%X{spanId:-none}] %logger{36} - %msg%n%wEx"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [reqId=%X{requestId:-none},traceId=%X{traceId:-none},spanId=%X{spanId:-none}] %logger{36} - %msg%n%wEx"
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:postgres}:${DB_PORT:5432}/${DB_NAME:buzz_analysis}
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+
+storage:
+  provider: ${STORAGE_PROVIDER:s3}
+  s3:
+    endpoint: ${S3_ENDPOINT:http://minio:9000}

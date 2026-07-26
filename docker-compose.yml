@@ -1,0 +1,210 @@
+name: sns-buzz-analysis
+
+# ============================================================================
+# SNS AIバズ分析プラットフォーム - ローカル開発/検証用 Docker Compose
+#
+# 構成:
+#   postgres        : アプリケーションDB (pgvector拡張同梱、Phase3のEmbedding保存に使用)
+#   redis           : キャッシュ (競合分析/ランキング等)
+#   minio           : S3互換オブジェクトストレージ (AIレポート PDF/Markdown/HTML保存)
+#   minio-init      : minio起動後にバケットを自動作成するワンショットジョブ
+#   backend         : Spring Boot (Java21) REST API
+#   frontend        : Next.js (TypeScript) ダッシュボード
+#
+# 起動: docker compose up -d --build
+# 停止: docker compose down          (データを残す)
+#       docker compose down -v       (ボリュームも含めて完全削除)
+# ============================================================================
+
+services:
+  postgres:
+    # pgvector拡張同梱の公式イメージ(PostgreSQL 16ベース)。Phase3(Embedding生成)でベクトル検索に使用する。
+    image: pgvector/pgvector:pg16
+    container_name: buzz-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-buzz_analysis}
+      POSTGRES_USER: ${DB_USERNAME:-buzz_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-buzz_password}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-buzz_user} -d ${DB_NAME:-buzz_analysis}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - buzz-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: buzz-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - buzz-network
+
+  minio:
+    image: minio/minio:latest
+    container_name: buzz-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-buzz_minio_admin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-buzz_minio_password}
+    ports:
+      - "${S3_PORT:-9000}:9000"     # S3 API
+      - "${S3_CONSOLE_PORT:-9001}:9001" # 管理コンソール
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - buzz-network
+
+  # minio起動後、AIレポート保存用バケットを自動作成するワンショットコンテナ
+  minio-init:
+    image: minio/mc:latest
+    container_name: buzz-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${S3_ACCESS_KEY:-buzz_minio_admin} ${S3_SECRET_KEY:-buzz_minio_password} &&
+      mc mb --ignore-existing local/${S3_BUCKET:-buzz-analysis-reports} &&
+      mc anonymous set download local/${S3_BUCKET:-buzz-analysis-reports}
+      "
+    networks:
+      - buzz-network
+
+  # SMTP互換のテスト用メールキャッチャー。パスワードリセットメールはここに届き、実際には
+  # 外部に送信されない。http://localhost:8025 のWeb UIで受信メールを確認できる。
+  # 本番では環境変数(MAIL_HOST等)で実際のSMTPサーバーに差し替える。
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: buzz-mailhog
+    restart: unless-stopped
+    ports:
+      - "${MAIL_SMTP_PORT:-1025}:1025" # SMTP
+      - "${MAIL_UI_PORT:-8025}:8025"   # Web UI
+    networks:
+      - buzz-network
+
+  # 分散トレーシングの自己ホスト型バックエンド。http://localhost:9411 のWeb UIで
+  # リクエスト単位のトレース(HTTP呼び出し・OpenAI/SNS公式APIへの外部呼び出しを含む)を1画面で確認できる。
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: buzz-zipkin
+    restart: unless-stopped
+    ports:
+      - "${ZIPKIN_UI_PORT:-9411}:9411"
+    networks:
+      - buzz-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: buzz-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+      zipkin:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-buzz_analysis}
+      DB_USERNAME: ${DB_USERNAME:-buzz_user}
+      DB_PASSWORD: ${DB_PASSWORD:-buzz_password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production-please-0123456789abcdef}
+      JWT_ISSUER: ${JWT_ISSUER:-buzz-analysis-platform}
+      JWT_COOKIE_SECURE: ${JWT_COOKIE_SECURE:-false}
+      JWT_COOKIE_DOMAIN: ${JWT_COOKIE_DOMAIN:-}
+      JWT_COOKIE_SAME_SITE: ${JWT_COOKIE_SAME_SITE:-Lax}
+      MAIL_HOST: mailhog
+      MAIL_PORT: 1025
+      MAIL_RESET_LINK_BASE_URL: ${MAIL_RESET_LINK_BASE_URL:-http://localhost:3000/reset-password}
+      MAIL_VERIFICATION_LINK_BASE_URL: ${MAIL_VERIFICATION_LINK_BASE_URL:-http://localhost:3000/verify-email}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-no-reply@buzz-analysis.local}
+      ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
+      TRACING_SAMPLING_PROBABILITY: ${TRACING_SAMPLING_PROBABILITY:-1.0}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      INSTAGRAM_ACCESS_TOKEN: ${INSTAGRAM_ACCESS_TOKEN:-}
+      INSTAGRAM_BUSINESS_ACCOUNT_ID: ${INSTAGRAM_BUSINESS_ACCOUNT_ID:-}
+      TIKTOK_ACCESS_TOKEN: ${TIKTOK_ACCESS_TOKEN:-}
+      X_BEARER_TOKEN: ${X_BEARER_TOKEN:-}
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: ${S3_REGION:-ap-northeast-1}
+      S3_BUCKET: ${S3_BUCKET:-buzz-analysis-reports}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-buzz_minio_admin}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-buzz_minio_password}
+      S3_PATH_STYLE_ACCESS: "true"
+      # 定期データ取得バッチ（自動化）。デフォルトOFF。有効化すると追跡対象アカウントの
+      # 最新公開投稿をcronで定期取得し、BuzzScore/ランキングを自動更新する。
+      BATCH_SYNC_ENABLED: ${BATCH_SYNC_ENABLED:-false}
+      BATCH_SYNC_CRON: ${BATCH_SYNC_CRON:-0 0 * * * *}
+      BATCH_SYNC_POST_LIMIT: ${BATCH_SYNC_POST_LIMIT:-20}
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks:
+      - buzz-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080/api/v1}
+    container_name: buzz-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080/api/v1}
+      NODE_ENV: production
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    networks:
+      - buzz-network
+
+networks:
+  buzz-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+  minio-data:

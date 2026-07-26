@@ -1,0 +1,3732 @@
+openapi: 3.0.3
+info:
+  title: Buzzly API
+  description: >
+    Instagram / TikTok / X の公開投稿データ（公式API経由で取得可能な範囲）を分析し、
+    AIによるバズ理由分析・BuzzScore算出・競合分析・ランキング・レポート出力を提供するAPI。
+    非公開データ（インプレッション・リーチ・保存数等）は取得・提供対象外。
+  version: "1.0.0"
+  contact:
+    name: Buzzly開発チーム
+servers:
+  - url: https://api.example.com/api/v1
+    description: 本番環境
+  - url: http://localhost:8080/api/v1
+    description: ローカル開発環境
+
+tags:
+  - name: Auth
+    description: 認証
+  - name: Platforms
+    description: プラットフォームマスタ
+  - name: Posts
+    description: 投稿URL分析・投稿検索
+  - name: Normalization
+    description: 投稿データの正規化（AIマーケティングOS Phase1）
+  - name: Preprocessing
+    description: AI分析用前処理（AIマーケティングOS Phase2）
+  - name: Embeddings
+    description: Embedding生成・取得（AIマーケティングOS Phase3）
+  - name: SemanticSearch
+    description: 意味検索（AIマーケティングOS Phase4）
+  - name: Matching
+    description: ユーザー条件分析・一致率算出（AIマーケティングOS Phase6）
+  - name: RankingScore
+    description: 総合ランキングスコア算出（AIマーケティングOS Phase7）
+  - name: Commonality
+    description: 共通点分析（AIマーケティングOS Phase8）
+  - name: Proposals
+    description: 企画生成AI（AIマーケティングOS Phase10）
+  - name: Scripts
+    description: 台本生成AI（AIマーケティングOS Phase11）
+  - name: Carousels
+    description: カルーセル生成AI（AIマーケティングOS Phase12）
+  - name: ImagePrompts
+    description: 画像生成プロンプト（AIマーケティングOS Phase13）
+  - name: Evaluations
+    description: 投稿評価AI（AIマーケティングOS Phase14）
+  - name: Rag
+    description: RAG（AIマーケティングOS Phase16）
+  - name: Search
+    description: 検索
+  - name: Competitors
+    description: 競合アカウント比較・AI差分説明（AIマーケティングOS Phase9）
+  - name: SocialAccounts
+    description: SNSアカウント・競合分析
+  - name: Trends
+    description: トレンド
+  - name: Rankings
+    description: ランキング
+  - name: Sync
+    description: 定期データ取得バッチ（自動化）
+  - name: Reports
+    description: AIレポート生成/出力
+  - name: SavedAnalyses
+    description: 保存済み分析
+  - name: SharedAnalyses
+    description: 外部共有リンク経由の分析結果閲覧(認証不要)
+  - name: Settings
+    description: 設定
+  - name: Notifications
+    description: アプリ内通知センター
+  - name: Analytics
+    description: プラットフォーム全体の統計情報
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ------------------------------------------------------------------
+  # Auth
+  # ------------------------------------------------------------------
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: 新規ユーザー登録
+      description: >-
+        成功時、アクセス/リフレッシュトークンをHttpOnly Cookie(access_token/refresh_token)として発行する。
+        レスポンスボディには生のトークンを含めない。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: 登録成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: ログイン（JWT発行、HttpOnly Cookie）
+      description: 成功時、アクセス/リフレッシュトークンをHttpOnly Cookieとして発行する。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: ログイン成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: アクセストークン再発行
+      description: リフレッシュトークンはCookieから読み取るため、リクエストボディは不要。
+      security: []
+      responses:
+        "200":
+          description: 再発行成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: リフレッシュトークンCookieが無い
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: ログアウト（リフレッシュトークン失効）
+      description: リフレッシュトークンをサーバー側で失効させ（Redisのdenylist）、認証Cookieを削除する。
+      responses:
+        "204":
+          description: ログアウト成功
+
+  /auth/csrf:
+    get:
+      tags: [Auth]
+      summary: CSRFトークンCookie発行
+      description: >-
+        XSRF-TOKEN Cookie(HttpOnlyではない)を発行/更新する。フロントエンドは状態変更リクエストの前に
+        これを呼び、Cookieの値をX-XSRF-TOKENヘッダーに複製して送ることでCSRF対策を行う
+        (ダブルサブミットCookie方式)。
+      responses:
+        "204":
+          description: 発行成功
+
+  /auth/password-reset/request:
+    post:
+      tags: [Auth]
+      summary: パスワードリセットメール送信依頼
+      description: >-
+        指定メールアドレス宛にリセットリンクを送信する。メールアドレスが存在しない場合も
+        同じ204を返す(アカウント列挙防止)。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetRequestRequest"
+      responses:
+        "204":
+          description: 受付成功
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /auth/password-reset/confirm:
+    post:
+      tags: [Auth]
+      summary: パスワードリセット確定
+      description: リセットリンクのトークンと新パスワードを受け取り、パスワードを更新する。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetConfirmRequest"
+      responses:
+        "204":
+          description: 更新成功
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /auth/email-verification/resend:
+    post:
+      tags: [Auth]
+      summary: メールアドレス確認メールの再送依頼
+      description: >-
+        指定メールアドレス宛に確認リンクを再送する。メールアドレスが存在しない/既に確認済みの
+        場合も同じ204を返す(アカウント列挙防止)。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailVerificationResendRequest"
+      responses:
+        "204":
+          description: 受付成功
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /auth/email-verification/confirm:
+    post:
+      tags: [Auth]
+      summary: メールアドレス確認の確定
+      description: 確認リンクのトークンを受け取り、メールアドレスを確認済みにする。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailVerificationConfirmRequest"
+      responses:
+        "204":
+          description: 確認成功
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /auth/account:
+    delete:
+      tags: [Auth]
+      summary: アカウント削除(退会)
+      description: >-
+        現在のパスワードを確認した上でアカウントと関連データ(保存済み分析・チーム所属・購読等)を
+        削除し、認証Cookieを削除する。取り消しはできない。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteAccountRequest"
+      responses:
+        "204":
+          description: 削除成功
+        "400":
+          description: 現在のパスワードが正しくない、またはバリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/account/export:
+    get:
+      tags: [Auth]
+      summary: アカウントデータのエクスポート
+      description: >-
+        個人情報保護法上の開示請求対応。プロフィール・通知設定・保存済み分析・チーム所属・
+        購読状況・レポート履歴をダウンロード可能な形式(JSON)で返す。パスワードハッシュや
+        APIキーの値そのものなど漏洩リスクのある秘匿情報は含めない。
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountDataExportResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ------------------------------------------------------------------
+  # Platforms
+  # ------------------------------------------------------------------
+  /platforms:
+    get:
+      tags: [Platforms]
+      summary: 対応プラットフォーム一覧取得
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Platform"
+
+  # ------------------------------------------------------------------
+  # Posts / Analysis
+  # ------------------------------------------------------------------
+  /posts/analyze:
+    post:
+      tags: [Posts]
+      summary: 投稿URL分析（データ取得→AI分析→BuzzScore算出→改善案生成→類似投稿提案）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzePostUrlRequest"
+      responses:
+        "201":
+          description: 分析完了（同期応答）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostAnalysisResponse"
+        "202":
+          description: 分析受付（非同期処理中。PROCESSINGステータスで返却）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostAnalysisResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "422":
+          description: 投稿が非公開・削除済みなど処理不能
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+
+  /posts/{postId}/buzz-score-history:
+    get:
+      tags: [Posts]
+      summary: 投稿のBuzzScore推移(履歴)取得。POST /posts/analyzeで再分析するたびに1件追記される
+      parameters:
+        - $ref: "#/components/parameters/PostIdPath"
+      responses:
+        "200":
+          description: 取得成功(計算日時の昇順)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BuzzScoreHistoryPoint"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /posts/{postId}/comparison:
+    get:
+      tags: [Posts]
+      summary: 投稿のBuzzScoreを「前回投稿比」「同ジャンル平均比」で相対評価する
+      parameters:
+        - $ref: "#/components/parameters/PostIdPath"
+      responses:
+        "200":
+          description: 取得成功(比較対象が無い項目はnull)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostScoreComparison"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /posts:
+    get:
+      tags: [Posts]
+      summary: 投稿検索（キーワード/ハッシュタグ/アカウント/プラットフォーム等）
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/SortParam"
+        - $ref: "#/components/parameters/QParam"
+        - $ref: "#/components/parameters/PlatformParam"
+        - $ref: "#/components/parameters/PostTypeParam"
+        - $ref: "#/components/parameters/GenreParam"
+        - $ref: "#/components/parameters/DateFromParam"
+        - $ref: "#/components/parameters/DateToParam"
+        - $ref: "#/components/parameters/MinBuzzScoreParam"
+        - $ref: "#/components/parameters/MaxBuzzScoreParam"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PageEnvelope"
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Post"
+
+  /posts/{postId}:
+    get:
+      tags: [Posts]
+      summary: 投稿詳細取得
+      parameters:
+        - $ref: "#/components/parameters/PostIdPath"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /posts/{postId}/analysis:
+    get:
+      tags: [Posts]
+      summary: 投稿のAI分析結果取得
+      parameters:
+        - $ref: "#/components/parameters/PostIdPath"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalysisResult"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /posts/{postId}/buzz-score:
+    get:
+      tags: [Posts]
+      summary: 投稿のBuzzScore内訳取得
+      parameters:
+        - $ref: "#/components/parameters/PostIdPath"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BuzzScore"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /posts/{postId}/similar:
+    get:
+      tags: [Posts]
+      summary: 類似投稿一覧取得
+      parameters:
+        - $ref: "#/components/parameters/PostIdPath"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
+
+  /posts/{postId}/normalized:
+    get:
+      tags: [Normalization]
+      summary: 正規化済み投稿データ取得（AIマーケティングOS Phase1）
+      description: >-
+        Instagram/TikTok/Xなどプラットフォームごとに異なるデータ構造を統一した NormalizedPost を返す。
+        再生数・シェア数がプラットフォーム上「公開情報として取得不可（未計測）」な場合はnullとなり、
+        unmeasuredMetricsにそのフィールド名が列挙される（推定値による穴埋めは行わない）。
+      parameters:
+        - $ref: "#/components/parameters/PostIdPath"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NormalizedPost"
+
+  /posts/{postId}/preprocessed:
+    get:
+      tags: [Preprocessing]
+      summary: AI分析用前処理結果取得（AIマーケティングOS Phase2）
+      description: >-
+        絵文字/URL/HTML除去・改行整理済みの本文、判定言語、ハッシュタグ/メンション、投稿時間解析、
+        動画時間解析、コンテンツ形式判定の結果を返す。すべて決定的なルールで導出され、AI生成値は含まない。
+      parameters:
+        - $ref: "#/components/parameters/PostIdPath"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreprocessedPost"
+
+  /posts/{postId}/embeddings/generate:
+    post:
+      tags: [Embeddings]
+      summary: 投稿のEmbedding生成（AIマーケティングOS Phase3）
+      description: >-
+        本文・ハッシュタグのEmbeddingをOpenAI Embeddings APIで生成/再生成し、pgvectorへ保存する。
+        前回生成時から本文が変わっていない対象はAPI呼び出しをスキップする（コスト削減）。
+        タイトル・コメント要約は現状データ未収集のため非対応。
+      parameters:
+        - $ref: "#/components/parameters/PostIdPath"
+      responses:
+        "200":
+          description: 実行完了
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmbeddingGenerationSummary"
+
+  /posts/{postId}/embeddings:
+    get:
+      tags: [Embeddings]
+      summary: 投稿のEmbedding一覧取得
+      parameters:
+        - $ref: "#/components/parameters/PostIdPath"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Embedding"
+
+  # ------------------------------------------------------------------
+  # Search
+  # ------------------------------------------------------------------
+  /search:
+    get:
+      tags: [Search]
+      summary: キーワード/ハッシュタグ/アカウント検索
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [keyword, hashtag, account]
+        - $ref: "#/components/parameters/QParam"
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/PlatformParam"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageEnvelope"
+
+  /search/semantic:
+    get:
+      tags: [SemanticSearch]
+      summary: 意味検索（AIマーケティングOS Phase4）
+      description: >-
+        キーワードをEmbedding化し、pgvectorのコサイン類似度が近い投稿を一致率付きで返す。
+        文字列としては一致しない意味的に近い投稿（例:「楽天カード」で「ポイ活」「SPU」等）もヒットする。
+        Phase3でBODY Embeddingが生成済みの投稿のみが検索対象。
+      parameters:
+        - name: keyword
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SemanticSearchResult"
+
+  /matching/evaluate:
+    post:
+      tags: [Matching]
+      summary: ユーザー条件と投稿の一致率算出（AIマーケティングOS Phase6）
+      description: >-
+        キーワード・商品名・ブランド・ASP案件名・ジャンル・サブジャンル・ターゲット年齢/性別・投稿形式・
+        SNS・動画時間・投稿目的を条件として、各投稿の一致率(0〜100)をStrategyパターンの重み付き平均で算出する。
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserSearchConditionRequest"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MatchRateResult"
+
+  /ranking-score/rank:
+    post:
+      tags: [RankingScore]
+      summary: 総合ランキングスコアで投稿を順位付け（AIマーケティングOS Phase7）
+      description: >-
+        Phase6の一致率に加え、既存BuzzScore・いいね率・投稿鮮度・動画時間を重み付き平均した
+        総合ランキングスコアで降順に並び替える。
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserSearchConditionRequest"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RankingScoreResult"
+
+  /commonality/analyze:
+    post:
+      tags: [Commonality]
+      summary: 投稿群の共通点分析（AIマーケティングOS Phase8）
+      description: >-
+        投稿ID配列(最大100件)から、共通ハッシュタグ/動画時間/投稿時間/コンテンツ形式(統計)と
+        共通タイトル/フック/CTA/構成/ターゲット(AI、最大30件のスニペットからサンプリング)を抽出する。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommonalityAnalysisRequest"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommonalityAnalysisResult"
+
+  /proposals/generate:
+    post:
+      tags: [Proposals]
+      summary: 投稿企画の生成（AIマーケティングOS Phase10）
+      description: >-
+        投稿ID配列(最大100件)からPhase8の共通点分析を行い、その結果を元にAIが投稿企画を
+        count件(省略時20件、上限20件)生成して永続化する。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProposalGenerationRequest"
+      responses:
+        "200":
+          description: 生成成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContentProposal"
+
+  /proposals/{generationId}:
+    get:
+      tags: [Proposals]
+      summary: 生成済み企画の取得（AIマーケティングOS Phase10）
+      description: 指定したgenerationIdで生成された企画一覧を、sequenceNumber昇順で取得する。
+      parameters:
+        - name: generationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContentProposal"
+
+  /scripts/generate:
+    post:
+      tags: [Scripts]
+      summary: 動画台本の生成（AIマーケティングOS Phase11）
+      description: >-
+        投稿企画IDと尺(30/60/90秒のいずれか)から、AIがナレーション/テロップ/BGMイメージ/CTA/
+        カット構成を生成する。AI応答のカット秒数範囲は尺を超える等の不正があれば除外し、
+        全滅時はフック20%/本編60%/CTA20%の機械的な3分割にフォールバックする。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScriptGenerationRequest"
+      responses:
+        "200":
+          description: 生成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VideoScript"
+        "400":
+          description: durationSecondsが30/60/90以外
+        "404":
+          description: 指定したproposalIdの企画が存在しない
+
+  /scripts/proposal/{proposalId}:
+    get:
+      tags: [Scripts]
+      summary: 企画に紐づく生成済み台本の取得（AIマーケティングOS Phase11）
+      description: 指定した投稿企画IDに紐づく台本一覧を取得する。
+      parameters:
+        - name: proposalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VideoScript"
+
+  /carousels/generate:
+    post:
+      tags: [Carousels]
+      summary: カルーセルの生成（AIマーケティングOS Phase12）
+      description: >-
+        投稿企画IDから、AIがInstagramカルーセル(2〜8ページ)を生成する。各ページの役割
+        (HOOK/EXPLANATION/CTA)はAIに判定させず、応答配列内の位置(先頭=HOOK、末尾=CTA、
+        それ以外=EXPLANATION)からサーバー側で機械的に決定する。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CarouselGenerationRequest"
+      responses:
+        "200":
+          description: 生成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Carousel"
+        "404":
+          description: 指定したproposalIdの企画が存在しない
+
+  /carousels/proposal/{proposalId}:
+    get:
+      tags: [Carousels]
+      summary: 企画に紐づく生成済みカルーセルの取得（AIマーケティングOS Phase12）
+      description: 指定した投稿企画IDに紐づくカルーセル一覧を取得する。
+      parameters:
+        - name: proposalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Carousel"
+
+  /image-prompts/scripts/{scriptId}:
+    post:
+      tags: [ImagePrompts]
+      summary: 動画台本からの画像生成プロンプト作成（AIマーケティングOS Phase13）
+      description: >-
+        指定した台本の各カットのvisualDirectionを元に、画像生成AI(ChatGPT Image/DALL·E等)向けの
+        プロンプト文字列を生成する。実際の画像生成は行わない(コスト・著作権上の判断)。
+      parameters:
+        - name: scriptId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 生成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImagePromptSet"
+        "404":
+          description: 指定したscriptIdの台本が存在しない
+
+  /image-prompts/carousels/{carouselId}:
+    post:
+      tags: [ImagePrompts]
+      summary: カルーセルからの画像生成プロンプト作成（AIマーケティングOS Phase13）
+      description: 指定したカルーセルの各ページのvisualDirectionを元に、画像生成プロンプトを生成する。
+      parameters:
+        - name: carouselId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 生成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImagePromptSet"
+        "404":
+          description: 指定したcarouselIdのカルーセルが存在しない
+
+  /evaluations:
+    post:
+      tags: [Evaluations]
+      summary: 投稿内容の評価（AIマーケティングOS Phase14）
+      description: >-
+        タイトル/フック/構成/CTA/ターゲットを評価する。proposalId指定時のみPhase10の元企画と
+        比較して一致率(matchRatePercent)を算出する。未指定時はnull(比較基準がないため0%とは
+        区別する)。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostEvaluationRequest"
+      responses:
+        "200":
+          description: 評価成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentEvaluation"
+        "404":
+          description: 指定したproposalIdの企画が存在しない
+
+  /evaluations/proposal/{proposalId}:
+    get:
+      tags: [Evaluations]
+      summary: 企画に紐づく評価履歴の取得（AIマーケティングOS Phase14）
+      description: 指定した投稿企画IDに紐づく評価履歴一覧を取得する。
+      parameters:
+        - name: proposalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContentEvaluation"
+
+  /rag/index:
+    post:
+      tags: [Rag]
+      summary: テキストのRAG索引登録（AIマーケティングOS Phase16）
+      description: >-
+        分析結果・評価・トレンドサマリー等のテキストを明示的にRAG検索対象として索引登録する。
+        自動索引化は行わない(索引化するかどうかは呼び出し側の判断に委ねる)。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RagIndexRequest"
+      responses:
+        "200":
+          description: 索引登録成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RagDocument"
+
+  /rag/query:
+    post:
+      tags: [Rag]
+      summary: RAG質問応答（AIマーケティングOS Phase16）
+      description: 索引済みドキュメントの中から類似度上位(既定5件、上限20件)を取得し、それらを根拠にAIが回答する。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RagQueryRequest"
+      responses:
+        "200":
+          description: 回答成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RagQueryResult"
+
+  # ------------------------------------------------------------------
+  # Social Accounts / Competitors
+  # 注記: 本セクションの/social-accounts系パスは初期設計時点の理想化されたパス構成であり、実装は
+  # /api/v1/competitors/{accountId}/stats 等の別パスを使用している(既存の乖離。Phase9で追記した
+  # /competitors/{accountId}/compare/{competitorAccountId} は実装と一致する)。
+  # ------------------------------------------------------------------
+  /competitors/{accountId}/compare/{competitorAccountId}:
+    get:
+      tags: [Competitors]
+      summary: 競合アカウントとの差分をAIが説明（AIマーケティングOS Phase9）
+      description: >-
+        自社(accountId)と競合(competitorAccountId)の統計(平均いいね/コメント/再生数/投稿頻度/
+        投稿形式分布/ジャンル分布等)を比較し、AIが差分を自然言語で説明する。
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: competitorAccountId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitorComparisonResult"
+
+  /social-accounts:
+    post:
+      tags: [SocialAccounts]
+      summary: 分析対象アカウント（競合含む）を登録
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterSocialAccountRequest"
+      responses:
+        "201":
+          description: 登録成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SocialAccount"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    get:
+      tags: [SocialAccounts]
+      summary: 登録済みアカウント一覧取得
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/PlatformParam"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PageEnvelope"
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/SocialAccount"
+
+  /social-accounts/{accountId}:
+    get:
+      tags: [SocialAccounts]
+      summary: アカウント詳細取得
+      parameters:
+        - $ref: "#/components/parameters/AccountIdPath"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SocialAccount"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [SocialAccounts]
+      summary: アカウント追跡解除
+      parameters:
+        - $ref: "#/components/parameters/AccountIdPath"
+      responses:
+        "204":
+          description: 解除成功
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /social-accounts/{accountId}/posts:
+    get:
+      tags: [SocialAccounts]
+      summary: アカウントの投稿一覧取得
+      parameters:
+        - $ref: "#/components/parameters/AccountIdPath"
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/SortParam"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PageEnvelope"
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Post"
+
+  /competitors/{accountId}/analysis:
+    get:
+      tags: [SocialAccounts]
+      summary: 競合統計取得（平均いいね数/平均コメント数/投稿頻度/平均動画時間/平均文字数など）
+      parameters:
+        - $ref: "#/components/parameters/AccountIdPath"
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [WEEKLY, MONTHLY, ALL_TIME]
+            default: WEEKLY
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitorStats"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /competitors/{accountId}/ranking:
+    get:
+      tags: [SocialAccounts]
+      summary: アカウント内の伸びる投稿ランキング取得
+      parameters:
+        - $ref: "#/components/parameters/AccountIdPath"
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PageEnvelope"
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/RankingEntry"
+
+  /competitors/compare:
+    get:
+      tags: [SocialAccounts]
+      summary: 複数アカウントの統計比較取得
+      parameters:
+        - name: accountIds
+          in: query
+          required: true
+          description: カンマ区切りのアカウントID
+          schema:
+            type: string
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [WEEKLY, MONTHLY, ALL_TIME]
+            default: WEEKLY
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CompetitorStats"
+
+  # ------------------------------------------------------------------
+  # Trends
+  # /trendsは急上昇ハッシュタグと関連投稿を都度算出して返す軽量エンドポイント(フロントエンドの
+  # トレンド画面が使用)。/trends/analyze・/trends/latestはAIサマリー付きで結果を永続化する
+  # 別実装(AIマーケティングOS Phase15)であり、互いに独立している。
+  # ------------------------------------------------------------------
+  /trends:
+    get:
+      tags: [Trends]
+      summary: 急上昇ハッシュタグ・投稿の取得
+      description: >-
+        直近7日間とその前21日間(ベースライン)の出現数比較でハッシュタグの伸び率を算出する
+        (決定的な統計計算のみ、AIは使用しない。結果は永続化しない)。platform/genre省略時は絞り込みなし。
+        genreはAI分析結果の自由記述ジャンル(日本語)とフロントエンドのジャンルコード(英大文字)の
+        両方を受け付け、内部で正規化して比較する。
+      parameters:
+        - $ref: "#/components/parameters/PlatformParam"
+        - $ref: "#/components/parameters/GenreParam"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrendResponse"
+
+  /trends/analyze:
+    post:
+      tags: [Trends]
+      summary: トレンド分析の実行（AIマーケティングOS Phase15）
+      description: >-
+        直近ウィンドウ(既定7日)とベースラインウィンドウ(既定21日)の2期間比較で、急上昇している
+        ハッシュタグ/ジャンル/コンテンツ形式を検出する(統計計算は決定的。AIはサマリー生成のみ)。
+        platform省略時は全プラットフォーム対象。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrendAnalysisRequest"
+      responses:
+        "200":
+          description: 分析成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrendReport"
+
+  /trends/latest:
+    get:
+      tags: [Trends]
+      summary: 最新トレンドレポートの取得（AIマーケティングOS Phase15）
+      description: platform省略時は全プラットフォーム対象のレポートを検索する。
+      parameters:
+        - $ref: "#/components/parameters/PlatformParam"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 5
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TrendReport"
+
+  # ------------------------------------------------------------------
+  # Rankings
+  # ------------------------------------------------------------------
+  /rankings:
+    get:
+      tags: [Rankings]
+      summary: ランキング取得（急上昇/週間/月間/ジャンル別/SNS別）
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/RankingType"
+        - $ref: "#/components/parameters/PlatformParam"
+        - $ref: "#/components/parameters/GenreParam"
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PageEnvelope"
+                  - type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/RankingEntry"
+
+  # ------------------------------------------------------------------
+  # Sync（定期データ取得バッチ / 自動化）
+  # ------------------------------------------------------------------
+  /sync/run:
+    post:
+      tags: [Sync]
+      summary: 定期データ取得バッチの即時実行（手動トリガー）
+      description: >-
+        追跡対象アカウントの最新公開投稿を各SNS公式APIから再取得し、BuzzScore再計算とランキング
+        （急上昇/週間/月間）再構築を即時実行する。cronスケジュール（batch.sync.enabled=true時）と
+        同じ処理を待たずに実行できる。
+      responses:
+        "200":
+          description: 実行完了
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncSummary"
+
+  # ------------------------------------------------------------------
+  # Reports
+  # ------------------------------------------------------------------
+  /reports/{postId}/generate:
+    post:
+      tags: [Reports]
+      summary: AIレポート生成（PDF/Markdown/HTML）
+      description: >-
+        指定した投稿の分析結果(POST /posts/analyze で事前に分析済みであること)からレポートを
+        同期的に生成し、ダウンロードURLを返す。storage.provider設定によりダウンロードURLは
+        ローカルストレージ配信URLまたはS3署名付きURLのいずれかになる。
+      parameters:
+        - $ref: "#/components/parameters/PostIdPath"
+        - name: format
+          in: query
+          required: true
+          description: 出力フォーマット (pdf|markdown|html、大文字小文字を問わない)
+          schema:
+            type: string
+            enum: [pdf, markdown, html]
+      responses:
+        "200":
+          description: 生成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /reports:
+    get:
+      tags: [Reports]
+      summary: レポート生成履歴一覧取得
+      description: ログイン中ユーザーが生成したレポートを新しい順に返す(ページングなし)。
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReportHistoryItem"
+
+  # ------------------------------------------------------------------
+  # Saved Analyses
+  # ------------------------------------------------------------------
+  /saved-analyses:
+    post:
+      tags: [SavedAnalyses]
+      summary: 分析結果を保存
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveAnalysisRequest"
+      responses:
+        "201":
+          description: 保存成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedAnalysis"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    get:
+      tags: [SavedAnalyses]
+      summary: 保存済み分析一覧取得
+      description: >-
+        ページングは無く配列をそのまま返す。各要素は投稿本体・AI分析結果・BuzzScoreを
+        合成して返す(POST /posts/analyzeのレスポンスと同じ形)。投稿が未分析の場合は
+        analysis/buzzScoreがnullになる。参照先の投稿が削除済みの場合はその要素を除外する。
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SavedAnalysis"
+
+  /saved-analyses/{savedAnalysisId}:
+    delete:
+      tags: [SavedAnalyses]
+      summary: 保存済み分析の削除
+      parameters:
+        - name: savedAnalysisId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: 削除成功
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /saved-analyses/{savedAnalysisId}/alert-threshold:
+    patch:
+      tags: [SavedAnalyses]
+      summary: BuzzScoreしきい値アラートの設定
+      description: >-
+        対象投稿のBuzzScoreがthreshold以上になった時点で1度だけメール通知する。
+        thresholdにnullを指定すると解除する。しきい値を変更すると再度アーム状態(未通知)に戻る。
+      parameters:
+        - name: savedAnalysisId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetAlertThresholdRequest"
+      responses:
+        "200":
+          description: 設定成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedAnalysis"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /saved-analyses/{id}/share:
+    post:
+      tags: [SavedAnalyses]
+      summary: 外部共有リンクの発行(既に有効なリンクがあればそれを返す)
+      description: 未ログインの外部クライアント(代理店の顧客等)が/shared/{token}経由で閲覧専用アクセスできる
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 発行成功(既存リンクがあればそれを返す)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShareLink"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [SavedAnalyses]
+      summary: 外部共有リンクの失効
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: 失効成功(元々リンクが無い場合も204)
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /shared/{token}:
+    get:
+      tags: [SharedAnalyses]
+      summary: 共有トークンから分析結果を取得(認証不要)
+      description: リンクが失効済み・存在しない場合は404。トークンの知得自体をアクセス権とみなす。
+      security: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedAnalysis"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ------------------------------------------------------------------
+  # Settings
+  # プロフィール(表示名)・通知設定・APIキーはそれぞれ独立したリソースとして分離している
+  # (表示名は既存のUser集約、通知設定/APIキーは新規のUserSettings集約が保持するため)。
+  # ------------------------------------------------------------------
+  /settings/profile:
+    get:
+      tags: [Settings]
+      summary: プロフィール取得
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileSettings"
+    put:
+      tags: [Settings]
+      summary: プロフィール更新
+      description: displayNameのみ反映する。emailはログインIDを兼ねるため不変であり、リクエストに含めても無視される。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileSettings"
+
+  /settings/notifications:
+    get:
+      tags: [Settings]
+      summary: 通知設定取得
+      description: 初回アクセス時は既定値(分析完了通知のみON)で自動作成される。
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationSettings"
+    put:
+      tags: [Settings]
+      summary: 通知設定更新
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationSettings"
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationSettings"
+
+  /settings/api-key:
+    get:
+      tags: [Settings]
+      summary: APIキー取得
+      description: 未発行の場合はapiKeyがnullで返る。
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiKeySettings"
+
+  /settings/api-key/regenerate:
+    post:
+      tags: [Settings]
+      summary: APIキー再発行
+      description: 既存のAPIキーは無効になる。
+      responses:
+        "200":
+          description: 再発行成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiKeySettings"
+
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: 通知一覧取得(直近50件、新しい順)
+      description: しきい値アラート・週次ダイジェスト等、メール通知と対になるアプリ内通知を返す。
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+
+  /notifications/unread-count:
+    get:
+      tags: [Notifications]
+      summary: 未読通知数の取得
+      description: ヘッダーのベルアイコンのバッジ表示用。
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnreadNotificationCount"
+
+  /notifications/{id}/read:
+    post:
+      tags: [Notifications]
+      summary: 通知を既読にする
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: 既読化成功
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /notifications/read-all:
+    post:
+      tags: [Notifications]
+      summary: すべての通知を既読にする
+      responses:
+        "204":
+          description: 既読化成功
+
+  /analytics/ai-improvement-rate:
+    get:
+      tags: [Analytics]
+      summary: AI提案の的中率取得
+      description: >-
+        初回分析からAIの改善提案を踏まえて再分析された投稿群のうち、実際にBuzzScoreが向上した割合を返す。
+        集計対象のサンプルが無い場合はimprovedPercentage/averageScoreDeltaがnullになる(架空の実績を返さない)。
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiImprovementRate"
+
+  /organizations:
+    post:
+      tags: [Organizations]
+      summary: "組織(チーム)の作成（改善計画No.24: マルチアカウント/チーム機能の土台）"
+      description: 作成したユーザーがOWNERとして登録される。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrganizationRequest"
+      responses:
+        "201":
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationDto"
+
+  /organizations/mine:
+    get:
+      tags: [Organizations]
+      summary: 自分が所属する組織の一覧取得
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrganizationDto"
+
+  /organizations/{organizationId}/members:
+    get:
+      tags: [Organizations]
+      summary: 組織のメンバー一覧取得
+      description: 組織に所属していれば誰でも閲覧可能。
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrganizationMemberDto"
+        "400":
+          description: 組織のメンバーではない
+    post:
+      tags: [Organizations]
+      summary: メンバーの招待
+      description: 既存の登録ユーザーをメールアドレスで指定して招待する。OWNERのみ実行可能。
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InviteMemberRequest"
+      responses:
+        "201":
+          description: 招待成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationMemberDto"
+        "400":
+          description: OWNER権限がない/招待先ユーザーが存在しない/既にメンバー
+
+  /organizations/{organizationId}/members/{userId}:
+    delete:
+      tags: [Organizations]
+      summary: メンバーの削除
+      description: OWNERのみ実行可能。組織に残る唯一のOWNERは削除できない。
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: 削除成功
+        "400":
+          description: OWNER権限がない/唯一のOWNERを削除しようとした
+
+  /organizations/{organizationId}/saved-analyses:
+    get:
+      tags: [Organizations]
+      summary: チーム内の保存済み分析一覧取得
+      description: 組織メンバー全員の保存済み分析(ブックマーク)を、誰が保存したかと合わせて返す。
+      parameters:
+        - name: organizationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TeamSavedAnalysisDto"
+
+  /billing/plans:
+    get:
+      tags: [Billing]
+      summary: プラン一覧取得
+      description: >-
+        FREE/PROの料金・1日あたりの投稿分析上限を返す(未認証で取得可能)。フロントエンドが料金を
+        独自の定数として持つと表示と実際の課金額が食い違うリスクがあるため、設定値
+        (UsageQuotaProperties/GmoPaymentProperties)を唯一の情報源として公開する。
+      security: []
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BillingPlans"
+
+  /billing/subscription:
+    get:
+      tags: [Billing]
+      summary: "現在の課金プラン取得(改善計画No.11: 無料枠/有料枠)"
+      description: アップグレード未実施のユーザーはFREEプランとして返る。
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionDto"
+
+  /billing/subscription/upgrade:
+    post:
+      tags: [Billing]
+      summary: PROプランへアップグレード
+      description: >-
+        カードトークン(決済代行事業者のクライアントサイドJSでトークン化された参照値。生のカード番号は
+        受け取らない)を指定して課金を開始する。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpgradeSubscriptionRequest"
+      responses:
+        "200":
+          description: アップグレード成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionDto"
+        "400":
+          description: 決済失敗、または既にPROプランを利用中
+
+  /billing/subscription/cancel:
+    post:
+      tags: [Billing]
+      summary: PROプランの解約
+      description: 即時にFREEプランへ戻る(猶予期間は設けない)。
+      responses:
+        "200":
+          description: 解約成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionDto"
+        "400":
+          description: PROプランを利用中でない
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    SizeParam:
+      name: size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    SortParam:
+      name: sort
+      in: query
+      description: "フィールド名,asc|desc 形式（例: buzzScore,desc）"
+      schema:
+        type: string
+    QParam:
+      name: q
+      in: query
+      schema:
+        type: string
+    PlatformParam:
+      name: platform
+      in: query
+      schema:
+        $ref: "#/components/schemas/PlatformCode"
+    PostTypeParam:
+      name: postType
+      in: query
+      schema:
+        $ref: "#/components/schemas/PostType"
+    GenreParam:
+      name: genre
+      in: query
+      schema:
+        type: string
+    DateFromParam:
+      name: dateFrom
+      in: query
+      schema:
+        type: string
+        format: date
+    DateToParam:
+      name: dateTo
+      in: query
+      schema:
+        type: string
+        format: date
+    MinBuzzScoreParam:
+      name: minBuzzScore
+      in: query
+      schema:
+        type: number
+    MaxBuzzScoreParam:
+      name: maxBuzzScore
+      in: query
+      schema:
+        type: number
+    PostIdPath:
+      name: postId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    AccountIdPath:
+      name: accountId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ReportIdPath:
+      name: reportId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: リクエスト不正
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: 未認証
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: リソースが見つからない
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Conflict:
+      description: 一意制約違反等の競合
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    TooManyRequests:
+      description: レート制限超過
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: 再試行可能までの秒数
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    BadGateway:
+      description: 外部SNS API/OpenAI APIとの連携エラー
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+        code:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              reason:
+                type: string
+
+    PageEnvelope:
+      type: object
+      properties:
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        sort:
+          type: string
+
+    PlatformCode:
+      type: string
+      enum: [INSTAGRAM, TIKTOK, X, YOUTUBE, PINTEREST, THREADS]
+
+    PostType:
+      type: string
+      enum: [REEL, IMAGE, VIDEO, CAROUSEL, TEXT]
+
+    RankingType:
+      type: string
+      enum: [TRENDING, WEEKLY, MONTHLY, GENRE, PLATFORM]
+
+    ReportFormat:
+      type: string
+      enum: [PDF, MARKDOWN, HTML]
+
+    AnalysisStatus:
+      type: string
+      enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+
+    Platform:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          $ref: "#/components/schemas/PlatformCode"
+        name:
+          type: string
+        apiProvider:
+          type: string
+        isActive:
+          type: boolean
+
+    RegisterRequest:
+      type: object
+      required: [email, password, displayName]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 100
+        displayName:
+          type: string
+          maxLength: 100
+        captchaToken:
+          type: string
+          description: >-
+            Cloudflare Turnstileウィジェットが発行するトークン。app.captcha.enabled=false
+            (既定)の環境では未指定でも登録できる。
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    AuthResponse:
+      type: object
+      description: 生のアクセス/リフレッシュトークンは含まない(HttpOnly Cookieとして別途発行される)。
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+        emailVerified:
+          type: boolean
+        accessTokenExpiresInSeconds:
+          type: integer
+          description: アクセストークン有効期限（秒）
+
+    PasswordResetRequestRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
+    PasswordResetConfirmRequest:
+      type: object
+      required: [token, newPassword]
+      properties:
+        token:
+          type: string
+        newPassword:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 100
+
+    EmailVerificationResendRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
+    EmailVerificationConfirmRequest:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+
+    DeleteAccountRequest:
+      type: object
+      description: 誤操作防止のため現在のパスワードの再入力を必須とする。
+      required: [currentPassword]
+      properties:
+        currentPassword:
+          type: string
+          format: password
+
+    AccountDataExportResponse:
+      type: object
+      description: >-
+        個人情報保護法上の開示請求対応のためのアカウントデータエクスポート。パスワードハッシュや
+        APIキーの値そのものなど、漏洩リスクのある秘匿情報は含めない。
+      properties:
+        exportedAt:
+          type: string
+          format: date-time
+        profile:
+          type: object
+          properties:
+            userId:
+              type: string
+              format: uuid
+            email:
+              type: string
+              format: email
+            displayName:
+              type: string
+            role:
+              type: string
+              enum: [USER, ADMIN]
+            emailVerified:
+              type: boolean
+            createdAt:
+              type: string
+              format: date-time
+        settings:
+          type: object
+          nullable: true
+          description: 通知設定を一度も保存していないユーザーはnull。
+          properties:
+            emailOnAnalysisComplete:
+              type: boolean
+            emailWeeklyDigest:
+              type: boolean
+            emailTrendingAlert:
+              type: boolean
+            hasApiKey:
+              type: boolean
+              description: APIキーの値自体は含めず、発行有無のみ示す。
+            apiKeyCreatedAt:
+              type: string
+              format: date-time
+              nullable: true
+        savedAnalyses:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              postId:
+                type: string
+                format: uuid
+              note:
+                type: string
+                nullable: true
+              createdAt:
+                type: string
+                format: date-time
+              alertThreshold:
+                type: number
+                format: double
+                nullable: true
+              alertTriggeredAt:
+                type: string
+                format: date-time
+                nullable: true
+        organizationMemberships:
+          type: array
+          items:
+            type: object
+            properties:
+              organizationId:
+                type: string
+                format: uuid
+              organizationName:
+                type: string
+                nullable: true
+              role:
+                type: string
+                enum: [OWNER, MEMBER]
+              joinedAt:
+                type: string
+                format: date-time
+        subscription:
+          type: object
+          nullable: true
+          description: 一度もアップグレードしていないユーザーはnull(FREE相当)。
+          properties:
+            plan:
+              type: string
+              enum: [FREE, PRO]
+            status:
+              type: string
+              enum: [ACTIVE, CANCELED]
+            currentPeriodEnd:
+              type: string
+              format: date-time
+              nullable: true
+            createdAt:
+              type: string
+              format: date-time
+        reports:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              postId:
+                type: string
+                format: uuid
+              format:
+                type: string
+                enum: [PDF, MARKDOWN, HTML]
+              title:
+                type: string
+                nullable: true
+              generatedAt:
+                type: string
+                format: date-time
+
+    Hashtag:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        normalizedName:
+          type: string
+
+    Post:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        socialAccountId:
+          type: string
+          format: uuid
+        platform:
+          $ref: "#/components/schemas/PlatformCode"
+        platformPostId:
+          type: string
+        postUrl:
+          type: string
+          format: uri
+        postType:
+          $ref: "#/components/schemas/PostType"
+        caption:
+          type: string
+        postedAt:
+          type: string
+          format: date-time
+        videoDurationSec:
+          type: integer
+          nullable: true
+        imageCount:
+          type: integer
+          nullable: true
+        likeCount:
+          type: integer
+          format: int64
+        commentCount:
+          type: integer
+          format: int64
+        viewCount:
+          type: integer
+          format: int64
+          nullable: true
+        shareCount:
+          type: integer
+          format: int64
+          nullable: true
+        engagementRate:
+          type: number
+          format: float
+          nullable: true
+        hashtags:
+          type: array
+          items:
+            type: string
+        fetchedAt:
+          type: string
+          format: date-time
+
+    NormalizedPost:
+      type: object
+      description: プラットフォーム非依存に正規化された投稿データ（AIマーケティングOS Phase1の成果物）
+      properties:
+        postId:
+          type: string
+          format: uuid
+        accountId:
+          type: string
+          format: uuid
+        platform:
+          $ref: "#/components/schemas/PlatformCode"
+        postType:
+          $ref: "#/components/schemas/PostType"
+        url:
+          type: string
+          format: uri
+        publishedAt:
+          type: string
+          format: date-time
+        authorName:
+          type: string
+        rawText:
+          type: string
+          description: キャプション/本文（未加工。絵文字・URL等の除去はPhase2で行う）
+        hashtags:
+          type: array
+          items:
+            type: string
+        likeCount:
+          type: integer
+          format: int64
+          nullable: true
+        commentCount:
+          type: integer
+          format: int64
+          nullable: true
+        viewCount:
+          type: integer
+          format: int64
+          nullable: true
+          description: 未計測（プラットフォーム上取得不可）の場合はnull。0とは区別される
+        shareCount:
+          type: integer
+          format: int64
+          nullable: true
+          description: 未計測（プラットフォーム上取得不可）の場合はnull。0とは区別される
+        videoDurationSeconds:
+          type: integer
+          nullable: true
+        mediaCount:
+          type: integer
+          description: 正規化されたメディア件数（カルーセルは画像枚数、単一メディア投稿は1）
+        hasVideo:
+          type: boolean
+        engagementRate:
+          type: number
+          format: float
+          nullable: true
+          description: 実測値のみから算出。推定値は含まない
+        postAgeInHours:
+          type: integer
+          format: int64
+        unmeasuredMetrics:
+          type: array
+          items:
+            type: string
+          description: このプラットフォーム/投稿種別では取得不可・未計測のメトリクス名（例:["viewCount"]）
+
+    PreprocessedPost:
+      type: object
+      description: AI分析用前処理を終えた投稿データ（AIマーケティングOS Phase2の成果物）。AI生成値は含まない
+      properties:
+        postId:
+          type: string
+          format: uuid
+        cleanText:
+          type: string
+          description: 絵文字・URL・HTML除去、改行整理済みの本文
+        language:
+          type: string
+          enum: [JAPANESE, ENGLISH, OTHER, UNKNOWN]
+          description: ヒューリスティック判定による言語（AIによる推定ではない）
+        hashtags:
+          type: array
+          items:
+            type: string
+        mentions:
+          type: array
+          items:
+            type: string
+        postingTime:
+          type: object
+          properties:
+            hour:
+              type: integer
+            dayOfWeek:
+              type: string
+            isWeekend:
+              type: boolean
+            timeSlot:
+              type: string
+              enum: [LATE_NIGHT, EARLY_MORNING, MORNING, AFTERNOON, EVENING, NIGHT]
+        videoDuration:
+          type: object
+          nullable: true
+          properties:
+            durationSeconds:
+              type: integer
+              nullable: true
+            category:
+              type: string
+              nullable: true
+              enum: [SHORT, MEDIUM, LONG, EXTENDED]
+        contentFormat:
+          type: string
+          enum: [SHORT_VIDEO, LONG_VIDEO, SINGLE_IMAGE, MULTI_IMAGE_CAROUSEL, TEXT_ONLY]
+
+    Embedding:
+      type: object
+      description: 投稿の特定要素(本文/ハッシュタグ等)をベクトル化した結果(AIマーケティングOS Phase3)
+      properties:
+        id:
+          type: string
+          format: uuid
+        postId:
+          type: string
+          format: uuid
+        target:
+          type: string
+          enum: [TITLE, BODY, HASHTAGS, COMMENT_SUMMARY]
+          description: TITLE/COMMENT_SUMMARYは現状生成されない(データ未収集のため)
+        vector:
+          type: array
+          items:
+            type: number
+            format: float
+        model:
+          type: string
+          description: 使用モデル名。APIキー未設定時は "stub-deterministic-v1"（実APIと判別可能な擬似ベクトル）
+        dimensions:
+          type: integer
+        generatedAt:
+          type: string
+          format: date-time
+
+    EmbeddingGenerationSummary:
+      type: object
+      properties:
+        postId:
+          type: string
+          format: uuid
+        generated:
+          type: array
+          items:
+            type: string
+            enum: [TITLE, BODY, HASHTAGS, COMMENT_SUMMARY]
+          description: 新規生成/再生成した対象
+        skipped:
+          type: array
+          items:
+            type: string
+            enum: [TITLE, BODY, HASHTAGS, COMMENT_SUMMARY]
+          description: 本文が前回生成時から未変更のためAPI呼び出しをスキップした対象
+        embeddings:
+          type: array
+          items:
+            $ref: "#/components/schemas/Embedding"
+
+    SemanticSearchResult:
+      type: object
+      description: 意味検索の1件分の結果(AIマーケティングOS Phase4)
+      properties:
+        post:
+          $ref: "#/components/schemas/Post"
+        similarity:
+          type: number
+          format: float
+          description: コサイン類似度(0.0〜1.0、1.0に近いほど類似)
+        matchRatePercent:
+          type: number
+          format: float
+          description: 一致率(0〜100にクランプ済み)
+
+    UserSearchConditionRequest:
+      type: object
+      description: ユーザー条件分析のリクエスト(AIマーケティングOS Phase6)。すべての項目は任意
+      properties:
+        keyword:
+          type: string
+        productName:
+          type: string
+        brand:
+          type: string
+        aspOfferName:
+          type: string
+        genre:
+          type: string
+        subGenre:
+          type: string
+        targetAgeRange:
+          type: string
+          example: "20代"
+        targetGender:
+          type: string
+        postFormat:
+          type: string
+          enum: [SHORT_VIDEO, LONG_VIDEO, SINGLE_IMAGE, MULTI_IMAGE_CAROUSEL, TEXT_ONLY]
+        platform:
+          $ref: "#/components/schemas/PlatformCode"
+        videoDurationSeconds:
+          type: integer
+        purpose:
+          type: string
+          example: "認知獲得"
+
+    MatchRateResult:
+      type: object
+      description: 一致率算出の1件分の結果(AIマーケティングOS Phase6)
+      properties:
+        post:
+          $ref: "#/components/schemas/Post"
+        matchRatePercent:
+          type: number
+          format: float
+        breakdown:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+          description: Strategyごとの内訳スコア(semanticSimilarity, genre, hookCtaPresence, targetAudience, postFormat, videoDuration, purpose)
+
+    RankingScoreResult:
+      type: object
+      description: 総合ランキングスコア算出の1件分の結果(AIマーケティングOS Phase7)
+      properties:
+        post:
+          $ref: "#/components/schemas/Post"
+        rankingScore:
+          type: number
+          format: float
+        matchRatePercent:
+          type: number
+          format: float
+        breakdown:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+          description: Strategyごとの内訳スコア(matchRate, buzzScore, likeRate, freshness, videoDuration)
+
+    CommonalityAnalysisRequest:
+      type: object
+      required: [postIds]
+      properties:
+        postIds:
+          type: array
+          maxItems: 100
+          items:
+            type: string
+            format: uuid
+
+    CommonalityAnalysisResult:
+      type: object
+      description: 投稿群の共通点分析結果(AIマーケティングOS Phase8)
+      properties:
+        totalPostCount:
+          type: integer
+        aiSampleSize:
+          type: integer
+          description: AIプロンプトに実際に含めたサンプル数(最大30)
+        commonHashtags:
+          type: array
+          items:
+            type: string
+        commonVideoDurationSeconds:
+          type: integer
+          nullable: true
+        commonPostingHour:
+          type: integer
+          nullable: true
+        commonContentFormat:
+          type: string
+          nullable: true
+          enum: [SHORT_VIDEO, LONG_VIDEO, SINGLE_IMAGE, MULTI_IMAGE_CAROUSEL, TEXT_ONLY]
+        commonTitlePattern:
+          type: string
+        commonHookPattern:
+          type: string
+        commonCtaPattern:
+          type: string
+        commonStructurePattern:
+          type: string
+        commonTargetPattern:
+          type: string
+
+    ProposalGenerationRequest:
+      type: object
+      required: [postIds]
+      properties:
+        postIds:
+          type: array
+          maxItems: 100
+          items:
+            type: string
+            format: uuid
+        count:
+          type: integer
+          nullable: true
+          description: 生成件数。省略時は20件、上限20件（超過分はクランプ）。
+
+    ContentProposal:
+      type: object
+      description: AIが生成した投稿企画1件（AIマーケティングOS Phase10）
+      properties:
+        id:
+          type: string
+          format: uuid
+        generationId:
+          type: string
+          format: uuid
+          description: 同一生成リクエストの企画をグルーピングするID
+        sequenceNumber:
+          type: integer
+        title:
+          type: string
+        hookPattern:
+          type: string
+          nullable: true
+        structureSummary:
+          type: string
+          nullable: true
+        callToAction:
+          type: string
+          nullable: true
+        targetAudience:
+          type: string
+          nullable: true
+        genre:
+          type: string
+          nullable: true
+        recommendedFormat:
+          type: string
+          nullable: true
+          enum: [SHORT_VIDEO, LONG_VIDEO, SINGLE_IMAGE, MULTI_IMAGE_CAROUSEL, TEXT_ONLY]
+        reasoning:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    ScriptGenerationRequest:
+      type: object
+      required: [proposalId, durationSeconds]
+      properties:
+        proposalId:
+          type: string
+          format: uuid
+        durationSeconds:
+          type: integer
+          enum: [30, 60, 90]
+
+    ScriptCut:
+      type: object
+      description: 動画台本の1カット分
+      properties:
+        cutNumber:
+          type: integer
+        startSecond:
+          type: integer
+        endSecond:
+          type: integer
+        narration:
+          type: string
+          nullable: true
+        telop:
+          type: string
+          nullable: true
+        visualDirection:
+          type: string
+          nullable: true
+
+    VideoScript:
+      type: object
+      description: AIが生成した動画台本（AIマーケティングOS Phase11）
+      properties:
+        id:
+          type: string
+          format: uuid
+        proposalId:
+          type: string
+          format: uuid
+        durationSeconds:
+          type: integer
+        bgmImage:
+          type: string
+          nullable: true
+        callToAction:
+          type: string
+          nullable: true
+        cuts:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScriptCut"
+        createdAt:
+          type: string
+          format: date-time
+
+    CarouselGenerationRequest:
+      type: object
+      required: [proposalId]
+      properties:
+        proposalId:
+          type: string
+          format: uuid
+
+    CarouselPage:
+      type: object
+      description: カルーセルの1ページ分
+      properties:
+        pageNumber:
+          type: integer
+        role:
+          type: string
+          enum: [HOOK, EXPLANATION, CTA]
+          description: サーバー側がページ位置から機械的に決定する役割
+        headline:
+          type: string
+        bodyText:
+          type: string
+          nullable: true
+        visualDirection:
+          type: string
+          nullable: true
+
+    Carousel:
+      type: object
+      description: AIが生成したInstagramカルーセル（AIマーケティングOS Phase12）
+      properties:
+        id:
+          type: string
+          format: uuid
+        proposalId:
+          type: string
+          format: uuid
+        pages:
+          type: array
+          items:
+            $ref: "#/components/schemas/CarouselPage"
+        createdAt:
+          type: string
+          format: date-time
+
+    ImagePrompt:
+      type: object
+      description: 生成元の1要素(台本カット/カルーセルページ)に対応する画像生成プロンプト1件
+      properties:
+        index:
+          type: integer
+        originalDirection:
+          type: string
+          nullable: true
+        generatedPrompt:
+          type: string
+          nullable: true
+
+    ImagePromptSet:
+      type: object
+      description: AIが生成した画像生成プロンプト一式（AIマーケティングOS Phase13）
+      properties:
+        id:
+          type: string
+          format: uuid
+        sourceType:
+          type: string
+          enum: [VIDEO_SCRIPT, CAROUSEL]
+        sourceId:
+          type: string
+          format: uuid
+        prompts:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImagePrompt"
+        createdAt:
+          type: string
+          format: date-time
+
+    PostEvaluationRequest:
+      type: object
+      required: [title]
+      properties:
+        proposalId:
+          type: string
+          format: uuid
+          nullable: true
+          description: 指定時のみ元企画との一致率を算出する
+        title:
+          type: string
+        hookText:
+          type: string
+          nullable: true
+        structureText:
+          type: string
+          nullable: true
+        ctaText:
+          type: string
+          nullable: true
+        targetAudienceText:
+          type: string
+          nullable: true
+
+    ContentEvaluation:
+      type: object
+      description: AIによる投稿内容評価結果（AIマーケティングOS Phase14）
+      properties:
+        id:
+          type: string
+          format: uuid
+        proposalId:
+          type: string
+          format: uuid
+          nullable: true
+        title:
+          type: string
+        matchRatePercent:
+          type: number
+          format: double
+          nullable: true
+          description: proposalId未指定の場合はnull（比較基準がないため0%と区別する）
+        targetAudienceEstimate:
+          type: string
+          nullable: true
+        improvementSuggestions:
+          type: array
+          items:
+            type: string
+        hookImprovement:
+          type: string
+          nullable: true
+        ctaImprovement:
+          type: string
+          nullable: true
+        predictedScore:
+          type: integer
+          description: 0〜100の予測投稿スコア（AIによる定性評価。Phase7の実測値ベースのランキングスコアとは別指標）
+        createdAt:
+          type: string
+          format: date-time
+
+    TrendAnalysisRequest:
+      type: object
+      properties:
+        platform:
+          $ref: "#/components/schemas/Platform"
+        recentWindowDays:
+          type: integer
+          nullable: true
+          description: 省略時は既定値7日
+        baselineWindowDays:
+          type: integer
+          nullable: true
+          description: 省略時は既定値21日
+
+    TrendItem:
+      type: object
+      description: トレンド分析の1項目
+      properties:
+        category:
+          type: string
+          enum: [HASHTAG, GENRE, CONTENT_FORMAT]
+        value:
+          type: string
+        recentCount:
+          type: integer
+        baselineCount:
+          type: integer
+        growthRatePercent:
+          type: number
+          format: double
+          nullable: true
+          description: baselineCountが0の場合はnull(emerging=trueとなり無限大を便宜的な数値で埋めない)
+        emerging:
+          type: boolean
+          description: ベースライン期間の出現が0件で新規急伸と判定された項目
+
+    TrendReport:
+      type: object
+      description: トレンド分析レポート（AIマーケティングOS Phase15）
+      properties:
+        id:
+          type: string
+          format: uuid
+        platform:
+          $ref: "#/components/schemas/Platform"
+        recentWindowDays:
+          type: integer
+        baselineWindowDays:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendItem"
+        aiSummary:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    TrendHashtag:
+      type: object
+      description: GET /trends が返すハッシュタグ1件分。直近7日間とベースライン21日間の比較による伸び率。
+      properties:
+        tag:
+          type: string
+        platform:
+          $ref: "#/components/schemas/Platform"
+        genre:
+          type: string
+          nullable: true
+          description: 正規化後のジャンルコード(英大文字)。該当投稿がAI分析未実施の場合はnull。
+        postCount:
+          type: integer
+          description: 直近7日間の出現件数
+        growthRate:
+          type: number
+          format: double
+          description: ベースライン比の伸び率(%)。ベースライン期間の出現が0件の場合は100に丸める。
+
+    TrendPost:
+      type: object
+      description: >-
+        GET /trends が返す投稿1件分。バックエンドは投稿者の表示名とハンドル名を区別して保持しないため
+        accountName/accountHandle は同じ値になる。thumbnailUrl/accountAvatarUrl/saveCountは
+        バックエンドで保持していないため常にnull。
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        platform:
+          $ref: "#/components/schemas/Platform"
+        genre:
+          type: string
+          nullable: true
+        accountId:
+          type: string
+          format: uuid
+        accountName:
+          type: string
+        accountHandle:
+          type: string
+        accountAvatarUrl:
+          type: string
+          nullable: true
+        thumbnailUrl:
+          type: string
+          nullable: true
+        caption:
+          type: string
+          nullable: true
+        hashtags:
+          type: array
+          items:
+            type: string
+        postedAt:
+          type: string
+          format: date-time
+          nullable: true
+        likeCount:
+          type: integer
+          format: int64
+          nullable: true
+        commentCount:
+          type: integer
+          format: int64
+          nullable: true
+        shareCount:
+          type: integer
+          format: int64
+          nullable: true
+        saveCount:
+          type: integer
+          format: int64
+          nullable: true
+        viewCount:
+          type: integer
+          format: int64
+          nullable: true
+        videoDurationSeconds:
+          type: integer
+          nullable: true
+        carouselCount:
+          type: integer
+          nullable: true
+        characterCount:
+          type: integer
+          nullable: true
+        buzzScore:
+          type: number
+          format: double
+          nullable: true
+          description: BuzzScore算出済みの場合のみ値が入る(0-100)
+
+    TrendResponse:
+      type: object
+      description: GET /trends のレスポンス全体
+      properties:
+        hashtags:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendHashtag"
+        posts:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendPost"
+
+    RagIndexRequest:
+      type: object
+      required: [sourceType, contentText]
+      properties:
+        sourceType:
+          type: string
+          enum: [ANALYSIS_RESULT, EVALUATION, TREND_REPORT, PROPOSAL, OTHER]
+        sourceId:
+          type: string
+          format: uuid
+          nullable: true
+        contentText:
+          type: string
+
+    RagDocument:
+      type: object
+      description: RAG索引化された1件のテキストドキュメント（AIマーケティングOS Phase16）
+      properties:
+        id:
+          type: string
+          format: uuid
+        sourceType:
+          type: string
+          enum: [ANALYSIS_RESULT, EVALUATION, TREND_REPORT, PROPOSAL, OTHER]
+        sourceId:
+          type: string
+          format: uuid
+          nullable: true
+        contentText:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    RagQueryRequest:
+      type: object
+      required: [question]
+      properties:
+        question:
+          type: string
+        topK:
+          type: integer
+          nullable: true
+          description: 省略時は既定値5、上限20
+
+    RagQueryResult:
+      type: object
+      properties:
+        answer:
+          type: string
+        sources:
+          type: array
+          description: 回答生成の根拠として取得したドキュメント一覧（類似度降順）
+          items:
+            $ref: "#/components/schemas/RagDocument"
+
+    CompetitorStatsPhase9:
+      type: object
+      description: アカウント単位の集計統計(AIマーケティングOS Phase9で拡張)
+      properties:
+        socialAccountId:
+          type: string
+          format: uuid
+        averageLikeCount:
+          type: number
+          format: float
+        averageCommentCount:
+          type: number
+          format: float
+        postingFrequencyPerWeek:
+          type: number
+          format: float
+        averageViewCount:
+          type: number
+          format: float
+          nullable: true
+          description: 再生数が未計測の投稿は集計から除外(0とは区別される)
+        postFormatDistribution:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+        genreDistribution:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+          description: Phase5で分析済みの投稿のみを対象に集計(未分析投稿は除外)
+
+    CompetitorComparisonResult:
+      type: object
+      description: 競合比較結果(AIマーケティングOS Phase9)
+      properties:
+        target:
+          $ref: "#/components/schemas/CompetitorStatsPhase9"
+        competitor:
+          $ref: "#/components/schemas/CompetitorStatsPhase9"
+        aiExplanation:
+          type: string
+
+    AnalyzePostUrlRequest:
+      type: object
+      required: [postUrl]
+      properties:
+        postUrl:
+          type: string
+          format: uri
+          example: "https://www.instagram.com/reel/Cxxxxxxxxxx/"
+
+    SentimentAnalysis:
+      type: object
+      properties:
+        primaryEmotion:
+          type: string
+        score:
+          type: number
+          format: float
+
+    ImprovementSuggestion:
+      type: object
+      properties:
+        title:
+          type: string
+        detail:
+          type: string
+
+    AnalysisResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        postId:
+          type: string
+          format: uuid
+        aiModel:
+          type: string
+        status:
+          $ref: "#/components/schemas/AnalysisStatus"
+        summary:
+          type: string
+        targetAudience:
+          type: string
+        hookAnalysis:
+          type: string
+        ctaAnalysis:
+          type: string
+        sentimentAnalysis:
+          $ref: "#/components/schemas/SentimentAnalysis"
+        videoStructureAnalysis:
+          type: object
+          additionalProperties: true
+        carouselStructureAnalysis:
+          type: object
+          additionalProperties: true
+        titleAnalysis:
+          type: string
+        textAnalysis:
+          type: string
+        postingTimeAnalysis:
+          type: string
+        hashtagAnalysis:
+          type: object
+          additionalProperties: true
+        improvementSuggestions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImprovementSuggestion"
+        similarPosts:
+          type: array
+          items:
+            type: string
+            format: uuid
+        createdAt:
+          type: string
+          format: date-time
+
+    BuzzScoreHistoryPoint:
+      type: object
+      properties:
+        calculatedAt:
+          type: string
+          format: date-time
+        totalScore:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+
+    PostScoreComparison:
+      type: object
+      properties:
+        previousPostScore:
+          type: number
+          format: float
+          nullable: true
+          description: 同一アカウントの直前投稿のBuzzScore(比較対象が無い場合null)
+        genreAverageScore:
+          type: number
+          format: float
+          nullable: true
+          description: 正規化後ジャンルが一致する直近投稿群の平均BuzzScore(比較対象が無い場合null)
+        genreSampleSize:
+          type: integer
+          description: genreAverageScoreの算出に使用した投稿数
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [THRESHOLD_ALERT, WEEKLY_DIGEST]
+        title:
+          type: string
+        body:
+          type: string
+        link:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        unread:
+          type: boolean
+
+    UnreadNotificationCount:
+      type: object
+      properties:
+        count:
+          type: integer
+
+    AiImprovementRate:
+      type: object
+      properties:
+        sampleSize:
+          type: integer
+          description: 集計対象(2回以上再分析された投稿)の件数
+        improvedPercentage:
+          type: number
+          format: float
+          nullable: true
+          description: 初回analyzeより最新のBuzzScoreが高かった投稿の割合(0〜100、サンプル無しならnull)
+        averageScoreDelta:
+          type: number
+          format: float
+          nullable: true
+          description: 初回から最新までのBuzzScore変化量の平均(サンプル無しならnull)
+
+    BuzzScore:
+      type: object
+      properties:
+        postId:
+          type: string
+          format: uuid
+        analysisResultId:
+          type: string
+          format: uuid
+        totalScore:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        engagementScore:
+          type: number
+          format: float
+        viewScore:
+          type: number
+          format: float
+        commentRateScore:
+          type: number
+          format: float
+        formatScore:
+          type: number
+          format: float
+        hashtagScore:
+          type: number
+          format: float
+        postingTimeScore:
+          type: number
+          format: float
+        textStructureScore:
+          type: number
+          format: float
+        aiInsightScore:
+          type: number
+          format: float
+        strategyVersion:
+          type: string
+        calculatedAt:
+          type: string
+          format: date-time
+
+    PostAnalysisResponse:
+      type: object
+      properties:
+        post:
+          $ref: "#/components/schemas/Post"
+        analysisResult:
+          $ref: "#/components/schemas/AnalysisResult"
+        buzzScore:
+          $ref: "#/components/schemas/BuzzScore"
+
+    SocialAccount:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        platform:
+          $ref: "#/components/schemas/PlatformCode"
+        platformAccountId:
+          type: string
+        username:
+          type: string
+        displayName:
+          type: string
+        profileUrl:
+          type: string
+          format: uri
+        avatarUrl:
+          type: string
+          format: uri
+        followerCount:
+          type: integer
+          format: int64
+          nullable: true
+        genre:
+          type: string
+          nullable: true
+        isTracked:
+          type: boolean
+        firstTrackedAt:
+          type: string
+          format: date-time
+
+    RegisterSocialAccountRequest:
+      type: object
+      required: [platform, username]
+      properties:
+        platform:
+          $ref: "#/components/schemas/PlatformCode"
+        username:
+          type: string
+        genre:
+          type: string
+
+    CompetitorStats:
+      type: object
+      properties:
+        socialAccount:
+          $ref: "#/components/schemas/SocialAccount"
+        periodType:
+          type: string
+          enum: [WEEKLY, MONTHLY, ALL_TIME]
+        periodStart:
+          type: string
+          format: date
+        periodEnd:
+          type: string
+          format: date
+        postCount:
+          type: integer
+        avgLikeCount:
+          type: number
+          format: float
+        avgCommentCount:
+          type: number
+          format: float
+        avgViewCount:
+          type: number
+          format: float
+        postingFrequencyPerWeek:
+          type: number
+          format: float
+        avgVideoDurationSec:
+          type: number
+          format: float
+        avgCaptionLength:
+          type: number
+          format: float
+        dominantPostType:
+          $ref: "#/components/schemas/PostType"
+        dominantGenre:
+          type: string
+        topPostingHour:
+          type: integer
+          minimum: 0
+          maximum: 23
+
+    RankingEntry:
+      type: object
+      properties:
+        rankPosition:
+          type: integer
+        score:
+          type: number
+          format: float
+        post:
+          $ref: "#/components/schemas/Post"
+
+    SyncSummary:
+      type: object
+      description: 定期データ取得バッチ1回分の実行結果サマリー
+      properties:
+        trackedAccountCount:
+          type: integer
+          description: 追跡対象として処理したアカウント数
+        syncedPostCount:
+          type: integer
+          description: 新規作成または更新した投稿数
+        updatedRankingCount:
+          type: integer
+          description: 再計算して保存したランキングエントリ数
+        accountErrors:
+          type: array
+          items:
+            type: string
+          description: アカウント単位で発生したエラーメッセージ（他アカウントの処理は継続する）
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+
+    Report:
+      type: object
+      description: POST /reports/{postId}/generate のレスポンス(生成は常に同期完了)
+      properties:
+        id:
+          type: string
+          format: uuid
+        postId:
+          type: string
+          format: uuid
+        format:
+          $ref: "#/components/schemas/ReportFormat"
+        title:
+          type: string
+        contentSizeBytes:
+          type: integer
+          format: int64
+        downloadUrl:
+          type: string
+          format: uri
+          description: >-
+            ローカルストレージ配信URL、またはS3署名付きURL(storage.provider設定による)。
+            いずれも認証不要でアクセスできる(URLの知得自体をアクセス権とみなす)。
+        generatedAt:
+          type: string
+          format: date-time
+
+    ReportHistoryItem:
+      type: object
+      description: GET /reports の1件分
+      properties:
+        reportId:
+          type: string
+          format: uuid
+        postId:
+          type: string
+          format: uuid
+        postCaption:
+          type: string
+          nullable: true
+          description: 生成元投稿のキャプション。投稿が削除済みの場合はnull。
+        format:
+          $ref: "#/components/schemas/ReportFormat"
+        createdAt:
+          type: string
+          format: date-time
+        downloadUrl:
+          type: string
+          format: uri
+
+    SaveAnalysisRequest:
+      type: object
+      required: [postId]
+      properties:
+        postId:
+          type: string
+          format: uuid
+        note:
+          type: string
+          maxLength: 1000
+
+    SavedAnalysis:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        note:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        post:
+          $ref: "#/components/schemas/Post"
+        analysis:
+          allOf:
+            - $ref: "#/components/schemas/AnalysisResult"
+          nullable: true
+        buzzScore:
+          allOf:
+            - $ref: "#/components/schemas/BuzzScore"
+          nullable: true
+        alertThreshold:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          nullable: true
+        alertTriggeredAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    ShareLink:
+      type: object
+      properties:
+        token:
+          type: string
+          format: uuid
+          description: /shared/{token}の形でそのまま公開URLに使う
+        createdAt:
+          type: string
+          format: date-time
+
+    SetAlertThresholdRequest:
+      type: object
+      properties:
+        threshold:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          nullable: true
+
+    ProfileSettings:
+      type: object
+      properties:
+        displayName:
+          type: string
+          nullable: true
+        email:
+          type: string
+          format: email
+
+    UpdateProfileRequest:
+      type: object
+      required: [displayName]
+      properties:
+        displayName:
+          type: string
+        email:
+          type: string
+          format: email
+          description: 互換のため受け付けるが無視される(emailはログインIDを兼ねるため不変)。
+
+    NotificationSettings:
+      type: object
+      properties:
+        emailOnAnalysisComplete:
+          type: boolean
+          description: 投稿分析が完了したときにメール通知する
+        emailWeeklyDigest:
+          type: boolean
+          description: 週間ランキングのサマリーをメールで受け取る
+        emailTrendingAlert:
+          type: boolean
+          description: 急上昇アラートをメールで受け取る
+        slackWebhookUrl:
+          type: string
+          nullable: true
+          description: 設定するとアプリ内通知作成時に同内容をSlack Incoming Webhookへも送信する(空/未設定でSlack連携を無効化)
+
+    ApiKeySettings:
+      type: object
+      properties:
+        apiKey:
+          type: string
+          nullable: true
+          description: 未発行の場合はnull
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    CreateOrganizationRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 200
+
+    OrganizationDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        myRole:
+          type: string
+          enum: [OWNER, MEMBER]
+
+    InviteMemberRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
+    OrganizationMemberDto:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+        role:
+          type: string
+          enum: [OWNER, MEMBER]
+        joinedAt:
+          type: string
+          format: date-time
+
+    TeamSavedAnalysisDto:
+      type: object
+      properties:
+        savedAnalysis:
+          $ref: "#/components/schemas/SavedAnalysis"
+        savedByUserId:
+          type: string
+          format: uuid
+        savedByDisplayName:
+          type: string
+
+    UpgradeSubscriptionRequest:
+      type: object
+      required: [cardToken]
+      properties:
+        cardToken:
+          type: string
+          description: >-
+            決済代行事業者のクライアントサイドJS(GMOの場合TokenObject.js)でトークン化されたカード情報の
+            参照値。生のカード番号ではない。
+
+    BillingPlans:
+      type: object
+      properties:
+        free:
+          $ref: "#/components/schemas/PlanInfo"
+        pro:
+          $ref: "#/components/schemas/PlanInfo"
+
+    PlanInfo:
+      type: object
+      properties:
+        planId:
+          type: string
+          enum: [FREE, PRO]
+        monthlyAmountYen:
+          type: integer
+          format: int32
+          description: 月額料金(円)。FREEは0
+        dailyAnalysisLimit:
+          type: integer
+          format: int32
+          description: 1日あたりの投稿分析(OpenAI呼び出しを伴う)回数の上限
+
+    SubscriptionDto:
+      type: object
+      properties:
+        plan:
+          type: string
+          enum: [FREE, PRO]
+        status:
+          type: string
+          enum: [ACTIVE, CANCELED]
+        currentPeriodEnd:
+          type: string
+          format: date-time
+          nullable: true
+          description: FREEプランの場合はnull
+        dailyAnalysisLimit:
+          type: integer
+          format: int32
+          description: 1日あたりの投稿分析(OpenAI呼び出しを伴う)回数の上限
