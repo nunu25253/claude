@@ -27,6 +27,12 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
 
+# FastAPIの`Depends(...)`はデフォルト引数に書くのが公式の作法だが、B008は
+# 「デフォルト引数で関数呼び出しするな」を指摘してしまう。FastAPI公式が推奨する
+# 回避策として、この2つの呼び出しだけをイミュータブル扱いにする。
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query"]
+
 [tool.mypy]
 python_version = "3.12"
 disallow_untyped_defs = true

@@ -1,13 +1,42 @@
 # PROGRESS
 
 ## 現在地
-- 完了済み: Phase 0, 1, 2
-- 次: Phase 3
+- 完了済み: Phase 0, 1, 2, 3
+- 次: Phase 4
 
 ## 将来メモ(スコープ外の提案置き場)
 - (まだなし)
 
 ## ログ
+
+### 2026-07-26 Phase 3 完了
+- 完了: `models/db.py`(generations/proposals/favoritesテーブル+セッション)、
+  `api/deps.py`(get_settings/get_db/get_provider/get_cost_guard/get_cache/
+  get_design_service)、`api/errors.py`(§8共通エラーフォーマット+例外ハンドラ)、
+  `api/routes_designs.py`(generate/history)、`api/routes_favorites.py`、
+  `api/routes_stats.py`、`design_service.py`への保存処理(`_persist`)、
+  `main.py`でのルーター・DB・例外ハンドラ配線を実装。test_api_designs /
+  test_api_favoritesを追加(計49テスト、アプリ全体でカバレッジ100%)。
+- 未解決: なし。画像(SVG)ルートはPhase 4でimage_service.pyと合わせて追加する。
+- 判断と理由:
+  1. `create_app(settings: Settings | None = None)`のように引数でSettingsを
+     受け取れるようにした。テストごとにインメモリDB(`sqlite:///:memory:`)や
+     予算上限を差し替えられないと、429テストや履歴テストが他のテストと
+     状態を共有してしまうため。
+  2. `DesignService.generate()`に`db: Session | None = None`を追加した
+     (キーワード引数でデフォルトNone)。Phase 1/2の呼び出し(`service.generate(request)`)
+     を壊さずに、Phase 3のAPI層だけがDB保存を行えるようにするため。
+  3. `GET /api/favorites`・`POST /api/favorites`は`proposals`テーブルを
+     参照してproposal_idの実在確認をする。存在しないIDへのお気に入り登録は
+     404(not_found)にした(仕様に明記はないが、外部キーの整合性を守るため)。
+  4. SQLiteの`:memory:`はテストのたびに`StaticPool`を使い、同一接続を
+     使い回すことで複数リクエスト間でテーブル内容が消えないようにした。
+     本番用のファイルDB(`data/nailmuse.db`)では通常のプールを使う。
+  5. FastAPI公式が推奨する`ruff`のB008回避策(`extend-immutable-calls`)を
+     pyproject.tomlに追加し、`Depends(...)`をデフォルト引数に書けるようにした。
+  6. mock_providerのパレット生成で、派生色が偶然重複した場合は明度変化の
+     向きを反転させる小さな改善を行った(Phase 1のバグ、テストは影響なし)。
+
 
 ### 2026-07-26 Phase 2 完了
 - 完了: `core/security.py`(sanitize_free_text / SUSPICIOUS_PATTERNS)、

@@ -1,8 +1,8 @@
 """デザイン生成パイプライン(§6.4のキャッシュキー生成+全体フロー)。
 
 パイプライン: sanitize_free_text → キャッシュキー生成 → キャッシュ照会 →
-(ミス時のみ)CostGuard経由でProviderを呼ぶ。Phase 2時点ではDB保存を行わず、
-キャッシュが唯一の保存先(永続化はPhase 3で`app.models.db`を使って追加する)。
+(ミス時のみ)CostGuard経由でProviderを呼ぶ → (ミス時のみ)DBへ保存。
+キャッシュヒット時はDBへ書き込まない(§7: 保存済みを再利用し、新規保存しない)。
 """
 
 import hashlib
@@ -10,10 +10,14 @@ import json
 import re
 import uuid
 from dataclasses import dataclass
+from datetime import UTC, datetime
+
+from sqlalchemy.orm import Session
 
 from app.core.cache import LRUTTLCache
 from app.core.cost_guard import CostGuard
 from app.core.security import sanitize_free_text
+from app.models.db import GenerationRow, ProposalRow
 from app.models.domain import DesignProposal, DesignRequest
 from app.providers.base import AIProvider
 
@@ -99,8 +103,13 @@ class DesignService:
         self._cost_guard = cost_guard
         self._cache = cache
 
-    def generate(self, request: DesignRequest) -> GenerationResult:
-        """条件からデザイン提案を得る。キャッシュヒット時はProviderを呼ばない。"""
+    def generate(self, request: DesignRequest, db: Session | None = None) -> GenerationResult:
+        """条件からデザイン提案を得る。キャッシュヒット時はProviderもDBも呼ばない。
+
+        `db`はPhase 3のAPI層からのみ渡される想定(Phase 1/2のテストはDBを
+        持たないため省略可能にしている)。渡された場合のみ、キャッシュミス時
+        に限ってgenerations/proposalsを保存する(§7)。
+        """
         sanitized_free_text = sanitize_free_text(request.free_text) if request.free_text else None
         cache_key = build_cache_key(request, sanitized_free_text)
 
@@ -120,4 +129,33 @@ class DesignService:
             generation_id=str(uuid.uuid4()), cache_hit=False, proposals=proposals
         )
         self._cache.set(cache_key, result)
+        if db is not None:
+            self._persist(db, result, cache_key, sanitized_request)
         return result
+
+    @staticmethod
+    def _persist(
+        db: Session, result: GenerationResult, cache_key: str, request: DesignRequest
+    ) -> None:
+        """キャッシュミス時のみ呼ばれる。generations+proposalsをDBへ保存する(§7)。"""
+        db.add(
+            GenerationRow(
+                id=result.generation_id,
+                request_json=request.model_dump_json(),
+                cache_key=cache_key,
+                created_at=datetime.now(UTC),
+            )
+        )
+        for sort_order, proposal in enumerate(result.proposals):
+            db.add(
+                ProposalRow(
+                    id=proposal.id,
+                    generation_id=result.generation_id,
+                    title=proposal.title,
+                    concept=proposal.concept,
+                    palette_json=json.dumps(proposal.palette, ensure_ascii=False),
+                    points_json=json.dumps(proposal.points, ensure_ascii=False),
+                    sort_order=sort_order,
+                )
+            )
+        db.commit()

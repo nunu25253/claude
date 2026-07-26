@@ -280,5 +280,10 @@ class MockAIProvider:
         for _ in range(add_count):
             source = rng.choice(palette)
             delta = rng.choice((-_LIGHTNESS_DELTA, _LIGHTNESS_DELTA))
-            palette.append(_shift_lightness(source, delta))
+            candidate = _shift_lightness(source, delta)
+            if candidate in palette:
+                # 同じ派生色が重複しそうな場合は、明度変化の向きを反転してみる
+                # (それでも重複するなら諦めてそのまま採用する)。
+                candidate = _shift_lightness(source, -delta)
+            palette.append(candidate)
         return palette

@@ -2,20 +2,54 @@
 
 `create_app()` をファクトリ関数にしているのは、テスト側で毎回新しいアプリ
 インスタンス(独立した app.state)を作れるようにするため。モジュール直下に
-`app = FastAPI()` を置くとテスト間で状態(キャッシュ・DB接続等)が漏れてしまう。
+`app = FastAPI()` を置くとテスト間で状態(キャッシュ・DB接続・CostGuardの
+1日カウンタ等)が漏れてしまう。
 """
 
 from fastapi import FastAPI
 
+from app.api import routes_designs, routes_favorites, routes_stats
+from app.api.errors import register_exception_handlers
+from app.config import Settings
+from app.core.cache import LRUTTLCache
+from app.core.cost_guard import BudgetPolicy, CostGuard
+from app.models.db import create_session_factory
+from app.services.design_service import GenerationResult
 
-def create_app() -> FastAPI:
-    """NailMuseのFastAPIアプリケーションを構築する。"""
+
+def create_app(settings: Settings | None = None) -> FastAPI:
+    """NailMuseのFastAPIアプリケーションを構築する。
+
+    `settings`を引数で受け取れるようにしているのは、テストで予算上限や
+    DATABASE_URL(インメモリDBにする等)を差し替えられるようにするため。
+    共有インスタンス(DBセッションファクトリ・CostGuard・キャッシュ)は
+    グローバル変数ではなく`app.state`に載せ、DI経由で各ルートに渡す(§4)。
+    """
     app = FastAPI(title="NailMuse")
+    app.state.settings = settings or Settings()
+
+    app.state.session_factory = create_session_factory(app.state.settings.database_url)
+    app.state.cost_guard = CostGuard(
+        BudgetPolicy(
+            max_calls_per_day=app.state.settings.budget_max_calls_per_day,
+            max_cost_usd_per_day=app.state.settings.budget_max_cost_usd_per_day,
+        )
+    )
+    app.state.cache = LRUTTLCache[GenerationResult](
+        max_size=app.state.settings.cache_max_size,
+        ttl_seconds=app.state.settings.cache_ttl_seconds,
+    )
 
     @app.get("/health")
     def health() -> dict[str, str]:
         """ヘルスチェック用エンドポイント。"""
         return {"status": "ok"}
 
-    # NOTE: 静的配信・APIルーター登録・例外ハンドラ登録は Phase 3/4 で追加する。
+    app.include_router(routes_designs.router)
+    app.include_router(routes_favorites.router)
+    app.include_router(routes_stats.router)
+
+    register_exception_handlers(app)
+
+    # NOTE: 静的配信(フロントエンド)はPhase 4で追加する。
     return app
