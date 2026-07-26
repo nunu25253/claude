@@ -10,6 +10,7 @@ import { OverviewSection } from "./overview-section";
 import { InsightListCard } from "./insight-list-card";
 import { SimilarPostsSection } from "./similar-posts-section";
 import { BuzzScoreHistorySection } from "./buzz-score-history-section";
+import { ScoreComparisonSection } from "./score-comparison-section";
 
 export function AnalysisResult({
   result,
@@ -55,6 +56,9 @@ export function AnalysisResult({
 
       {/* 概要 + BuzzScore */}
       <OverviewSection post={post} buzzScore={buzzScore} />
+
+      {/* 前回投稿比・同ジャンル平均比(比較対象があれば表示) */}
+      <ScoreComparisonSection postId={post.id} currentScore={buzzScore.totalScore} />
 
       {/* BuzzScore推移(2回目以降の再分析があれば表示) */}
       <BuzzScoreHistorySection postId={post.id} />

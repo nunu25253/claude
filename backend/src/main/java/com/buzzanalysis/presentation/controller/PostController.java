@@ -2,10 +2,12 @@ package com.buzzanalysis.presentation.controller;
 
 import com.buzzanalysis.application.post.BuzzScoreHistoryApplicationService;
 import com.buzzanalysis.application.post.PostAnalysisApplicationService;
+import com.buzzanalysis.application.post.PostScoreComparisonApplicationService;
 import com.buzzanalysis.application.post.PostSearchApplicationService;
 import com.buzzanalysis.application.post.dto.AnalyzePostCommand;
 import com.buzzanalysis.application.post.dto.AnalyzePostResult;
 import com.buzzanalysis.application.post.dto.BuzzScoreHistoryPointDto;
+import com.buzzanalysis.application.post.dto.PostScoreComparisonDto;
 import com.buzzanalysis.application.post.dto.PostSearchQuery;
 import com.buzzanalysis.application.post.dto.PostSearchResultDto;
 import com.buzzanalysis.domain.platform.Platform;
@@ -39,13 +41,16 @@ public class PostController {
     private final PostAnalysisApplicationService postAnalysisApplicationService;
     private final PostSearchApplicationService postSearchApplicationService;
     private final BuzzScoreHistoryApplicationService buzzScoreHistoryApplicationService;
+    private final PostScoreComparisonApplicationService postScoreComparisonApplicationService;
 
     public PostController(PostAnalysisApplicationService postAnalysisApplicationService,
                            PostSearchApplicationService postSearchApplicationService,
-                           BuzzScoreHistoryApplicationService buzzScoreHistoryApplicationService) {
+                           BuzzScoreHistoryApplicationService buzzScoreHistoryApplicationService,
+                           PostScoreComparisonApplicationService postScoreComparisonApplicationService) {
         this.postAnalysisApplicationService = postAnalysisApplicationService;
         this.postSearchApplicationService = postSearchApplicationService;
         this.buzzScoreHistoryApplicationService = buzzScoreHistoryApplicationService;
+        this.postScoreComparisonApplicationService = postScoreComparisonApplicationService;
     }
 
     @Operation(summary = "投稿URL分析",
@@ -79,5 +84,13 @@ public class PostController {
     @GetMapping("/{postId}/buzz-score-history")
     public ResponseEntity<List<BuzzScoreHistoryPointDto>> buzzScoreHistory(@PathVariable UUID postId) {
         return ResponseEntity.ok(buzzScoreHistoryApplicationService.getHistory(postId));
+    }
+
+    @Operation(summary = "投稿分析結果の相対評価",
+            description = "同一アカウントの直前投稿比・同一プラットフォーム内の同ジャンル平均比を返す。"
+                    + "比較対象が無い場合は該当フィールドがnullになる")
+    @GetMapping("/{postId}/comparison")
+    public ResponseEntity<PostScoreComparisonDto> comparison(@PathVariable UUID postId) {
+        return ResponseEntity.ok(postScoreComparisonApplicationService.compare(postId));
     }
 }

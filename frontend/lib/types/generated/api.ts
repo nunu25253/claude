@@ -912,6 +912,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/posts/{postId}/comparison": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 投稿分析結果の相対評価
+         * @description 同一アカウントの直前投稿比・同一プラットフォーム内の同ジャンル平均比を返す。比較対象が無い場合は該当フィールドがnullになる
+         */
+        get: operations["comparison"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/posts/{postId}/buzz-score-history": {
         parameters: {
             query?: never;
@@ -1797,6 +1817,14 @@ export interface components {
             /** Format: int64 */
             postAgeInHours?: number;
             unmeasuredMetrics?: string[];
+        };
+        PostScoreComparisonDto: {
+            /** Format: double */
+            previousPostScore?: number;
+            /** Format: double */
+            genreAverageScore?: number;
+            /** Format: int32 */
+            genreSampleSize?: number;
         };
         BuzzScoreHistoryPointDto: {
             /** Format: date-time */
@@ -3087,6 +3115,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["EmbeddingDto"][];
+                };
+            };
+        };
+    };
+    comparison: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                postId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PostScoreComparisonDto"];
                 };
             };
         };

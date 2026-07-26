@@ -5,6 +5,7 @@ import type {
   BuzzScoreHistoryPoint,
   Page,
   Post,
+  PostScoreComparison,
   PostSearchParams,
 } from "../types";
 
@@ -17,4 +18,7 @@ export const postsApi = {
 
   buzzScoreHistory: (postId: string) =>
     apiClient.get<BuzzScoreHistoryPoint[]>(`/posts/${postId}/buzz-score-history`),
+
+  scoreComparison: (postId: string) =>
+    apiClient.get<PostScoreComparison>(`/posts/${postId}/comparison`),
 };

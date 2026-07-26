@@ -80,6 +80,14 @@ export interface AnalyzePostResponse {
 // BuzzScore推移(履歴)の1点分。生成された型を一次ソースとし、実際には必ず値が入る前提でRequiredを被せる。
 export type BuzzScoreHistoryPoint = Required<components["schemas"]["BuzzScoreHistoryPointDto"]>;
 
+// 投稿分析結果の相対評価(前回投稿比・同ジャンル平均比)。比較対象が無い場合はnullになりうるため
+// (未検知=null)、生成された型のoptionalではなく明示的にnullableとして定義する。
+export interface PostScoreComparison {
+  previousPostScore: number | null;
+  genreAverageScore: number | null;
+  genreSampleSize: number;
+}
+
 export interface PostSearchParams {
   keyword?: string;
   hashtag?: string;

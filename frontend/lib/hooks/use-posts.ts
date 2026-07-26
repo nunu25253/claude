@@ -23,3 +23,11 @@ export function useBuzzScoreHistory(postId: string, enabled = true) {
     enabled,
   });
 }
+
+export function useScoreComparison(postId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["posts", postId, "comparison"],
+    queryFn: () => postsApi.scoreComparison(postId),
+    enabled,
+  });
+}
