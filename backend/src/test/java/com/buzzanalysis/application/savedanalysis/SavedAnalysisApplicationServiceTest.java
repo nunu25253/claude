@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -45,6 +46,8 @@ class SavedAnalysisApplicationServiceTest {
     private AnalysisResultRepository analysisResultRepository;
     @Mock
     private BuzzScoreRepository buzzScoreRepository;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     private SavedAnalysisApplicationService service;
     private UUID userId;
@@ -54,7 +57,7 @@ class SavedAnalysisApplicationServiceTest {
     @BeforeEach
     void setUp() {
         service = new SavedAnalysisApplicationService(savedAnalysisRepository, postRepository,
-                analysisResultRepository, buzzScoreRepository);
+                analysisResultRepository, buzzScoreRepository, eventPublisher);
 
         userId = UUID.randomUUID();
         postId = UUID.randomUUID();
@@ -143,6 +146,22 @@ class SavedAnalysisApplicationServiceTest {
 
         assertThat(result.post().id()).isEqualTo(postId);
         assertThat(result.note()).isEqualTo("memo");
+    }
+
+    @Test
+    void save_publishesSavedAnalysisCreatedEvent_forRagIndexing() {
+        when(postRepository.findById(postId)).thenReturn(Optional.of(existingPost));
+        when(savedAnalysisRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(analysisResultRepository.findByPostId(postId)).thenReturn(Optional.empty());
+        when(buzzScoreRepository.findByPostId(postId)).thenReturn(Optional.empty());
+
+        service.save(new SaveAnalysisCommand(userId, postId, "memo"));
+
+        org.mockito.ArgumentCaptor<com.buzzanalysis.domain.savedanalysis.SavedAnalysisCreatedEvent> captor =
+                org.mockito.ArgumentCaptor.forClass(com.buzzanalysis.domain.savedanalysis.SavedAnalysisCreatedEvent.class);
+        org.mockito.Mockito.verify(eventPublisher).publishEvent(captor.capture());
+        assertThat(captor.getValue().getUserId()).isEqualTo(userId);
+        assertThat(captor.getValue().getPostId()).isEqualTo(postId);
     }
 
     @Test

@@ -9,13 +9,14 @@ import org.springframework.stereotype.Component;
 public class RagDocumentMapper {
 
     public RagDocumentEntity toEntity(RagDocument d) {
-        return new RagDocumentEntity(d.getId(), d.getSourceType(), d.getSourceId(), d.getContentText(),
+        return new RagDocumentEntity(d.getId(), d.getUserId(), d.getSourceType(), d.getSourceId(), d.getContentText(),
                 d.getVector(), d.getModel(), d.getDimensions(), d.getCreatedAt());
     }
 
     public RagDocument toDomain(RagDocumentEntity entity) {
         return RagDocument.builder()
                 .id(entity.getId())
+                .userId(entity.getUserId())
                 .sourceType(entity.getSourceType())
                 .sourceId(entity.getSourceId())
                 .contentText(entity.getContentText())

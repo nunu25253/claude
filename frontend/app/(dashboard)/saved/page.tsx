@@ -9,6 +9,7 @@ import { PlatformBadge } from "@/components/ui/badge";
 import { AnalysisResult } from "@/components/dashboard/analysis/analysis-result";
 import { AlertThresholdControl } from "@/components/dashboard/saved/alert-threshold-control";
 import { CommonalityPanel } from "@/components/dashboard/saved/commonality-panel";
+import { RagAssistantPanel } from "@/components/dashboard/saved/rag-assistant-panel";
 import { formatDateTime } from "@/lib/utils";
 import { downloadCsv, toCsv } from "@/lib/csv";
 import type { SavedAnalysis } from "@/lib/types";
@@ -73,6 +74,7 @@ export default function SavedPage() {
           </Button>
         </div>
       )}
+      {savedQuery.data && savedQuery.data.length > 0 && <RagAssistantPanel items={savedQuery.data} />}
       {savedQuery.data && savedQuery.data.length >= 2 && <CommonalityPanel items={savedQuery.data} />}
       <QueryState
         isLoading={savedQuery.isLoading}

@@ -21,6 +21,9 @@ public class RagDocumentEntity {
     @Id
     private UUID id;
 
+    @Column(name = "user_id", nullable = false)
+    private UUID userId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "source_type", nullable = false, length = 30)
     private RagSourceType sourceType;
@@ -47,9 +50,10 @@ public class RagDocumentEntity {
     protected RagDocumentEntity() {
     }
 
-    public RagDocumentEntity(UUID id, RagSourceType sourceType, UUID sourceId, String contentText, float[] vector,
-                              String model, int dimensions, OffsetDateTime createdAt) {
+    public RagDocumentEntity(UUID id, UUID userId, RagSourceType sourceType, UUID sourceId, String contentText,
+                              float[] vector, String model, int dimensions, OffsetDateTime createdAt) {
         this.id = id;
+        this.userId = userId;
         this.sourceType = sourceType;
         this.sourceId = sourceId;
         this.contentText = contentText;
@@ -61,6 +65,10 @@ public class RagDocumentEntity {
 
     public UUID getId() {
         return id;
+    }
+
+    public UUID getUserId() {
+        return userId;
     }
 
     public RagSourceType getSourceType() {

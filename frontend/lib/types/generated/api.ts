@@ -209,7 +209,7 @@ export interface paths {
         put?: never;
         /**
          * テキストのRAG索引登録
-         * @description 分析結果・評価・トレンドサマリー等のテキストを明示的にRAG検索対象として索引登録する。
+         * @description 分析結果・評価・トレンドサマリー等のテキストをRAG検索対象として索引登録する。索引ドキュメントはログイン中ユーザーに紐付き、質問応答時はこのユーザーの範囲にのみ絞り込まれる。
          */
         post: operations["index"];
         delete?: never;

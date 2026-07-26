@@ -13,8 +13,11 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * 「RAG索引登録」ユースケース（Phase16）。テキストを明示的に索引化する（自動索引化はしない。
- * 設計docのセルフレビュー参照）。Embedding生成はPhase3の{@link EmbeddingClient}を再利用する。
+ * 「RAG索引登録」ユースケース（Phase16）。テキストを索引化する。索引ドキュメントは索引登録した
+ * ユーザーに紐付き(userId)、検索時は必ずこのユーザーの範囲に絞り込まれる(他ユーザーへの漏洩防止)。
+ * Embedding生成はPhase3の{@link EmbeddingClient}を再利用する。
+ * 保存済み分析の作成時に{@code SavedAnalysisRagIndexingListener}から自動的に呼び出されるほか、
+ * このAPIを直接叩いて任意のテキストを索引登録することもできる。
  */
 @Service
 public class RagIndexingApplicationService {
@@ -28,11 +31,12 @@ public class RagIndexingApplicationService {
     }
 
     @Transactional
-    public RagDocumentDto index(RagIndexRequest request) {
+    public RagDocumentDto index(RagIndexRequest request, UUID requestingUserId) {
         EmbeddingResult embeddingResult = embeddingClient.embed(request.contentText());
 
         RagDocument document = RagDocument.builder()
                 .id(UUID.randomUUID())
+                .userId(requestingUserId)
                 .sourceType(request.sourceType())
                 .sourceId(request.sourceId())
                 .contentText(request.contentText())

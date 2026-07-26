@@ -11,6 +11,12 @@ public interface RagDocumentRepository {
 
     Optional<RagDocument> findById(UUID id);
 
-    /** ベクトルに近い順に上位{@code limit}件を返す（Phase4の{@code EmbeddingRepository.findNearest}と同パターン）。 */
-    List<RagSimilarityMatch> findNearest(float[] queryVector, int limit);
+    List<RagDocument> findByIdIn(List<UUID> ids);
+
+    /**
+     * ベクトルに近い順に上位{@code limit}件を返す(Phase4の{@code EmbeddingRepository.findNearest}と同パターン)。
+     * {@code userId}が索引登録したドキュメントのみを対象とする(他ユーザーの分析結果が根拠として
+     * 漏洩しないようにするための必須の絞り込み)。
+     */
+    List<RagSimilarityMatch> findNearest(float[] queryVector, UUID userId, int limit);
 }

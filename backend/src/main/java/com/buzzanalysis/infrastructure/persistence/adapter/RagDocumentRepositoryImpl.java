@@ -35,9 +35,14 @@ public class RagDocumentRepositoryImpl implements RagDocumentRepository {
     }
 
     @Override
-    public List<RagSimilarityMatch> findNearest(float[] queryVector, int limit) {
+    public List<RagDocument> findByIdIn(List<UUID> ids) {
+        return jpaRepository.findAllById(ids).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public List<RagSimilarityMatch> findNearest(float[] queryVector, UUID userId, int limit) {
         String queryVectorLiteral = VectorType.toVectorLiteral(queryVector);
-        return jpaRepository.findNearest(queryVectorLiteral, limit).stream()
+        return jpaRepository.findNearest(queryVectorLiteral, userId, limit).stream()
                 .map(row -> new RagSimilarityMatch(row.getDocumentId(), row.getSimilarity()))
                 .toList();
     }

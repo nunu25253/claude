@@ -11,10 +11,12 @@ import com.buzzanalysis.domain.common.exception.EntityNotFoundException;
 import com.buzzanalysis.domain.post.Post;
 import com.buzzanalysis.domain.post.PostRepository;
 import com.buzzanalysis.domain.savedanalysis.SavedAnalysis;
+import com.buzzanalysis.domain.savedanalysis.SavedAnalysisCreatedEvent;
 import com.buzzanalysis.domain.savedanalysis.SavedAnalysisRepository;
 import com.buzzanalysis.domain.score.BuzzScoreRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,15 +42,18 @@ public class SavedAnalysisApplicationService {
     private final PostRepository postRepository;
     private final AnalysisResultRepository analysisResultRepository;
     private final BuzzScoreRepository buzzScoreRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public SavedAnalysisApplicationService(SavedAnalysisRepository savedAnalysisRepository,
                                             PostRepository postRepository,
                                             AnalysisResultRepository analysisResultRepository,
-                                            BuzzScoreRepository buzzScoreRepository) {
+                                            BuzzScoreRepository buzzScoreRepository,
+                                            ApplicationEventPublisher eventPublisher) {
         this.savedAnalysisRepository = savedAnalysisRepository;
         this.postRepository = postRepository;
         this.analysisResultRepository = analysisResultRepository;
         this.buzzScoreRepository = buzzScoreRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -91,6 +96,7 @@ public class SavedAnalysisApplicationService {
                 .orElseThrow(() -> EntityNotFoundException.of("Post", command.postId()));
         SavedAnalysis entity = SavedAnalysis.createNew(command.userId(), command.postId(), command.note());
         SavedAnalysis saved = savedAnalysisRepository.save(entity);
+        eventPublisher.publishEvent(new SavedAnalysisCreatedEvent(saved.getId(), saved.getUserId(), saved.getPostId()));
         return enrich(saved).orElseThrow(() -> EntityNotFoundException.of("Post", command.postId()));
     }
 

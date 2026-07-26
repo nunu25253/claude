@@ -5,11 +5,13 @@ import java.util.UUID;
 
 /**
  * RAG検索対象として索引化された1件のテキストドキュメント（Phase16）。既存集約（分析結果/評価/
- * トレンドレポート等）から明示的に索引登録された内容を保持する（自動索引化はしない。設計doc参照）。
+ * トレンドレポート等）から索引登録された内容を保持する。{@code userId}は索引登録したユーザーを表し、
+ * 検索時はこのユーザーのドキュメントにのみ絞り込む(他ユーザーの分析結果が根拠として漏洩しないため)。
  */
 public final class RagDocument {
 
     private final UUID id;
+    private final UUID userId;
     private final RagSourceType sourceType;
     private final UUID sourceId;
     private final String contentText;
@@ -20,6 +22,7 @@ public final class RagDocument {
 
     private RagDocument(Builder b) {
         this.id = b.id;
+        this.userId = b.userId;
         this.sourceType = b.sourceType;
         this.sourceId = b.sourceId;
         this.contentText = b.contentText;
@@ -35,6 +38,10 @@ public final class RagDocument {
 
     public UUID getId() {
         return id;
+    }
+
+    public UUID getUserId() {
+        return userId;
     }
 
     public RagSourceType getSourceType() {
@@ -67,6 +74,7 @@ public final class RagDocument {
 
     public static final class Builder {
         private UUID id;
+        private UUID userId;
         private RagSourceType sourceType;
         private UUID sourceId;
         private String contentText;
@@ -77,6 +85,11 @@ public final class RagDocument {
 
         public Builder id(UUID v) {
             this.id = v;
+            return this;
+        }
+
+        public Builder userId(UUID v) {
+            this.userId = v;
             return this;
         }
 

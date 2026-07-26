@@ -37,10 +37,12 @@ public class RagController {
     }
 
     @Operation(summary = "テキストのRAG索引登録",
-            description = "分析結果・評価・トレンドサマリー等のテキストを明示的にRAG検索対象として索引登録する。")
+            description = "分析結果・評価・トレンドサマリー等のテキストをRAG検索対象として索引登録する。"
+                    + "索引ドキュメントはログイン中ユーザーに紐付き、質問応答時はこのユーザーの範囲にのみ絞り込まれる。")
     @PostMapping("/index")
-    public ResponseEntity<RagDocumentDto> index(@Valid @RequestBody RagIndexRequest request) {
-        return ResponseEntity.ok(ragIndexingApplicationService.index(request));
+    public ResponseEntity<RagDocumentDto> index(Authentication authentication,
+                                                 @Valid @RequestBody RagIndexRequest request) {
+        return ResponseEntity.ok(ragIndexingApplicationService.index(request, currentUserId(authentication)));
     }
 
     @Operation(summary = "RAG質問応答",

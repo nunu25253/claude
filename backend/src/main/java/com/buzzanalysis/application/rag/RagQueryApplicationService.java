@@ -6,15 +6,18 @@ import com.buzzanalysis.application.rag.dto.RagQueryResultDto;
 import com.buzzanalysis.domain.common.exception.BusinessRuleViolationException;
 import com.buzzanalysis.domain.embedding.EmbeddingClient;
 import com.buzzanalysis.domain.embedding.EmbeddingResult;
+import com.buzzanalysis.domain.rag.RagDocument;
 import com.buzzanalysis.domain.rag.RagDocumentRepository;
 import com.buzzanalysis.domain.rag.RagSimilarityMatch;
 import com.buzzanalysis.infrastructure.quota.UsageQuotaService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * 「RAG質問応答」ユースケース（Phase16）。質問文をEmbedding化し、索引済みドキュメントの中から
@@ -48,14 +51,14 @@ public class RagQueryApplicationService {
         int topK = resolveTopK(request.topK());
 
         EmbeddingResult queryEmbedding = embeddingClient.embed(request.question());
-        List<RagSimilarityMatch> matches = ragDocumentRepository.findNearest(queryEmbedding.vector(), topK);
+        List<RagSimilarityMatch> matches = ragDocumentRepository.findNearest(queryEmbedding.vector(), requestingUserId, topK);
 
-        List<RagDocumentDto> sources = new ArrayList<>();
-        for (RagSimilarityMatch match : matches) {
-            ragDocumentRepository.findById(match.documentId())
-                    .map(RagDocumentDto::from)
-                    .ifPresent(sources::add);
-        }
+        // 類似度上位の件数分findByIdをループで叩くN+1クエリになっていたため、まとめてバッチ取得し
+        // 類似度順を保って並べ直す(SavedAnalysisApplicationService.listと同じ方針)。
+        List<UUID> documentIds = matches.stream().map(RagSimilarityMatch::documentId).toList();
+        Map<UUID, RagDocumentDto> documentsById = ragDocumentRepository.findByIdIn(documentIds).stream()
+                .collect(Collectors.toMap(RagDocument::getId, RagDocumentDto::from));
+        List<RagDocumentDto> sources = documentIds.stream().map(documentsById::get).filter(Objects::nonNull).toList();
 
         String answer = aiRagAnswerPort.generateAnswer(request.question(), sources);
         return new RagQueryResultDto(answer, sources);

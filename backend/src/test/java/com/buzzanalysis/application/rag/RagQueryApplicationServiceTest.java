@@ -20,7 +20,6 @@ import org.mockito.quality.Strictness;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -70,11 +69,11 @@ class RagQueryApplicationServiceTest {
         UUID docId = UUID.randomUUID();
         when(embeddingClient.embed("質問文"))
                 .thenReturn(new EmbeddingResult(new float[]{0.1f, 0.2f}, "text-embedding-3-small", 2));
-        when(ragDocumentRepository.findNearest(any(), eq(5)))
+        when(ragDocumentRepository.findNearest(any(), eq(requestingUserId), eq(5)))
                 .thenReturn(List.of(new RagSimilarityMatch(docId, 0.9)));
-        RagDocument document = RagDocument.builder().id(docId).sourceType(RagSourceType.EVALUATION)
+        RagDocument document = RagDocument.builder().id(docId).userId(requestingUserId).sourceType(RagSourceType.EVALUATION)
                 .contentText("過去の評価内容").createdAt(OffsetDateTime.now()).build();
-        when(ragDocumentRepository.findById(docId)).thenReturn(Optional.of(document));
+        when(ragDocumentRepository.findByIdIn(List.of(docId))).thenReturn(List.of(document));
         when(aiRagAnswerPort.generateAnswer(eq("質問文"), any())).thenReturn("生成された回答");
 
         RagQueryResultDto result = service.query(new RagQueryRequest("質問文", null), requestingUserId);
@@ -85,22 +84,33 @@ class RagQueryApplicationServiceTest {
     }
 
     @Test
+    void query_onlySearchesRequestingUsersOwnDocuments() {
+        when(embeddingClient.embed(any())).thenReturn(new EmbeddingResult(new float[]{0.1f}, "model", 1));
+        when(ragDocumentRepository.findNearest(any(), eq(requestingUserId), anyInt())).thenReturn(List.of());
+        when(aiRagAnswerPort.generateAnswer(any(), any())).thenReturn("回答");
+
+        service.query(new RagQueryRequest("質問", null), requestingUserId);
+
+        verify(ragDocumentRepository).findNearest(any(), eq(requestingUserId), anyInt());
+    }
+
+    @Test
     void query_clampsTopKToMax20() {
         when(embeddingClient.embed(any())).thenReturn(new EmbeddingResult(new float[]{0.1f}, "model", 1));
-        when(ragDocumentRepository.findNearest(any(), eq(20))).thenReturn(List.of());
+        when(ragDocumentRepository.findNearest(any(), any(), eq(20))).thenReturn(List.of());
         when(aiRagAnswerPort.generateAnswer(any(), any())).thenReturn("回答");
 
         service.query(new RagQueryRequest("質問", 100), requestingUserId);
 
-        verify(ragDocumentRepository).findNearest(any(), eq(20));
+        verify(ragDocumentRepository).findNearest(any(), any(), eq(20));
     }
 
     @Test
     void query_skipsMissingDocuments_gracefully() {
         UUID docId = UUID.randomUUID();
         when(embeddingClient.embed(any())).thenReturn(new EmbeddingResult(new float[]{0.1f}, "model", 1));
-        when(ragDocumentRepository.findNearest(any(), anyInt())).thenReturn(List.of(new RagSimilarityMatch(docId, 0.5)));
-        when(ragDocumentRepository.findById(docId)).thenReturn(Optional.empty());
+        when(ragDocumentRepository.findNearest(any(), any(), anyInt())).thenReturn(List.of(new RagSimilarityMatch(docId, 0.5)));
+        when(ragDocumentRepository.findByIdIn(List.of(docId))).thenReturn(List.of());
         when(aiRagAnswerPort.generateAnswer(any(), any())).thenReturn("回答");
 
         RagQueryResultDto result = service.query(new RagQueryRequest("質問", null), requestingUserId);
