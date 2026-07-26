@@ -11,6 +11,7 @@ import { ApiError } from "@/lib/types/common";
 import { Button } from "@/components/ui/button";
 import { FormField, inputClassName } from "@/components/ui/form-field";
 import { TurnstileWidget } from "@/components/auth/turnstile-widget";
+import { PasswordStrengthMeter } from "@/components/auth/password-strength-meter";
 
 const registerSchema = z
   .object({
@@ -38,11 +39,13 @@ export function RegisterForm() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: { termsAccepted: false },
   });
+  const passwordValue = watch("password") ?? "";
 
   const onSubmit = async (values: RegisterFormValues) => {
     setSubmitError(null);
@@ -94,6 +97,7 @@ export function RegisterForm() {
           placeholder="••••••••"
           {...register("password")}
         />
+        <PasswordStrengthMeter password={passwordValue} />
       </FormField>
 
       <FormField

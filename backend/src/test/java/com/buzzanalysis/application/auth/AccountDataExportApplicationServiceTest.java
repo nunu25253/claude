@@ -109,7 +109,7 @@ class AccountDataExportApplicationServiceTest {
     @Test
     void export_masksApiKeyValue_butIndicatesItExists() {
         OffsetDateTime apiKeyCreatedAt = OffsetDateTime.now();
-        UserSettings settings = new UserSettings(userId, true, false, true, "super-secret-api-key",
+        UserSettings settings = new UserSettings(userId, true, false, true, null, "super-secret-api-key",
                 apiKeyCreatedAt, OffsetDateTime.now(), OffsetDateTime.now());
         when(userSettingsRepository.findByUserId(userId)).thenReturn(Optional.of(settings));
         when(savedAnalysisRepository.findByUserId(userId)).thenReturn(List.of());

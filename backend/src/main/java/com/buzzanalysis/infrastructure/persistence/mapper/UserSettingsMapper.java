@@ -10,12 +10,13 @@ public class UserSettingsMapper {
 
     public UserSettingsEntity toEntity(UserSettings s) {
         return new UserSettingsEntity(s.getUserId(), s.isEmailOnAnalysisComplete(), s.isEmailWeeklyDigest(),
-                s.isEmailTrendingAlert(), s.getApiKey(), s.getApiKeyCreatedAt(), s.getCreatedAt(), s.getUpdatedAt());
+                s.isEmailTrendingAlert(), s.getSlackWebhookUrl(), s.getApiKey(), s.getApiKeyCreatedAt(),
+                s.getCreatedAt(), s.getUpdatedAt());
     }
 
     public UserSettings toDomain(UserSettingsEntity entity) {
         return new UserSettings(entity.getUserId(), entity.isEmailOnAnalysisComplete(),
-                entity.isEmailWeeklyDigest(), entity.isEmailTrendingAlert(), entity.getApiKey(),
-                entity.getApiKeyCreatedAt(), entity.getCreatedAt(), entity.getUpdatedAt());
+                entity.isEmailWeeklyDigest(), entity.isEmailTrendingAlert(), entity.getSlackWebhookUrl(),
+                entity.getApiKey(), entity.getApiKeyCreatedAt(), entity.getCreatedAt(), entity.getUpdatedAt());
     }
 }

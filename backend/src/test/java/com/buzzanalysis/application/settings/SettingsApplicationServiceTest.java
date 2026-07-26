@@ -73,11 +73,12 @@ class SettingsApplicationServiceTest {
         when(userSettingsRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         NotificationSettingsDto result = service.updateNotifications(userId,
-                new NotificationSettingsDto(false, true, true));
+                new NotificationSettingsDto(false, true, true, "https://hooks.slack.com/services/test"));
 
         assertThat(result.emailOnAnalysisComplete()).isFalse();
         assertThat(result.emailWeeklyDigest()).isTrue();
         assertThat(result.emailTrendingAlert()).isTrue();
+        assertThat(result.slackWebhookUrl()).isEqualTo("https://hooks.slack.com/services/test");
     }
 
     @Test

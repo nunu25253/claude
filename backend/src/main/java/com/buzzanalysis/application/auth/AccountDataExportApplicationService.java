@@ -61,7 +61,7 @@ public class AccountDataExportApplicationService {
         var settings = userSettingsRepository.findByUserId(userId)
                 .map(s -> new AccountDataExportResponse.SettingsExport(
                         s.isEmailOnAnalysisComplete(), s.isEmailWeeklyDigest(), s.isEmailTrendingAlert(),
-                        s.getApiKey() != null, s.getApiKeyCreatedAt()))
+                        s.getApiKey() != null, s.getApiKeyCreatedAt(), s.getSlackWebhookUrl() != null))
                 .orElse(null);
 
         var savedAnalyses = savedAnalysisRepository.findByUserId(userId).stream()

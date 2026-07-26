@@ -13,9 +13,12 @@ const DEFAULT_SETTINGS: NotificationSettings = {
   emailOnAnalysisComplete: true,
   emailWeeklyDigest: false,
   emailTrendingAlert: false,
+  slackWebhookUrl: null,
 };
 
-const ITEMS: { key: keyof NotificationSettings; label: string; description: string }[] = [
+type BooleanSettingKey = "emailOnAnalysisComplete" | "emailWeeklyDigest" | "emailTrendingAlert";
+
+const ITEMS: { key: BooleanSettingKey; label: string; description: string }[] = [
   {
     key: "emailOnAnalysisComplete",
     label: "分析完了通知",
@@ -42,7 +45,7 @@ export function NotificationSettingsForm() {
     if (query.data) setValues(query.data);
   }, [query.data]);
 
-  const toggle = (key: keyof NotificationSettings) => {
+  const toggle = (key: BooleanSettingKey) => {
     setValues((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
@@ -71,6 +74,23 @@ export function NotificationSettingsForm() {
             </span>
           </label>
         ))}
+
+        <div className="rounded-lg border border-slate-100 p-3">
+          <label htmlFor="slackWebhookUrl" className="block text-sm font-medium text-slate-700">
+            Slack通知(任意)
+          </label>
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+            SlackのIncoming Webhook URLを設定すると、上記の通知イベント発生時に同内容をSlackへも送信します
+          </p>
+          <input
+            id="slackWebhookUrl"
+            type="url"
+            placeholder="https://hooks.slack.com/services/..."
+            className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            value={values.slackWebhookUrl ?? ""}
+            onChange={(e) => setValues((prev) => ({ ...prev, slackWebhookUrl: e.target.value }))}
+          />
+        </div>
 
         <div className="flex items-center gap-3">
           <Button

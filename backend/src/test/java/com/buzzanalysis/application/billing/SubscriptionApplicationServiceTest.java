@@ -11,6 +11,7 @@ import com.buzzanalysis.domain.common.exception.BusinessRuleViolationException;
 import com.buzzanalysis.domain.user.Role;
 import com.buzzanalysis.domain.user.User;
 import com.buzzanalysis.domain.user.UserRepository;
+import com.buzzanalysis.infrastructure.payment.GmoPaymentProperties;
 import com.buzzanalysis.infrastructure.quota.UsageQuotaProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,11 +53,24 @@ class SubscriptionApplicationServiceTest {
         UsageQuotaProperties usageQuotaProperties = new UsageQuotaProperties();
         usageQuotaProperties.setDailyOpenAiCallsFree(50);
         usageQuotaProperties.setDailyOpenAiCallsPro(500);
+        GmoPaymentProperties gmoPaymentProperties = new GmoPaymentProperties();
         service = new SubscriptionApplicationService(subscriptionRepository, paymentGatewayPort, userRepository,
-                usageQuotaProperties);
+                usageQuotaProperties, gmoPaymentProperties);
         userId = UUID.randomUUID();
         user = new User(userId, "user@example.com", "hash", "テストユーザー", Role.USER, true,
                 OffsetDateTime.now(), OffsetDateTime.now());
+    }
+
+    @Test
+    void getPlans_returnsAmountsAndLimitsFromConfiguredProperties() {
+        var plans = service.getPlans();
+
+        assertThat(plans.free().planId()).isEqualTo("FREE");
+        assertThat(plans.free().monthlyAmountYen()).isZero();
+        assertThat(plans.free().dailyAnalysisLimit()).isEqualTo(50);
+        assertThat(plans.pro().planId()).isEqualTo("PRO");
+        assertThat(plans.pro().monthlyAmountYen()).isEqualTo(4980);
+        assertThat(plans.pro().dailyAnalysisLimit()).isEqualTo(500);
     }
 
     @Test

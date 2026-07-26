@@ -6,6 +6,9 @@ import com.buzzanalysis.domain.common.exception.EntityNotFoundException;
 import com.buzzanalysis.domain.notification.Notification;
 import com.buzzanalysis.domain.notification.NotificationRepository;
 import com.buzzanalysis.domain.notification.NotificationType;
+import com.buzzanalysis.domain.notification.SlackNotifierPort;
+import com.buzzanalysis.domain.settings.UserSettings;
+import com.buzzanalysis.domain.settings.UserSettingsRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,9 +28,15 @@ public class NotificationApplicationService {
     private static final int MAX_LIST_SIZE = 50;
 
     private final NotificationRepository notificationRepository;
+    private final UserSettingsRepository userSettingsRepository;
+    private final SlackNotifierPort slackNotifierPort;
 
-    public NotificationApplicationService(NotificationRepository notificationRepository) {
+    public NotificationApplicationService(NotificationRepository notificationRepository,
+                                           UserSettingsRepository userSettingsRepository,
+                                           SlackNotifierPort slackNotifierPort) {
         this.notificationRepository = notificationRepository;
+        this.userSettingsRepository = userSettingsRepository;
+        this.slackNotifierPort = slackNotifierPort;
     }
 
     @Transactional(readOnly = true)
@@ -58,9 +67,18 @@ public class NotificationApplicationService {
         notificationRepository.markAllReadByUserId(userId);
     }
 
-    /** しきい値アラート・週次ダイジェスト等のバッチ処理から呼び出し、アプリ内通知を1件作成する。 */
+    /**
+     * しきい値アラート・週次ダイジェスト等のバッチ処理から呼び出し、アプリ内通知を1件作成する。
+     * ユーザーがSlack Webhook URLを設定済みの場合は、メール到達率の低さを補う代替チャネルとして
+     * 同内容をSlackにも送信する(シニアレビュー: 通知チャネルがメールのみ、への対応)。
+     */
     @Transactional
     public void notify(UUID userId, NotificationType type, String title, String body, String link) {
         notificationRepository.save(Notification.create(userId, type, title, body, link));
+
+        userSettingsRepository.findByUserId(userId)
+                .map(UserSettings::getSlackWebhookUrl)
+                .filter(url -> url != null && !url.isBlank())
+                .ifPresent(webhookUrl -> slackNotifierPort.sendMessage(webhookUrl, title + "\n" + body));
     }
 }

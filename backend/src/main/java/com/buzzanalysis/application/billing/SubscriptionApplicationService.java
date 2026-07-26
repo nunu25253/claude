@@ -1,5 +1,7 @@
 package com.buzzanalysis.application.billing;
 
+import com.buzzanalysis.application.billing.dto.BillingPlansDto;
+import com.buzzanalysis.application.billing.dto.PlanInfoDto;
 import com.buzzanalysis.application.billing.dto.SubscriptionDto;
 import com.buzzanalysis.domain.billing.PaymentChargeResult;
 import com.buzzanalysis.domain.billing.PaymentGatewayPort;
@@ -10,6 +12,7 @@ import com.buzzanalysis.domain.common.exception.BusinessRuleViolationException;
 import com.buzzanalysis.domain.common.exception.EntityNotFoundException;
 import com.buzzanalysis.domain.user.User;
 import com.buzzanalysis.domain.user.UserRepository;
+import com.buzzanalysis.infrastructure.payment.GmoPaymentProperties;
 import com.buzzanalysis.infrastructure.quota.UsageQuotaProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,15 +35,29 @@ public class SubscriptionApplicationService {
     private final PaymentGatewayPort paymentGatewayPort;
     private final UserRepository userRepository;
     private final UsageQuotaProperties usageQuotaProperties;
+    private final GmoPaymentProperties gmoPaymentProperties;
 
     public SubscriptionApplicationService(SubscriptionRepository subscriptionRepository,
                                            PaymentGatewayPort paymentGatewayPort,
                                            UserRepository userRepository,
-                                           UsageQuotaProperties usageQuotaProperties) {
+                                           UsageQuotaProperties usageQuotaProperties,
+                                           GmoPaymentProperties gmoPaymentProperties) {
         this.subscriptionRepository = subscriptionRepository;
         this.paymentGatewayPort = paymentGatewayPort;
         this.userRepository = userRepository;
         this.usageQuotaProperties = usageQuotaProperties;
+        this.gmoPaymentProperties = gmoPaymentProperties;
+    }
+
+    /**
+     * FREE/PROプランの料金・利用上限。フロントエンドが独自の定数として料金を持つと表示と実際の
+     * 課金額が食い違うリスクがあるため(シニアレビュー指摘)、設定値を唯一の情報源として公開する。
+     */
+    public BillingPlansDto getPlans() {
+        return new BillingPlansDto(
+                new PlanInfoDto("FREE", 0, usageQuotaProperties.getDailyOpenAiCallsFree()),
+                new PlanInfoDto("PRO", gmoPaymentProperties.getProPlanMonthlyAmount(),
+                        usageQuotaProperties.getDailyOpenAiCallsPro()));
     }
 
     @Transactional(readOnly = true)

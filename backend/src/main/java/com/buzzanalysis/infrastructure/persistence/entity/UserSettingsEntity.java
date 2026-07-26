@@ -26,6 +26,9 @@ public class UserSettingsEntity {
     @Column(name = "email_trending_alert", nullable = false)
     private boolean emailTrendingAlert;
 
+    @Column(name = "slack_webhook_url")
+    private String slackWebhookUrl;
+
     @Column(name = "api_key")
     private String apiKey;
 
@@ -42,12 +45,13 @@ public class UserSettingsEntity {
     }
 
     public UserSettingsEntity(UUID userId, boolean emailOnAnalysisComplete, boolean emailWeeklyDigest,
-                               boolean emailTrendingAlert, String apiKey, OffsetDateTime apiKeyCreatedAt,
-                               OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+                               boolean emailTrendingAlert, String slackWebhookUrl, String apiKey,
+                               OffsetDateTime apiKeyCreatedAt, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.userId = userId;
         this.emailOnAnalysisComplete = emailOnAnalysisComplete;
         this.emailWeeklyDigest = emailWeeklyDigest;
         this.emailTrendingAlert = emailTrendingAlert;
+        this.slackWebhookUrl = slackWebhookUrl;
         this.apiKey = apiKey;
         this.apiKeyCreatedAt = apiKeyCreatedAt;
         this.createdAt = createdAt;
@@ -68,6 +72,10 @@ public class UserSettingsEntity {
 
     public boolean isEmailTrendingAlert() {
         return emailTrendingAlert;
+    }
+
+    public String getSlackWebhookUrl() {
+        return slackWebhookUrl;
     }
 
     public String getApiKey() {

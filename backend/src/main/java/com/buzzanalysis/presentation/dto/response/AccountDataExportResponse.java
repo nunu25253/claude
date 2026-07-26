@@ -31,13 +31,17 @@ public record AccountDataExportResponse(
     ) {
     }
 
-    /** apiKeyの値自体は漏洩リスクがあるため含めず、発行有無(hasApiKey)のみ示す。 */
+    /**
+     * apiKey/Slack Webhook URLの値自体は漏洩リスクがあるため含めず、設定有無(hasApiKey/hasSlackWebhook)
+     * のみ示す。
+     */
     public record SettingsExport(
             boolean emailOnAnalysisComplete,
             boolean emailWeeklyDigest,
             boolean emailTrendingAlert,
             boolean hasApiKey,
-            OffsetDateTime apiKeyCreatedAt
+            OffsetDateTime apiKeyCreatedAt,
+            boolean hasSlackWebhook
     ) {
     }
 

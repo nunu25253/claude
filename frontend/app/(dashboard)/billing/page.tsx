@@ -5,23 +5,22 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { QueryState } from "@/components/dashboard/query-state";
 import { GmoCardTokenForm } from "@/components/billing/gmo-card-token-form";
-import { useCancelSubscription, useSubscription, useUpgradeSubscription } from "@/lib/hooks/use-billing";
+import {
+  useBillingPlans,
+  useCancelSubscription,
+  useSubscription,
+  useUpgradeSubscription,
+} from "@/lib/hooks/use-billing";
 import { ApiError } from "@/lib/types/common";
 import { formatDateTime, formatNumber } from "@/lib/utils";
 
-// バックエンドのUsageQuotaProperties(daily-openai-calls-free/pro)・GmoPaymentProperties
-// (pro-plan-monthly-amount)の既定値と一致させている。プラン一覧を返す専用APIが無いため、
-// 料金・上限は表示専用の静的な値として定義する(値を変える場合は両方を更新すること)。
-const PLAN_COMPARISON = {
-  free: { priceLabel: "無料", dailyAnalysisLimit: 50 },
-  pro: { priceLabel: `¥${formatNumber(4980)} / 月`, dailyAnalysisLimit: 500 },
-};
-
 export default function BillingPage() {
   const subscriptionQuery = useSubscription();
+  const plansQuery = useBillingPlans();
   const upgradeMutation = useUpgradeSubscription();
   const cancelMutation = useCancelSubscription();
   const [upgradeError, setUpgradeError] = useState<string | null>(null);
+  const plans = plansQuery.data;
 
   const onUpgrade = async (cardToken: string) => {
     setUpgradeError(null);
@@ -69,45 +68,54 @@ export default function BillingPage() {
 
       <Card>
         <CardHeader title="プラン比較" description="FREEとPROでできることの違いです" />
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[420px] border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-700">
-                <th scope="col" className="py-2 pr-4 text-left font-medium text-slate-500">
-                  項目
-                </th>
-                <th scope="col" className="py-2 px-4 text-left font-medium text-slate-500">
-                  FREE
-                </th>
-                <th scope="col" className="py-2 pl-4 text-left font-medium text-brand-600">
-                  PRO
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b border-slate-100 dark:border-slate-800">
-                <th scope="row" className="py-2 pr-4 text-left font-normal text-slate-600 dark:text-slate-300">
-                  料金
-                </th>
-                <td className="py-2 px-4 text-slate-900 dark:text-slate-100">{PLAN_COMPARISON.free.priceLabel}</td>
-                <td className="py-2 pl-4 font-semibold text-slate-900 dark:text-slate-100">
-                  {PLAN_COMPARISON.pro.priceLabel}
-                </td>
-              </tr>
-              <tr>
-                <th scope="row" className="py-2 pr-4 text-left font-normal text-slate-600 dark:text-slate-300">
-                  1日あたりの投稿分析上限
-                </th>
-                <td className="py-2 px-4 text-slate-900 dark:text-slate-100">
-                  {PLAN_COMPARISON.free.dailyAnalysisLimit}回
-                </td>
-                <td className="py-2 pl-4 font-semibold text-slate-900 dark:text-slate-100">
-                  {PLAN_COMPARISON.pro.dailyAnalysisLimit}回
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <QueryState
+          isLoading={plansQuery.isLoading}
+          isError={plansQuery.isError}
+          error={plansQuery.error}
+          onRetry={() => plansQuery.refetch()}
+        >
+          {plans && (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[420px] border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700">
+                    <th scope="col" className="py-2 pr-4 text-left font-medium text-slate-500">
+                      項目
+                    </th>
+                    <th scope="col" className="py-2 px-4 text-left font-medium text-slate-500">
+                      FREE
+                    </th>
+                    <th scope="col" className="py-2 pl-4 text-left font-medium text-brand-600">
+                      PRO
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-slate-100 dark:border-slate-800">
+                    <th scope="row" className="py-2 pr-4 text-left font-normal text-slate-600 dark:text-slate-300">
+                      料金
+                    </th>
+                    <td className="py-2 px-4 text-slate-900 dark:text-slate-100">無料</td>
+                    <td className="py-2 pl-4 font-semibold text-slate-900 dark:text-slate-100">
+                      ¥{formatNumber(plans.pro.monthlyAmountYen)} / 月
+                    </td>
+                  </tr>
+                  <tr>
+                    <th scope="row" className="py-2 pr-4 text-left font-normal text-slate-600 dark:text-slate-300">
+                      1日あたりの投稿分析上限
+                    </th>
+                    <td className="py-2 px-4 text-slate-900 dark:text-slate-100">
+                      {plans.free.dailyAnalysisLimit}回
+                    </td>
+                    <td className="py-2 pl-4 font-semibold text-slate-900 dark:text-slate-100">
+                      {plans.pro.dailyAnalysisLimit}回
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </QueryState>
       </Card>
 
       {subscription?.plan === "FREE" && (

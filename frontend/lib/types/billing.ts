@@ -17,3 +17,14 @@ export interface Subscription {
 }
 
 export type UpgradeSubscriptionRequest = Schemas["UpgradeSubscriptionRequest"];
+
+export interface PlanInfo {
+  planId: string;
+  monthlyAmountYen: number;
+  dailyAnalysisLimit: number;
+}
+
+export interface BillingPlans {
+  free: PlanInfo;
+  pro: PlanInfo;
+}

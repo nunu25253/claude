@@ -88,7 +88,8 @@ public class SecurityConfig {
             "/v3/api-docs/**",
             "/actuator/health",
             "/api/v1/reports/files/**",
-            "/api/v1/shared/**"
+            "/api/v1/shared/**",
+            "/api/v1/billing/plans"
     };
 
     private final JwtTokenProvider jwtTokenProvider;

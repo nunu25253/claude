@@ -54,7 +54,7 @@ public class SettingsApplicationService {
     public NotificationSettingsDto updateNotifications(UUID userId, NotificationSettingsDto request) {
         UserSettings settings = findOrCreateSettings(userId);
         settings.updateNotifications(request.emailOnAnalysisComplete(), request.emailWeeklyDigest(),
-                request.emailTrendingAlert());
+                request.emailTrendingAlert(), request.slackWebhookUrl());
         return NotificationSettingsDto.from(userSettingsRepository.save(settings));
     }
 

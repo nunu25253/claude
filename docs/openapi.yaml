@@ -1739,6 +1739,23 @@ paths:
                 items:
                   $ref: "#/components/schemas/TeamSavedAnalysisDto"
 
+  /billing/plans:
+    get:
+      tags: [Billing]
+      summary: プラン一覧取得
+      description: >-
+        FREE/PROの料金・1日あたりの投稿分析上限を返す(未認証で取得可能)。フロントエンドが料金を
+        独自の定数として持つと表示と実際の課金額が食い違うリスクがあるため、設定値
+        (UsageQuotaProperties/GmoPaymentProperties)を唯一の情報源として公開する。
+      security: []
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BillingPlans"
+
   /billing/subscription:
     get:
       tags: [Billing]
@@ -3585,6 +3602,10 @@ components:
         emailTrendingAlert:
           type: boolean
           description: 急上昇アラートをメールで受け取る
+        slackWebhookUrl:
+          type: string
+          nullable: true
+          description: 設定するとアプリ内通知作成時に同内容をSlack Incoming Webhookへも送信する(空/未設定でSlack連携を無効化)
 
     ApiKeySettings:
       type: object
@@ -3667,6 +3688,29 @@ components:
           description: >-
             決済代行事業者のクライアントサイドJS(GMOの場合TokenObject.js)でトークン化されたカード情報の
             参照値。生のカード番号ではない。
+
+    BillingPlans:
+      type: object
+      properties:
+        free:
+          $ref: "#/components/schemas/PlanInfo"
+        pro:
+          $ref: "#/components/schemas/PlanInfo"
+
+    PlanInfo:
+      type: object
+      properties:
+        planId:
+          type: string
+          enum: [FREE, PRO]
+        monthlyAmountYen:
+          type: integer
+          format: int32
+          description: 月額料金(円)。FREEは0
+        dailyAnalysisLimit:
+          type: integer
+          format: int32
+          description: 1日あたりの投稿分析(OpenAI呼び出しを伴う)回数の上限
 
     SubscriptionDto:
       type: object

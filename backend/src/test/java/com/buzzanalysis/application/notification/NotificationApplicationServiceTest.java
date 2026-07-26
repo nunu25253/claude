@@ -6,6 +6,9 @@ import com.buzzanalysis.domain.common.exception.EntityNotFoundException;
 import com.buzzanalysis.domain.notification.Notification;
 import com.buzzanalysis.domain.notification.NotificationRepository;
 import com.buzzanalysis.domain.notification.NotificationType;
+import com.buzzanalysis.domain.notification.SlackNotifierPort;
+import com.buzzanalysis.domain.settings.UserSettings;
+import com.buzzanalysis.domain.settings.UserSettingsRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,13 +33,17 @@ class NotificationApplicationServiceTest {
 
     @Mock
     private NotificationRepository notificationRepository;
+    @Mock
+    private UserSettingsRepository userSettingsRepository;
+    @Mock
+    private SlackNotifierPort slackNotifierPort;
 
     private NotificationApplicationService service;
     private UUID userId;
 
     @BeforeEach
     void setUp() {
-        service = new NotificationApplicationService(notificationRepository);
+        service = new NotificationApplicationService(notificationRepository, userSettingsRepository, slackNotifierPort);
         userId = UUID.randomUUID();
     }
 
@@ -106,5 +113,25 @@ class NotificationApplicationServiceTest {
         assertThat(captor.getValue().getUserId()).isEqualTo(userId);
         assertThat(captor.getValue().getType()).isEqualTo(NotificationType.THRESHOLD_ALERT);
         assertThat(captor.getValue().isUnread()).isTrue();
+    }
+
+    @Test
+    void notify_doesNotCallSlack_whenNoWebhookConfigured() {
+        when(userSettingsRepository.findByUserId(userId)).thenReturn(Optional.empty());
+
+        service.notify(userId, NotificationType.THRESHOLD_ALERT, "件名", "本文", "/saved");
+
+        verify(slackNotifierPort, never()).sendMessage(any(), any());
+    }
+
+    @Test
+    void notify_sendsSlackMessage_whenWebhookConfigured() {
+        UserSettings settings = new UserSettings(userId, true, false, false,
+                "https://hooks.slack.com/services/test", null, null, null, null);
+        when(userSettingsRepository.findByUserId(userId)).thenReturn(Optional.of(settings));
+
+        service.notify(userId, NotificationType.THRESHOLD_ALERT, "件名", "本文", "/saved");
+
+        verify(slackNotifierPort).sendMessage("https://hooks.slack.com/services/test", "件名\n本文");
     }
 }

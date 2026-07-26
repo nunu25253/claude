@@ -13,35 +13,38 @@ public final class UserSettings {
     private boolean emailOnAnalysisComplete;
     private boolean emailWeeklyDigest;
     private boolean emailTrendingAlert;
+    private String slackWebhookUrl;
     private String apiKey;
     private OffsetDateTime apiKeyCreatedAt;
     private final OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 
     public UserSettings(UUID userId, boolean emailOnAnalysisComplete, boolean emailWeeklyDigest,
-                         boolean emailTrendingAlert, String apiKey, OffsetDateTime apiKeyCreatedAt,
-                         OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+                         boolean emailTrendingAlert, String slackWebhookUrl, String apiKey,
+                         OffsetDateTime apiKeyCreatedAt, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.userId = userId;
         this.emailOnAnalysisComplete = emailOnAnalysisComplete;
         this.emailWeeklyDigest = emailWeeklyDigest;
         this.emailTrendingAlert = emailTrendingAlert;
+        this.slackWebhookUrl = slackWebhookUrl;
         this.apiKey = apiKey;
         this.apiKeyCreatedAt = apiKeyCreatedAt;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
 
-    /** 初回アクセス時の既定設定。分析完了通知のみON、週次ダイジェスト/トレンドアラートはOFF。 */
+    /** 初回アクセス時の既定設定。分析完了通知のみON、週次ダイジェスト/トレンドアラート/Slack連携はOFF。 */
     public static UserSettings createDefault(UUID userId) {
         OffsetDateTime now = OffsetDateTime.now();
-        return new UserSettings(userId, true, false, false, null, null, now, now);
+        return new UserSettings(userId, true, false, false, null, null, null, now, now);
     }
 
     public void updateNotifications(boolean emailOnAnalysisComplete, boolean emailWeeklyDigest,
-                                     boolean emailTrendingAlert) {
+                                     boolean emailTrendingAlert, String slackWebhookUrl) {
         this.emailOnAnalysisComplete = emailOnAnalysisComplete;
         this.emailWeeklyDigest = emailWeeklyDigest;
         this.emailTrendingAlert = emailTrendingAlert;
+        this.slackWebhookUrl = (slackWebhookUrl == null || slackWebhookUrl.isBlank()) ? null : slackWebhookUrl;
         this.updatedAt = OffsetDateTime.now();
     }
 
@@ -65,6 +68,10 @@ public final class UserSettings {
 
     public boolean isEmailTrendingAlert() {
         return emailTrendingAlert;
+    }
+
+    public String getSlackWebhookUrl() {
+        return slackWebhookUrl;
     }
 
     public String getApiKey() {

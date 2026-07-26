@@ -10,6 +10,7 @@ import { authApi } from "@/lib/api";
 import { ApiError } from "@/lib/types/common";
 import { Button } from "@/components/ui/button";
 import { FormField, inputClassName } from "@/components/ui/form-field";
+import { PasswordStrengthMeter } from "@/components/auth/password-strength-meter";
 
 const schema = z
   .object({
@@ -33,8 +34,10 @@ export function ResetPasswordForm() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  const newPasswordValue = watch("newPassword") ?? "";
 
   const onSubmit = async (values: FormValues) => {
     if (!token) {
@@ -87,6 +90,7 @@ export function ResetPasswordForm() {
           placeholder="••••••••"
           {...register("newPassword")}
         />
+        <PasswordStrengthMeter password={newPasswordValue} />
       </FormField>
 
       <FormField label="新しいパスワード（確認）" htmlFor="confirmPassword" error={errors.confirmPassword?.message}>

@@ -7,6 +7,7 @@ export interface NotificationSettings {
   emailOnAnalysisComplete: boolean;
   emailWeeklyDigest: boolean;
   emailTrendingAlert: boolean;
+  slackWebhookUrl: string | null;
 }
 
 export interface ApiKeySettings {
