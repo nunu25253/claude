@@ -72,6 +72,16 @@ def test_free_text_too_long_after_normalization_returns_422(client: TestClient) 
     assert response.json()["error"]["code"] == "validation_error"
 
 
+def test_ai_provider_real_selects_real_provider(make_client: Callable[..., TestClient]) -> None:
+    """AI_PROVIDER=realのときはRealAIProviderが選ばれ、未実装なので500になる。"""
+    real_client = make_client(ai_provider="real")
+
+    response = real_client.post("/api/designs/generate", json=VALID_PAYLOAD)
+
+    assert response.status_code == 500
+    assert response.json()["error"]["code"] == "internal"
+
+
 def test_budget_exceeded_returns_429(make_client: Callable[..., TestClient]) -> None:
     """本日の呼び出し上限を超えると429 budget_exceededになる。"""
     limited_client = make_client(budget_max_calls_per_day=2)

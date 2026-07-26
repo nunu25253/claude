@@ -30,9 +30,14 @@ def _test_settings(**overrides: object) -> Settings:
 
 @pytest.fixture
 def client() -> Iterator[TestClient]:
-    """既定設定(インメモリDB・十分な予算枠)でのTestClient。"""
+    """既定設定(インメモリDB・十分な予算枠)でのTestClient。
+
+    `raise_server_exceptions=False`にしているのは、想定外の例外もapp.errorsの
+    汎用ハンドラで500レスポンスに変換される(§8)ことをテストで検証するため
+    (デフォルトのTestClientは例外をそのまま re-raise してしまう)。
+    """
     app = create_app(settings=_test_settings())
-    with TestClient(app) as test_client:
+    with TestClient(app, raise_server_exceptions=False) as test_client:
         yield test_client
 
 
@@ -42,6 +47,6 @@ def make_client() -> ClientFactory:
 
     def _factory(**overrides: object) -> TestClient:
         app = create_app(settings=_test_settings(**overrides))
-        return TestClient(app)
+        return TestClient(app, raise_server_exceptions=False)
 
     return _factory

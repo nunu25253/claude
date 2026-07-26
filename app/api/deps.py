@@ -17,6 +17,7 @@ from app.core.cache import LRUTTLCache
 from app.core.cost_guard import CostGuard
 from app.providers.base import AIProvider
 from app.providers.mock_provider import MockAIProvider
+from app.providers.real_provider import RealAIProvider
 from app.services.design_service import DesignService, GenerationResult
 
 
@@ -37,11 +38,9 @@ def get_db(request: Request) -> Iterator[Session]:
 
 
 def get_provider(settings: Settings = Depends(get_settings)) -> AIProvider:
-    """AIプロバイダを返す。
-
-    NOTE: AI_PROVIDER環境変数によるreal/mock切り替えはPhase 5で追加する
-    (RealAIProviderは現時点でスタブすら存在しないため)。それまではmock固定。
-    """
+    """AI_PROVIDER環境変数に応じてProviderを選ぶ(§6.1)。デフォルトはmock。"""
+    if settings.ai_provider == "real":
+        return RealAIProvider()
     return MockAIProvider(latency_ms=settings.mock_latency_ms)
 
 

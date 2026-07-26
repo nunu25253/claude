@@ -1,13 +1,53 @@
 # PROGRESS
 
 ## 現在地
-- 完了済み: Phase 0, 1, 2, 3, 4
-- 次: Phase 5
+- 完了済み: Phase 0, 1, 2, 3, 4, 5(全Phase完了)
+- 次: (なし。追加機能はすべて「将来メモ」を参照)
 
 ## 将来メモ(スコープ外の提案置き場)
-- (まだなし)
+- 実AI接続(OpenAI/Anthropic等): `app/providers/real_provider.py`に骨組みのみ用意。
+  実装時は`app.services.design_service.build_prompt()`を使い、ユーザー入力は
+  `<user_input>`タグの中に「データ」として埋め込むこと(§6.5のルールを踏襲)。
+- 画像生成AI・AR試着・ネイル健康診断・ユーザー認証・決済: 未着手(§2.4のスコープ外)。
+- CostGuard/キャッシュの永続化: 現状はプロセスメモリのみ(§6.3・§6.4のコメント通り、
+  プロトタイプとして許容)。本番運用するならRedis等への外出しを検討する。
+- フロントエンドはTailwind CDNに依存しているため、CDNへ到達できないネットワーク
+  環境では見た目のスタイルが崩れる(DOM・機能自体は影響を受けない)。気になる場合は
+  Tailwindのビルド済みCSSを静的配置する対応が考えられるが、§3の技術スタック固定
+  (Tailwind CDN指定)により本プロトタイプでは見送った。
 
 ## ログ
+
+### 2026-07-26 Phase 5 完了
+- 完了: `providers/real_provider.py`(RealAIProviderスタブ、呼ぶと
+  `NotImplementedError`)、`api/deps.py`の`get_provider`に`AI_PROVIDER`
+  環境変数によるmock/real切り替えを追加、`.env.example`(§14通りの内容、
+  Phase 0で作成漏れていたため今回追加)、README完成(前提条件・セットアップ・
+  起動・テスト・設定一覧・構成図)。test_real_provider.pyと
+  `AI_PROVIDER=real`時の500応答テストを追加(計60テスト)。
+- 未解決: なし。§16の完了条件をすべて満たしている(下記参照)。
+- 判断と理由:
+  1. `.env.example`はIMPLEMENTATION_PROMPT.md §11のディレクトリ構成に含まれて
+     いたがPhase 0で作成し忘れていたことにPhase 5で気づき、§14の内容通りに
+     追加した。中身は最初からこのPhaseで決まっていた通りで変更はない。
+  2. `get_provider`の切り替えロジックは、`AI_PROVIDER=real`のときだけ
+     `RealAIProvider()`を返すシンプルな分岐にした。実接続の実装自体は
+     スコープ外なので、呼び出すと`NotImplementedError`→共通の500ハンドラで
+     `{"error": {"code": "internal", ...}}`になることをテストで確認した。
+  3. `TestClient`のデフォルト(`raise_server_exceptions=True`)だと、汎用の
+     `Exception`ハンドラで拾われるはずの例外がテスト側に再送出されてしまう
+     ことが判明したため、`tests/conftest.py`の`client`/`make_client`双方に
+     `raise_server_exceptions=False`を設定し、本番と同じ「常にJSONで返る」
+     挙動をテストできるようにした。
+  4. §16の完了条件を最終確認:
+     - ブラウザでの一連の流れ(条件入力→3案表示→♡保存→お気に入り/履歴閲覧)は
+       Phase 4でPlaywrightにより確認済み(Tailwind CDNのみサンドボックス制約で
+       視覚未確認、PROGRESS.mdの将来メモに記載)。
+     - `ruff check .`・`mypy .`・`pytest`は全成功、`--cov=app`でアプリ全体
+       100%(core/services/providersも100%、要件の80%を超過)。
+     - READMEの手順(uv sync→起動→テスト)だけでセットアップを再現できる形にした。
+     - `AI_PROVIDER=mock`のままテストスイート・手動確認のいずれも外部通信は
+       発生していない(Mock生成はテンプレートと乱数のみ)。
 
 ### 2026-07-26 Phase 4 完了
 - 完了: `services/image_service.py`(SVGモック画像生成)、
