@@ -67,6 +67,8 @@ tags:
     description: 設定
   - name: Notifications
     description: アプリ内通知センター
+  - name: Analytics
+    description: プラットフォーム全体の統計情報
 
 security:
   - bearerAuth: []
@@ -1530,6 +1532,21 @@ paths:
       responses:
         "204":
           description: 既読化成功
+
+  /analytics/ai-improvement-rate:
+    get:
+      tags: [Analytics]
+      summary: AI提案の的中率取得
+      description: >-
+        初回分析からAIの改善提案を踏まえて再分析された投稿群のうち、実際にBuzzScoreが向上した割合を返す。
+        集計対象のサンプルが無い場合はimprovedPercentage/averageScoreDeltaがnullになる(架空の実績を返さない)。
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiImprovementRate"
 
   /organizations:
     post:
@@ -3163,6 +3180,23 @@ components:
       properties:
         count:
           type: integer
+
+    AiImprovementRate:
+      type: object
+      properties:
+        sampleSize:
+          type: integer
+          description: 集計対象(2回以上再分析された投稿)の件数
+        improvedPercentage:
+          type: number
+          format: float
+          nullable: true
+          description: 初回analyzeより最新のBuzzScoreが高かった投稿の割合(0〜100、サンプル無しならnull)
+        averageScoreDelta:
+          type: number
+          format: float
+          nullable: true
+          description: 初回から最新までのBuzzScore変化量の平均(サンプル無しならnull)
 
     BuzzScore:
       type: object

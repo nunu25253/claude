@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSavedAnalyses } from "@/lib/hooks/use-saved-analyses";
 import { useRankings } from "@/lib/hooks/use-rankings";
+import { useAiImprovementRate } from "@/lib/hooks/use-analytics";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { PostCard } from "@/components/dashboard/post-card";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -14,6 +15,9 @@ export default function HomePage() {
   const savedQuery = useSavedAnalyses();
   // 急上昇投稿プレビュー用にトレンドランキングを取得
   const trendingQuery = useRankings({ type: "trending" });
+  // AIの改善提案は実際に効果があったか(プラットフォーム全体の実データに基づく指標。
+  // サンプルが無ければnullなので、架空の数値は表示しない)
+  const aiImprovementQuery = useAiImprovementRate();
 
   const savedAnalyses = savedQuery.data ?? [];
   const totalAnalyses = savedAnalyses.length;
@@ -34,6 +38,15 @@ export default function HomePage() {
           label="保存済み分析"
           icon="🔖"
           value={formatCompactNumber(savedAnalyses.length)}
+        />
+        <KpiCard
+          label="AI提案の的中率"
+          icon="🎯"
+          value={
+            aiImprovementQuery.data && aiImprovementQuery.data.sampleSize > 0
+              ? `${Math.round(aiImprovementQuery.data.improvedPercentage ?? 0)}%`
+              : "データ収集中"
+          }
         />
       </div>
 

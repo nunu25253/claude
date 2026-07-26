@@ -15,3 +15,4 @@ export * from "./commonality";
 export * from "./rag";
 export * from "./notifications";
 export * from "./matching";
+export * from "./analytics";

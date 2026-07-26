@@ -4,6 +4,7 @@ import com.buzzanalysis.domain.score.BuzzScoreHistoryEntry;
 import com.buzzanalysis.domain.score.BuzzScoreHistoryRepository;
 import com.buzzanalysis.infrastructure.persistence.mapper.BuzzScoreHistoryMapper;
 import com.buzzanalysis.infrastructure.persistence.repository.BuzzScoreHistoryJpaRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -29,5 +30,10 @@ public class BuzzScoreHistoryRepositoryImpl implements BuzzScoreHistoryRepositor
     @Override
     public List<BuzzScoreHistoryEntry> findByPostIdOrderByCalculatedAtAsc(UUID postId) {
         return jpaRepository.findByPostIdOrderByCalculatedAtAsc(postId).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public List<UUID> findPostIdsWithAtLeastTwoEntries(int limit) {
+        return jpaRepository.findPostIdsWithAtLeastTwoEntries(PageRequest.of(0, limit));
     }
 }
