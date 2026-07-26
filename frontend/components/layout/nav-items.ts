@@ -10,6 +10,7 @@ import {
   Bookmark,
   Settings,
   CreditCard,
+  Target,
   type LucideIcon,
 } from "lucide-react";
 
@@ -45,6 +46,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/posts/analyze", label: "投稿分析", icon: Brain },
       { href: "/proposals", label: "AI企画", icon: Lightbulb },
       { href: "/evaluations", label: "投稿評価", icon: ClipboardCheck },
+      { href: "/matching", label: "案件マッチ度", icon: Target },
       { href: "/reports", label: "AIレポート", icon: FileText },
     ],
   },

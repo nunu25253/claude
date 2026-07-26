@@ -1,6 +1,8 @@
 package com.buzzanalysis.application.savedanalysis;
 
 import com.buzzanalysis.application.auth.MailSenderPort;
+import com.buzzanalysis.application.notification.NotificationApplicationService;
+import com.buzzanalysis.domain.notification.NotificationType;
 import com.buzzanalysis.domain.platform.Platform;
 import com.buzzanalysis.domain.post.Post;
 import com.buzzanalysis.domain.post.PostRepository;
@@ -29,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -48,6 +51,8 @@ class ThresholdAlertApplicationServiceTest {
     private UserRepository userRepository;
     @Mock
     private MailSenderPort mailSenderPort;
+    @Mock
+    private NotificationApplicationService notificationApplicationService;
 
     private ThresholdAlertApplicationService service;
     private UUID userId;
@@ -58,7 +63,7 @@ class ThresholdAlertApplicationServiceTest {
     @BeforeEach
     void setUp() {
         service = new ThresholdAlertApplicationService(savedAnalysisRepository, postRepository,
-                buzzScoreRepository, userRepository, mailSenderPort);
+                buzzScoreRepository, userRepository, mailSenderPort, notificationApplicationService);
 
         userId = UUID.randomUUID();
         postId = UUID.randomUUID();
@@ -84,6 +89,7 @@ class ThresholdAlertApplicationServiceTest {
 
         assertThat(triggeredCount).isEqualTo(1);
         verify(mailSenderPort).sendThresholdAlertEmail(anyString(), anyString(), anyDouble(), anyDouble());
+        verify(notificationApplicationService).notify(eq(userId), eq(NotificationType.THRESHOLD_ALERT), anyString(), anyString(), anyString());
         ArgumentCaptor<SavedAnalysis> captor = ArgumentCaptor.forClass(SavedAnalysis.class);
         verify(savedAnalysisRepository).save(captor.capture());
         assertThat(captor.getValue().getAlertTriggeredAt()).isNotNull();

@@ -2,9 +2,11 @@ package com.buzzanalysis.application.savedanalysis;
 
 import com.buzzanalysis.application.auth.MailSenderPort;
 import com.buzzanalysis.application.auth.dto.GenreScoreSummary;
+import com.buzzanalysis.application.notification.NotificationApplicationService;
 import com.buzzanalysis.domain.analysis.AnalysisResult;
 import com.buzzanalysis.domain.analysis.AnalysisResultRepository;
 import com.buzzanalysis.domain.genre.GenreNormalizer;
+import com.buzzanalysis.domain.notification.NotificationType;
 import com.buzzanalysis.domain.post.Post;
 import com.buzzanalysis.domain.post.PostRepository;
 import com.buzzanalysis.domain.post.PostSearchCriteria;
@@ -53,6 +55,7 @@ public class WeeklyDigestApplicationService {
     private final UserRepository userRepository;
     private final GenreNormalizer genreNormalizer;
     private final MailSenderPort mailSenderPort;
+    private final NotificationApplicationService notificationApplicationService;
 
     public WeeklyDigestApplicationService(SavedAnalysisRepository savedAnalysisRepository,
                                            PostRepository postRepository,
@@ -61,7 +64,8 @@ public class WeeklyDigestApplicationService {
                                            BuzzScoreHistoryRepository buzzScoreHistoryRepository,
                                            UserRepository userRepository,
                                            GenreNormalizer genreNormalizer,
-                                           MailSenderPort mailSenderPort) {
+                                           MailSenderPort mailSenderPort,
+                                           NotificationApplicationService notificationApplicationService) {
         this.savedAnalysisRepository = savedAnalysisRepository;
         this.postRepository = postRepository;
         this.analysisResultRepository = analysisResultRepository;
@@ -70,6 +74,7 @@ public class WeeklyDigestApplicationService {
         this.userRepository = userRepository;
         this.genreNormalizer = genreNormalizer;
         this.mailSenderPort = mailSenderPort;
+        this.notificationApplicationService = notificationApplicationService;
     }
 
     /**
@@ -127,6 +132,10 @@ public class WeeklyDigestApplicationService {
 
         mailSenderPort.sendWeeklyDigestEmail(user.getEmail(), topGenres, thisWeekAverage, lastWeekAverage,
                 savedAnalyses.size());
+        notificationApplicationService.notify(user.getId(), NotificationType.WEEKLY_DIGEST,
+                "今週のAIダイジェスト",
+                "今週のあなたの平均BuzzScore: %.1f (保存済み分析 %d件)".formatted(thisWeekAverage, savedAnalyses.size()),
+                "/saved");
         return true;
     }
 

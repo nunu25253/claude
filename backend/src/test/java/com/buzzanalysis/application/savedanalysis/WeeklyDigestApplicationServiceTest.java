@@ -2,6 +2,7 @@ package com.buzzanalysis.application.savedanalysis;
 
 import com.buzzanalysis.application.auth.MailSenderPort;
 import com.buzzanalysis.application.auth.dto.GenreScoreSummary;
+import com.buzzanalysis.application.notification.NotificationApplicationService;
 import com.buzzanalysis.domain.analysis.AnalysisResult;
 import com.buzzanalysis.domain.analysis.AnalysisResultRepository;
 import com.buzzanalysis.domain.genre.GenreNormalizer;
@@ -63,6 +64,8 @@ class WeeklyDigestApplicationServiceTest {
     private UserRepository userRepository;
     @Mock
     private MailSenderPort mailSenderPort;
+    @Mock
+    private NotificationApplicationService notificationApplicationService;
 
     private WeeklyDigestApplicationService service;
     private UUID userId;
@@ -73,7 +76,7 @@ class WeeklyDigestApplicationServiceTest {
     void setUp() {
         service = new WeeklyDigestApplicationService(savedAnalysisRepository, postRepository,
                 analysisResultRepository, buzzScoreRepository, buzzScoreHistoryRepository, userRepository,
-                new GenreNormalizer(), mailSenderPort);
+                new GenreNormalizer(), mailSenderPort, notificationApplicationService);
 
         userId = UUID.randomUUID();
         postId = UUID.randomUUID();

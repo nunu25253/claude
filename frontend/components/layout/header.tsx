@@ -5,6 +5,7 @@ import { Menu } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { NAV_ITEMS } from "./nav-items";
 import { ThemeToggle } from "./theme-toggle";
+import { NotificationBell } from "./notification-bell";
 
 function currentPageLabel(pathname: string): string {
   const match = NAV_ITEMS.find((item) =>
@@ -34,6 +35,7 @@ export function Header({ onMenuClick }: { onMenuClick: () => void }) {
       </div>
 
       <div className="flex items-center gap-3">
+        <NotificationBell />
         <ThemeToggle />
         <div className="hidden text-right sm:block">
           <p className="text-sm font-medium text-slate-700 dark:text-slate-200">

@@ -7,7 +7,7 @@ import { expectNoA11yViolations } from "./a11y";
  * ことへの対応の第一弾として、クラッシュせずに描画されること・アクセシビリティ回帰が無いことを
  * 機械的に検知できるようにする(単体テストでは検知できない画面遷移・実API連携込みの不具合が対象)。
  */
-test("トレンド・ランキング・保存済み分析・設定画面がクラッシュせず描画される", async ({ page }) => {
+test("トレンド・ランキング・保存済み分析・設定・案件マッチ度画面がクラッシュせず描画される", async ({ page }) => {
   const uniqueEmail = `e2e-screens-${Date.now()}@example.com`;
 
   await page.goto("/register");
@@ -27,6 +27,7 @@ test("トレンド・ランキング・保存済み分析・設定画面がク�
     { path: "/rankings", expectedText: /トレンド|急上昇|総合/ },
     { path: "/saved", expectedText: /保存済み|まだ保存された分析がありません/ },
     { path: "/settings", expectedText: "プロフィール" },
+    { path: "/matching", expectedText: "案件マッチ度チェック" },
   ];
 
   for (const screen of screens) {

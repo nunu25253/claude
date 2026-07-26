@@ -1,6 +1,8 @@
 package com.buzzanalysis.application.savedanalysis;
 
 import com.buzzanalysis.application.auth.MailSenderPort;
+import com.buzzanalysis.application.notification.NotificationApplicationService;
+import com.buzzanalysis.domain.notification.NotificationType;
 import com.buzzanalysis.domain.post.Post;
 import com.buzzanalysis.domain.post.PostRepository;
 import com.buzzanalysis.domain.savedanalysis.SavedAnalysis;
@@ -30,17 +32,20 @@ public class ThresholdAlertApplicationService {
     private final BuzzScoreRepository buzzScoreRepository;
     private final UserRepository userRepository;
     private final MailSenderPort mailSenderPort;
+    private final NotificationApplicationService notificationApplicationService;
 
     public ThresholdAlertApplicationService(SavedAnalysisRepository savedAnalysisRepository,
                                              PostRepository postRepository,
                                              BuzzScoreRepository buzzScoreRepository,
                                              UserRepository userRepository,
-                                             MailSenderPort mailSenderPort) {
+                                             MailSenderPort mailSenderPort,
+                                             NotificationApplicationService notificationApplicationService) {
         this.savedAnalysisRepository = savedAnalysisRepository;
         this.postRepository = postRepository;
         this.buzzScoreRepository = buzzScoreRepository;
         this.userRepository = userRepository;
         this.mailSenderPort = mailSenderPort;
+        this.notificationApplicationService = notificationApplicationService;
     }
 
     /**
@@ -78,6 +83,11 @@ public class ThresholdAlertApplicationService {
         }
 
         mailSenderPort.sendThresholdAlertEmail(user.getEmail(), post.getCaption(), buzzScore.getTotalScore(), saved.getAlertThreshold());
+        String caption = (post.getCaption() == null || post.getCaption().isBlank()) ? "(キャプションなし)" : post.getCaption();
+        notificationApplicationService.notify(user.getId(), NotificationType.THRESHOLD_ALERT,
+                "設定したしきい値を超えました",
+                "%s\n現在のBuzzScore: %.1f (しきい値: %.1f)".formatted(caption, buzzScore.getTotalScore(), saved.getAlertThreshold()),
+                "/saved");
         saved.markAlertTriggered(OffsetDateTime.now());
         savedAnalysisRepository.save(saved);
         return true;

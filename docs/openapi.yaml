@@ -65,6 +65,8 @@ tags:
     description: 保存済み分析
   - name: Settings
     description: 設定
+  - name: Notifications
+    description: アプリ内通知センター
 
 security:
   - bearerAuth: []
@@ -1475,6 +1477,59 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiKeySettings"
+
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: 通知一覧取得(直近50件、新しい順)
+      description: しきい値アラート・週次ダイジェスト等、メール通知と対になるアプリ内通知を返す。
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+
+  /notifications/unread-count:
+    get:
+      tags: [Notifications]
+      summary: 未読通知数の取得
+      description: ヘッダーのベルアイコンのバッジ表示用。
+      responses:
+        "200":
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnreadNotificationCount"
+
+  /notifications/{id}/read:
+    post:
+      tags: [Notifications]
+      summary: 通知を既読にする
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: 既読化成功
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /notifications/read-all:
+    post:
+      tags: [Notifications]
+      summary: すべての通知を既読にする
+      responses:
+        "204":
+          description: 既読化成功
 
   /organizations:
     post:
@@ -3080,6 +3135,34 @@ components:
         genreSampleSize:
           type: integer
           description: genreAverageScoreの算出に使用した投稿数
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [THRESHOLD_ALERT, WEEKLY_DIGEST]
+        title:
+          type: string
+        body:
+          type: string
+        link:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        unread:
+          type: boolean
+
+    UnreadNotificationCount:
+      type: object
+      properties:
+        count:
+          type: integer
 
     BuzzScore:
       type: object
