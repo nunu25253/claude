@@ -63,6 +63,8 @@ tags:
     description: AIレポート生成/出力
   - name: SavedAnalyses
     description: 保存済み分析
+  - name: SharedAnalyses
+    description: 外部共有リンク経由の分析結果閲覧(認証不要)
   - name: Settings
     description: 設定
   - name: Notifications
@@ -1384,6 +1386,66 @@ paths:
       responses:
         "200":
           description: 設定成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedAnalysis"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /saved-analyses/{id}/share:
+    post:
+      tags: [SavedAnalyses]
+      summary: 外部共有リンクの発行(既に有効なリンクがあればそれを返す)
+      description: 未ログインの外部クライアント(代理店の顧客等)が/shared/{token}経由で閲覧専用アクセスできる
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 発行成功(既存リンクがあればそれを返す)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShareLink"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [SavedAnalyses]
+      summary: 外部共有リンクの失効
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: 失効成功(元々リンクが無い場合も204)
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /shared/{token}:
+    get:
+      tags: [SharedAnalyses]
+      summary: 共有トークンから分析結果を取得(認証不要)
+      description: リンクが失効済み・存在しない場合は404。トークンの知得自体をアクセス権とみなす。
+      security: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 取得成功
           content:
             application/json:
               schema:
@@ -3468,6 +3530,17 @@ components:
           type: string
           format: date-time
           nullable: true
+
+    ShareLink:
+      type: object
+      properties:
+        token:
+          type: string
+          format: uuid
+          description: /shared/{token}の形でそのまま公開URLに使う
+        createdAt:
+          type: string
+          format: date-time
 
     SetAlertThresholdRequest:
       type: object

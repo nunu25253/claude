@@ -3,14 +3,15 @@ import { fetchVerificationLink } from "./mail-catcher";
 import { expectNoA11yViolations } from "./a11y";
 
 /**
- * 主要導線(新規登録→メール確認→投稿分析→保存→CSVエクスポート)が壊れていないことを確認するE2Eテスト。
- * 本セッション中、この導線だけで403(JWT失効)・400(フィールド名不一致)・
+ * 主要導線(新規登録→メール確認→投稿分析→保存→CSVエクスポート→外部共有リンク)が壊れていないことを
+ * 確認するE2Eテスト。本セッション中、この導線だけで403(JWT失効)・400(フィールド名不一致)・
  * 500(UNIQUE制約違反)・クライアントクラッシュ(フロント/バックエンド型不一致)という
  * 4種類の実バグが手動デバッグでしか発見できなかったため、機械的に回帰検出できるようにする。
  * メール確認機能の追加後は未確認ユーザーの投稿分析がブロックされるため、MailHogから
- * 確認メールを取得してリンクを踏む工程も検証する。
+ * 確認メールを取得してリンクを踏む工程も検証する。外部共有リンクは未ログインの別ブラウザ
+ * コンテキストから閲覧できることまで確認し、失効後は再度ボタンが「発行」状態に戻ることも見る。
  */
-test("新規登録から投稿分析・保存・CSVエクスポートまでの主要導線が壊れない", async ({ page }) => {
+test("新規登録から投稿分析・保存・CSVエクスポートまでの主要導線が壊れない", async ({ page, browser }) => {
   const uniqueEmail = `e2e-${Date.now()}@example.com`;
 
   await page.goto("/register");
@@ -60,4 +61,25 @@ test("新規登録から投稿分析・保存・CSVエクスポートまでの�
   ]);
   const csvPath = await download.path();
   expect(csvPath).toBeTruthy();
+
+  // 外部共有リンク: 発行したリンクが未ログインの別コンテキストからも閲覧できることを確認する
+  await page.click('button:has-text("詳細を見る")');
+  await page.click('button:has-text("共有リンクを発行")');
+  const shareUrlInput = page.getByLabel("共有リンク");
+  await expect(shareUrlInput).toBeVisible({ timeout: 10_000 });
+  const shareUrl = await shareUrlInput.inputValue();
+  expect(shareUrl).toContain("/shared/");
+
+  const anonymousContext = await browser.newContext();
+  const anonymousPage = await anonymousContext.newPage();
+  await anonymousPage.goto(shareUrl);
+  await expect(anonymousPage).toHaveURL(shareUrl);
+  await expect(anonymousPage.getByText("AI分析結果")).toBeVisible({ timeout: 10_000 });
+  const sharedPageBody = await anonymousPage.locator("body").innerText();
+  expect(sharedPageBody).not.toContain("client-side exception");
+  await expectNoA11yViolations(anonymousPage);
+  await anonymousContext.close();
+
+  await page.click('button:has-text("共有を解除")');
+  await expect(page.getByRole("button", { name: /共有リンクを発行/ })).toBeVisible({ timeout: 10_000 });
 });

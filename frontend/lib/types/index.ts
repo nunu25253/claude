@@ -18,3 +18,4 @@ export * from "./rag";
 export * from "./notification";
 export * from "./matching";
 export * from "./analytics";
+export * from "./share";

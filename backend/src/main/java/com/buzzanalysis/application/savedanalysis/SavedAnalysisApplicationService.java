@@ -100,6 +100,14 @@ public class SavedAnalysisApplicationService {
         return enrich(saved).orElseThrow(() -> EntityNotFoundException.of("Post", command.postId()));
     }
 
+    /** 保存済み分析を1件取得する(共有リンク機能等、所有者チェックを呼び出し側で行いたい場合向け)。 */
+    @Transactional(readOnly = true)
+    public SavedAnalysisDetailDto getById(UUID id) {
+        SavedAnalysis saved = savedAnalysisRepository.findById(id)
+                .orElseThrow(() -> EntityNotFoundException.of("SavedAnalysis", id));
+        return enrich(saved).orElseThrow(() -> EntityNotFoundException.of("Post", saved.getPostId()));
+    }
+
     @Transactional
     public void delete(UUID id, UUID requestingUserId) {
         SavedAnalysis existing = savedAnalysisRepository.findById(id)

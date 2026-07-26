@@ -87,7 +87,8 @@ public class SecurityConfig {
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/actuator/health",
-            "/api/v1/reports/files/**"
+            "/api/v1/reports/files/**",
+            "/api/v1/shared/**"
     };
 
     private final JwtTokenProvider jwtTokenProvider;

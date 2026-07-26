@@ -17,6 +17,7 @@ const PUBLIC_PATHS = [
   "/terms",
   "/privacy",
   "/legal",
+  "/shared",
 ];
 // ログイン済みならダッシュボードへ戻すパス(/verify-email は登録直後の
 // ログイン済みユーザーもアクセスするため対象外とする)

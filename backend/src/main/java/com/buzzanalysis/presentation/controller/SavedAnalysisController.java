@@ -1,8 +1,10 @@
 package com.buzzanalysis.presentation.controller;
 
 import com.buzzanalysis.application.savedanalysis.SavedAnalysisApplicationService;
+import com.buzzanalysis.application.savedanalysis.SavedAnalysisShareApplicationService;
 import com.buzzanalysis.application.savedanalysis.dto.SaveAnalysisCommand;
 import com.buzzanalysis.application.savedanalysis.dto.SavedAnalysisDetailDto;
+import com.buzzanalysis.application.savedanalysis.dto.ShareLinkDto;
 import com.buzzanalysis.presentation.dto.request.SaveAnalysisRequest;
 import com.buzzanalysis.presentation.dto.request.SetAlertThresholdRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,9 +32,12 @@ import java.util.UUID;
 public class SavedAnalysisController {
 
     private final SavedAnalysisApplicationService savedAnalysisApplicationService;
+    private final SavedAnalysisShareApplicationService savedAnalysisShareApplicationService;
 
-    public SavedAnalysisController(SavedAnalysisApplicationService savedAnalysisApplicationService) {
+    public SavedAnalysisController(SavedAnalysisApplicationService savedAnalysisApplicationService,
+                                    SavedAnalysisShareApplicationService savedAnalysisShareApplicationService) {
         this.savedAnalysisApplicationService = savedAnalysisApplicationService;
+        this.savedAnalysisShareApplicationService = savedAnalysisShareApplicationService;
     }
 
     @Operation(summary = "保存済み分析一覧取得")
@@ -67,6 +72,22 @@ public class SavedAnalysisController {
         UUID userId = currentUserId(authentication);
         SavedAnalysisDetailDto updated = savedAnalysisApplicationService.setAlertThreshold(id, userId, request.threshold());
         return ResponseEntity.ok(updated);
+    }
+
+    @Operation(summary = "外部共有リンクの発行(既に有効なリンクがあればそれを返す)",
+            description = "未ログインの外部クライアント(代理店の顧客等)がこのリンクだけで閲覧専用アクセスできる")
+    @PostMapping("/{id}/share")
+    public ResponseEntity<ShareLinkDto> createShareLink(Authentication authentication, @PathVariable UUID id) {
+        UUID userId = currentUserId(authentication);
+        return ResponseEntity.ok(savedAnalysisShareApplicationService.createOrGetActiveLink(id, userId));
+    }
+
+    @Operation(summary = "外部共有リンクの失効")
+    @DeleteMapping("/{id}/share")
+    public ResponseEntity<Void> revokeShareLink(Authentication authentication, @PathVariable UUID id) {
+        UUID userId = currentUserId(authentication);
+        savedAnalysisShareApplicationService.revoke(id, userId);
+        return ResponseEntity.noContent().build();
     }
 
     private UUID currentUserId(Authentication authentication) {

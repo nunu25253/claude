@@ -42,3 +42,15 @@ export function useSetAlertThreshold() {
     },
   });
 }
+
+export function useCreateShareLink() {
+  return useMutation({
+    mutationFn: (id: string) => savedAnalysesApi.createShareLink(id),
+  });
+}
+
+export function useRevokeShareLink() {
+  return useMutation({
+    mutationFn: (id: string) => savedAnalysesApi.revokeShareLink(id),
+  });
+}

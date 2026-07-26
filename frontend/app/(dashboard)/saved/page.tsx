@@ -8,6 +8,7 @@ import { QueryState } from "@/components/dashboard/query-state";
 import { PlatformBadge } from "@/components/ui/badge";
 import { AnalysisResult } from "@/components/dashboard/analysis/analysis-result";
 import { AlertThresholdControl } from "@/components/dashboard/saved/alert-threshold-control";
+import { ShareLinkControl } from "@/components/dashboard/saved/share-link-control";
 import { CommonalityPanel } from "@/components/dashboard/saved/commonality-panel";
 import { RagAssistantPanel } from "@/components/dashboard/saved/rag-assistant-panel";
 import { formatDateTime } from "@/lib/utils";
@@ -125,6 +126,9 @@ export default function SavedPage() {
 
                 {isExpanded && item.analysis && item.buzzScore && (
                   <div className="mt-5 border-t border-slate-100 pt-5">
+                    <div className="mb-5">
+                      <ShareLinkControl savedAnalysisId={item.id} />
+                    </div>
                     <AnalysisResult
                       result={{
                         post: item.post,
