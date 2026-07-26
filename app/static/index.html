@@ -1,11 +1,104 @@
-<!-- NailMuseフロントエンド。Phase 4で実装する。 -->
 <!doctype html>
 <html lang="ja">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>NailMuse</title>
+    <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body>
-    <p>Phase 4で実装予定。</p>
+  <body class="bg-[#FAF7F5] text-stone-800 min-h-screen pb-24">
+    <div class="max-w-md mx-auto">
+      <header class="px-4 pt-6 pb-4">
+        <h1 class="text-2xl font-bold text-center text-pink-600">NailMuse</h1>
+      </header>
+
+      <!-- タブ切り替え(vanilla JSでdisplay:none/blockを切り替えるだけの素朴な実装) -->
+      <nav class="flex border-b border-stone-200 px-4">
+        <button data-tab="create" class="tab-button flex-1 py-2 text-sm font-medium border-b-2">
+          作成
+        </button>
+        <button data-tab="favorites" class="tab-button flex-1 py-2 text-sm font-medium border-b-2">
+          お気に入り
+        </button>
+        <button data-tab="history" class="tab-button flex-1 py-2 text-sm font-medium border-b-2">
+          履歴
+        </button>
+      </nav>
+
+      <!-- 作成タブ -->
+      <section id="tab-create" class="tab-panel px-4 py-4 space-y-6">
+        <div>
+          <h2 class="text-sm font-semibold mb-2">シーン</h2>
+          <div id="scene-options" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <div>
+          <h2 class="text-sm font-semibold mb-2">色(1〜3個)</h2>
+          <div id="color-options" class="flex flex-wrap gap-3"></div>
+        </div>
+
+        <div>
+          <h2 class="text-sm font-semibold mb-2">爪の形</h2>
+          <div id="shape-options" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <div>
+          <h2 class="text-sm font-semibold mb-2">長さ</h2>
+          <div id="length-options" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <div>
+          <h2 class="text-sm font-semibold mb-2">スタイル</h2>
+          <div id="style-options" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <div>
+          <h2 class="text-sm font-semibold mb-2">その他の要望(例: 大人っぽく、ラメ少なめ)</h2>
+          <textarea
+            id="free-text-input"
+            rows="2"
+            maxlength="120"
+            placeholder="任意"
+            class="w-full rounded-lg border border-stone-300 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
+          ></textarea>
+          <p class="text-right text-xs text-stone-400 mt-1">
+            <span id="free-text-count">0</span>/120
+          </p>
+        </div>
+
+        <div id="result-area" class="space-y-4"></div>
+      </section>
+
+      <!-- お気に入りタブ -->
+      <section id="tab-favorites" class="tab-panel hidden px-4 py-4">
+        <div id="favorites-area" class="space-y-4"></div>
+      </section>
+
+      <!-- 履歴タブ -->
+      <section id="tab-history" class="tab-panel hidden px-4 py-4">
+        <div id="history-area" class="space-y-3"></div>
+      </section>
+    </div>
+
+    <!-- 固定CTA(作成タブのときだけ表示) -->
+    <div id="generate-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 p-3">
+      <div class="max-w-md mx-auto">
+        <button
+          id="generate-button"
+          disabled
+          class="w-full rounded-full bg-pink-500 disabled:bg-stone-300 text-white font-semibold py-3 transition-colors"
+        >
+          デザインを生成
+        </button>
+      </div>
+    </div>
+
+    <!-- トースト -->
+    <div
+      id="toast"
+      class="hidden fixed top-4 left-1/2 -translate-x-1/2 bg-stone-900 text-white text-sm px-4 py-2 rounded-full shadow-lg z-50"
+    ></div>
+
+    <script src="/static/app.js"></script>
   </body>
 </html>

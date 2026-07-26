@@ -6,7 +6,11 @@
 1日カウンタ等)が漏れてしまう。
 """
 
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api import routes_designs, routes_favorites, routes_stats
 from app.api.errors import register_exception_handlers
@@ -15,6 +19,8 @@ from app.core.cache import LRUTTLCache
 from app.core.cost_guard import BudgetPolicy, CostGuard
 from app.models.db import create_session_factory
 from app.services.design_service import GenerationResult
+
+_STATIC_DIR = Path(__file__).parent / "static"
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -46,10 +52,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"status": "ok"}
 
     app.include_router(routes_designs.router)
+    app.include_router(routes_designs.image_router)
     app.include_router(routes_favorites.router)
     app.include_router(routes_stats.router)
 
     register_exception_handlers(app)
 
-    # NOTE: 静的配信(フロントエンド)はPhase 4で追加する。
+    # フロントエンド(vanilla JS + Tailwind CDN)はビルド工程なしで静的配信する。
+    app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
+
+    @app.get("/")
+    def index() -> FileResponse:
+        """1ページ構成のフロントエンドを返す。"""
+        return FileResponse(_STATIC_DIR / "index.html")
+
     return app

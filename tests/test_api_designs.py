@@ -116,6 +116,28 @@ def test_unhandled_exception_returns_500() -> None:
     assert response.json()["error"]["code"] == "internal"
 
 
+def test_proposal_image_returns_svg(client: TestClient) -> None:
+    """proposalのSVG画像は200・image/svg+xmlで、パレット色を含む(§9)。"""
+    generated = client.post("/api/designs/generate", json=VALID_PAYLOAD).json()
+    proposal = generated["proposals"][0]
+
+    response = client.get(proposal["image_url"])
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/svg+xml"
+    assert response.headers["cache-control"] == "max-age=86400"
+    assert "<svg" in response.text
+    assert proposal["palette"][0] in response.text
+
+
+def test_proposal_image_missing_returns_404(client: TestClient) -> None:
+    """存在しないproposalの画像リクエストは404 not_foundになる。"""
+    response = client.get("/api/proposals/does-not-exist/image.svg")
+
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "not_found"
+
+
 def test_stats_shape(client: TestClient) -> None:
     """`/api/stats`が仕様通りの形式で返る。"""
     client.post("/api/designs/generate", json=VALID_PAYLOAD)
