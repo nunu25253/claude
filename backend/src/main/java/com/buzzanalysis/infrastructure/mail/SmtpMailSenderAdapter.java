@@ -1,12 +1,16 @@
 package com.buzzanalysis.infrastructure.mail;
 
 import com.buzzanalysis.application.auth.MailSenderPort;
+import com.buzzanalysis.application.auth.dto.GenreScoreSummary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * {@link JavaMailSender} を使ったパスワードリセットメール送信の実装。
@@ -102,5 +106,59 @@ public class SmtpMailSenderAdapter implements MailSenderPort {
             // 通知送信の失敗でバッチ処理全体を止めない(他の保存済み分析のチェックは継続する)。
             log.error("Failed to send threshold alert mail to {}", toEmail, e);
         }
+    }
+
+    @Override
+    @Async("mailTaskExecutor")
+    public void sendWeeklyDigestEmail(String toEmail, List<GenreScoreSummary> topGenres, double thisWeekAverageScore,
+                                       Double lastWeekAverageScore, int savedAnalysisCount) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(properties.getFromAddress());
+        message.setTo(toEmail);
+        message.setSubject("【SNS AIバズ分析】今週のAIダイジェスト");
+        message.setText("""
+                今週のAIダイジェストをお届けします。
+
+                今週のあなたの平均BuzzScore: %.1f%s
+                保存済み分析: %d件
+
+                %s
+                以下から詳細をご確認ください。
+                %s
+                """.formatted(
+                thisWeekAverageScore,
+                formatWeekOverWeek(thisWeekAverageScore, lastWeekAverageScore),
+                savedAnalysisCount,
+                formatTopGenres(topGenres),
+                properties.getSavedAnalysesUrl()));
+        try {
+            mailSender.send(message);
+        } catch (Exception e) {
+            // 通知送信の失敗でバッチ処理全体を止めない(他のユーザーへの送信は継続する)。
+            log.error("Failed to send weekly digest mail to {}", toEmail, e);
+        }
+    }
+
+    private String formatWeekOverWeek(double thisWeekAverageScore, Double lastWeekAverageScore) {
+        if (lastWeekAverageScore == null) {
+            return "";
+        }
+        double delta = thisWeekAverageScore - lastWeekAverageScore;
+        String sign = delta >= 0 ? "+" : "";
+        return " (先週比 %s%.1f)".formatted(sign, delta);
+    }
+
+    private String formatTopGenres(List<GenreScoreSummary> topGenres) {
+        if (topGenres.isEmpty()) {
+            return "";
+        }
+        String lines = topGenres.stream()
+                .map(g -> "  ・%s (平均BuzzScore %.1f)".formatted(g.genre(), g.averageScore()))
+                .collect(Collectors.joining("\n"));
+        return """
+                今週プラットフォーム全体で好調なジャンル:
+                %s
+
+                """.formatted(lines);
     }
 }

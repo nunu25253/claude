@@ -10,6 +10,7 @@ import com.buzzanalysis.infrastructure.quota.UsageQuotaProperties;
 import com.buzzanalysis.infrastructure.scheduling.BatchAlertProperties;
 import com.buzzanalysis.infrastructure.scheduling.BatchSyncProperties;
 import com.buzzanalysis.infrastructure.scheduling.BatchTrendProperties;
+import com.buzzanalysis.infrastructure.scheduling.BatchWeeklyDigestProperties;
 import com.buzzanalysis.infrastructure.scheduling.BillingRenewalProperties;
 import com.buzzanalysis.infrastructure.security.AccountLockoutProperties;
 import com.buzzanalysis.infrastructure.security.CaptchaProperties;
@@ -34,6 +35,7 @@ import org.springframework.context.annotation.Configuration;
         BatchSyncProperties.class,
         BatchTrendProperties.class,
         BatchAlertProperties.class,
+        BatchWeeklyDigestProperties.class,
         CorsProperties.class,
         UsageQuotaProperties.class,
         RateLimitProperties.class,

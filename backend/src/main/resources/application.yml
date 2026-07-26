@@ -171,6 +171,11 @@ batch:
     # 蓄積済みデータのみを参照する(外部SNS APIへのアクセスは発生しない)。
     enabled: ${BATCH_ALERT_ENABLED:false}
     cron: ${BATCH_ALERT_CRON:0 0 * * * *}
+  weekly-digest:
+    # 週次AIダイジェストメール配信バッチ(戦略監査レポートPhase2: 定着率計測の第一弾)。デフォルトはOFF。
+    # 蓄積済みデータのみを参照する(外部SNS APIへのアクセスは発生しない)。
+    enabled: ${BATCH_WEEKLY_DIGEST_ENABLED:false}
+    cron: ${BATCH_WEEKLY_DIGEST_CRON:0 0 9 * * MON}
   billing-renewal:
     # PRO契約の月次更新課金バッチ(改善計画No.11)。決済処理を伴うため、他バッチと同様デフォルトはOFF。
     enabled: ${BATCH_BILLING_RENEWAL_ENABLED:false}

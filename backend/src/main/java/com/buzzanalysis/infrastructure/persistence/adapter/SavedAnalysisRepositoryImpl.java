@@ -48,4 +48,9 @@ public class SavedAnalysisRepositoryImpl implements SavedAnalysisRepository {
                 .map(mapper::toDomain)
                 .toList();
     }
+
+    @Override
+    public List<UUID> findDistinctUserIds() {
+        return jpaRepository.findDistinctUserIds();
+    }
 }

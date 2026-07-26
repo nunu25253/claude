@@ -2,6 +2,7 @@ package com.buzzanalysis.infrastructure.persistence.repository;
 
 import com.buzzanalysis.infrastructure.persistence.entity.SavedAnalysisEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 import java.util.UUID;
@@ -12,4 +13,7 @@ public interface SavedAnalysisJpaRepository extends JpaRepository<SavedAnalysisE
     List<SavedAnalysisEntity> findByUserId(UUID userId);
 
     List<SavedAnalysisEntity> findByAlertThresholdIsNotNullAndAlertTriggeredAtIsNull();
+
+    @Query("SELECT DISTINCT s.userId FROM SavedAnalysisEntity s")
+    List<UUID> findDistinctUserIds();
 }
