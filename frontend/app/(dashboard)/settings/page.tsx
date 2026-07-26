@@ -2,6 +2,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { ProfileSettingsForm } from "@/components/dashboard/settings/profile-settings-form";
 import { NotificationSettingsForm } from "@/components/dashboard/settings/notification-settings-form";
 import { ApiKeySettingsPanel } from "@/components/dashboard/settings/api-key-settings";
+import { TeamSettingsSection } from "@/components/dashboard/settings/team-settings-section";
 import { DataExportSection } from "@/components/dashboard/settings/data-export-section";
 import { DeleteAccountSection } from "@/components/dashboard/settings/delete-account-section";
 
@@ -11,6 +12,11 @@ export default function SettingsPage() {
       <Card>
         <CardHeader title="プロフィール" description="表示名・メールアドレスの変更" />
         <ProfileSettingsForm />
+      </Card>
+
+      <Card>
+        <CardHeader title="チーム" description="チームを作成してメンバーと分析結果を共有します" />
+        <TeamSettingsSection />
       </Card>
 
       <Card>

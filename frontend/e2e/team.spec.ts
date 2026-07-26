@@ -34,7 +34,7 @@ test("チームの作成・招待・メンバー閲覧・削除が壊れない",
   await register(ownerPage, ownerEmail, "オーナー太郎");
   await register(memberPage, memberEmail, "メンバー次郎");
 
-  await ownerPage.goto("/team", { waitUntil: "networkidle" });
+  await ownerPage.goto("/settings", { waitUntil: "networkidle" });
   await ownerPage.fill("#organizationName", teamName);
   await ownerPage.click('button:has-text("作成する")');
   await expect(ownerPage.getByRole("heading", { name: `メンバー管理: ${teamName}` })).toBeVisible({
@@ -45,7 +45,7 @@ test("チームの作成・招待・メンバー閲覧・削除が壊れない",
   await expect(ownerPage.getByText("メンバー次郎")).toBeVisible({ timeout: 10_000 });
   await expectNoA11yViolations(ownerPage);
 
-  await memberPage.goto("/team", { waitUntil: "networkidle" });
+  await memberPage.goto("/settings", { waitUntil: "networkidle" });
   await memberPage.click(`button:has-text("${teamName}")`);
   await expect(memberPage.getByText("オーナー太郎")).toBeVisible({ timeout: 10_000 });
   // MEMBERロールなので招待フォームは表示されない

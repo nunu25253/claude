@@ -10,7 +10,7 @@ import type { BuzzScoreResult, Post } from "@/lib/types";
 import { formatCompactNumber, formatDateTime } from "@/lib/utils";
 
 // rechartsは重量級のため、このセクションが実際に表示される時点まで読み込みを遅延させる
-// (/posts/analyze, /saved, /team の初期バンドルサイズを削減するため)。
+// (/posts/analyze, /saved, /settings の初期バンドルサイズを削減するため)。
 const BuzzScoreRadarChart = dynamic(
   () => import("@/components/charts/buzz-score-radar-chart").then((m) => m.BuzzScoreRadarChart),
   { ssr: false, loading: () => <ChartSkeleton /> },

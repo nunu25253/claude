@@ -9,7 +9,6 @@ import {
   Trophy,
   Bookmark,
   Settings,
-  Users,
   CreditCard,
   type LucideIcon,
 } from "lucide-react";
@@ -53,7 +52,6 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "管理",
     items: [
       { href: "/saved", label: "保存済み分析", icon: Bookmark },
-      { href: "/team", label: "チーム", icon: Users },
       { href: "/billing", label: "料金プラン", icon: CreditCard },
       { href: "/settings", label: "設定", icon: Settings },
     ],
