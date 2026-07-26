@@ -68,9 +68,11 @@ function qs(selector) {
 function showToast(message) {
   const toast = qs("#toast");
   toast.textContent = message;
-  toast.classList.remove("hidden");
+  toast.hidden = false;
   window.clearTimeout(showToast._timer);
-  showToast._timer = window.setTimeout(() => toast.classList.add("hidden"), 3000);
+  showToast._timer = window.setTimeout(() => {
+    toast.hidden = true;
+  }, 3000);
 }
 
 // --- 条件入力(チップ・スウォッチ) -------------------------------------------
@@ -280,7 +282,7 @@ async function loadHistory() {
           data-target="history-group-${index}">
           ${formatDateTime(item.created_at)}(${item.proposals.length}案)
         </button>
-        <div id="history-group-${index}" class="hidden px-3 pb-3 space-y-3">
+        <div id="history-group-${index}" class="px-3 pb-3 space-y-3" hidden>
           ${item.proposals.map(renderProposalCard).join("")}
         </div>
       </div>`
@@ -291,8 +293,10 @@ async function loadHistory() {
 // --- タブ切り替え --------------------------------------------------------------
 
 function switchTab(tabName) {
+  // Tailwindの`.hidden`クラス(CDN未読み込み時は効かない)ではなく、CSSなしでも
+  // 効くHTML標準の`hidden`属性(bool型プロパティ)で表示/非表示を切り替える。
   document.querySelectorAll(".tab-panel").forEach((panel) => {
-    panel.classList.toggle("hidden", panel.id !== `tab-${tabName}`);
+    panel.hidden = panel.id !== `tab-${tabName}`;
   });
   document.querySelectorAll(".tab-button").forEach((button) => {
     const isActive = button.dataset.tab === tabName;
@@ -300,7 +304,7 @@ function switchTab(tabName) {
     button.classList.toggle("text-pink-600", isActive);
     button.classList.toggle("border-transparent", !isActive);
   });
-  qs("#generate-bar").classList.toggle("hidden", tabName !== "create");
+  qs("#generate-bar").hidden = tabName !== "create";
 
   if (tabName === "favorites") loadFavorites().catch((error) => showToast(error.message));
   if (tabName === "history") loadHistory().catch((error) => showToast(error.message));
@@ -324,7 +328,8 @@ function setupEventDelegation() {
 
     const historyToggle = event.target.closest(".history-toggle");
     if (historyToggle) {
-      qs(`#${historyToggle.dataset.target}`).classList.toggle("hidden");
+      const group = qs(`#${historyToggle.dataset.target}`);
+      group.hidden = !group.hidden;
       return;
     }
 

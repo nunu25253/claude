@@ -18,6 +18,24 @@
 
 ## ログ
 
+### 2026-07-26 タブ切り替えのCDN依存を解消(起動デモ中に発見・修正)
+- 背景: 起動して動作確認したところ、Tailwind CDNへ到達できない環境
+  (サンドボックスのネットワークポリシーで`cdn.tailwindcss.com`が遮断)だと、
+  タブ切り替え・トースト表示・履歴の展開開閉がTailwindの`.hidden`
+  ユーティリティクラスに依存していたため機能しない(全タブが同時表示される
+  等)ことが判明した。ユーザーの実環境でも広告ブロッカー等でCDNが読み込め
+  ないケースは起こりうるため、単なるサンドボックス固有の制約として放置せず
+  修正した。
+- 修正: `app/static/app.js`のタブ切り替え・トースト・履歴グループ開閉、
+  および`app/static/index.html`の初期非表示指定を、Tailwindの`.hidden`
+  クラスからHTML標準の`hidden`属性(bool型プロパティ。ブラウザ標準の
+  UAスタイルシートで`display:none`になるためCSSファイルが1枚も読み込めなくても
+  効く)へ切り替えた。
+- 判断と理由: `hidden`属性はTailwindの`.hidden`ユーティリティが定義している
+  スタイル(`display:none`)と完全に同じ見た目になるため、Tailwind導入方針
+  (§3・§10)を崩さずに堅牢性だけを上げられる。バックエンドのテスト
+  (60件、カバレッジ100%)には影響がないことを確認済み。
+
 ### 2026-07-26 Phase 5 完了
 - 完了: `providers/real_provider.py`(RealAIProviderスタブ、呼ぶと
   `NotImplementedError`)、`api/deps.py`の`get_provider`に`AI_PROVIDER`
