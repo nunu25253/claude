@@ -13,3 +13,4 @@ export * from "./organization";
 export * from "./billing";
 export * from "./account-export";
 export * from "./system";
+export * from "./commonality";
