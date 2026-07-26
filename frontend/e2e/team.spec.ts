@@ -28,7 +28,9 @@ test("チームの作成・招待・メンバー閲覧・削除が壊れない",
     await expect(page).toHaveURL("/", { timeout: 15_000 });
     // オンボーディングツアーのモーダルは非同期でマウントされるため、即座のisVisible()チェックでは
     // 表示前後のタイミングを取りこぼすことがある。数秒待ってでも表示されれば閉じる。
-    await page.getByRole("button", { name: "はじめる" }).click({ timeout: 3_000 }).catch(() => {});
+    // (主要CTAは/posts/analyzeへ遷移してしまうため、遷移を伴わないEscapeで閉じる)
+    await page.getByRole("dialog").waitFor({ state: "visible", timeout: 3_000 }).catch(() => {});
+    await page.keyboard.press("Escape").catch(() => {});
   }
 
   await register(ownerPage, ownerEmail, "オーナー太郎");

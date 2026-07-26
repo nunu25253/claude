@@ -18,13 +18,9 @@ interface OnboardingStep {
 
 // サイドバー(nav-items.ts)・トップページ(app/welcome/page.tsx)と同じLucideアイコンを使い、
 // 絵文字とのブランド不統一を解消する。
+// 投稿分析は「まず1件試す」体験用の主要CTA(下部ボタン)に格上げしたため、このリストには含めない
+// (戦略監査レポート4章: 説明を読むツアーから実操作を促すツアーへの改修)。
 const STEPS: OnboardingStep[] = [
-  {
-    href: "/posts/analyze",
-    icon: Brain,
-    title: "投稿分析",
-    description: "InstagramやTikTokの投稿URLを入力するだけで、AIがバズった理由と改善案を提案します。",
-  },
   {
     href: "/trend",
     icon: TrendingUp,
@@ -119,7 +115,9 @@ export function OnboardingTour() {
         <h2 id="onboarding-title" className="text-lg font-bold text-slate-900 dark:text-slate-100">
           ようこそ、Buzzlyへ
         </h2>
-        <p className="mt-1 text-sm text-slate-500">まずはこの4つの機能から試してみましょう。</p>
+        <p className="mt-1 text-sm text-slate-500">
+          メールアドレスの確認前でも、投稿URLを1件だけ無料で分析できます。まずは気になる投稿を1つ試してみましょう。
+        </p>
 
         <ul className="mt-5 space-y-3">
           {STEPS.map((step) => (
@@ -141,9 +139,10 @@ export function OnboardingTour() {
           ))}
         </ul>
 
-        <button type="button" onClick={dismiss} className="btn-primary mt-6 w-full">
-          はじめる
-        </button>
+        <Link href="/posts/analyze" onClick={dismiss} className="btn-primary mt-6 flex w-full items-center justify-center gap-2">
+          <Brain className="h-4 w-4" aria-hidden />
+          投稿URLを分析してみる
+        </Link>
       </div>
     </div>
   );

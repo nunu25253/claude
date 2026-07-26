@@ -25,7 +25,9 @@ test("新規登録から投稿分析・保存・CSVエクスポートまでの�
 
   // オンボーディングツアーが初回表示されるため閉じる。モーダルは非同期でマウントされるため、
   // 即座のisVisible()チェックではなく数秒待ってから判定する(表示されなければそのまま進める)。
-  await page.getByRole("button", { name: "はじめる" }).click({ timeout: 3_000 }).catch(() => {});
+  // (主要CTAは/posts/analyzeへ遷移してしまうため、遷移を伴わないEscapeで閉じる)
+  await page.getByRole("dialog").waitFor({ state: "visible", timeout: 3_000 }).catch(() => {});
+  await page.keyboard.press("Escape").catch(() => {});
 
   // メール確認を済ませないと投稿分析がブロックされるため、MailHogから確認リンクを取得して踏む
   const verificationLink = await fetchVerificationLink(uniqueEmail);

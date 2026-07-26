@@ -37,11 +37,11 @@ describe("OnboardingTour", () => {
     await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
   });
 
-  it("closes and records dismissal when the primary button is clicked", async () => {
+  it("closes and records dismissal when the primary CTA is clicked", async () => {
     render(<OnboardingTour />);
     await screen.findByRole("dialog");
 
-    fireEvent.click(screen.getByRole("button", { name: "はじめる" }));
+    fireEvent.click(screen.getByRole("link", { name: /投稿URLを分析してみる/ }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(window.localStorage.getItem("sns_buzz_onboarding_dismissed_user-1")).toBe("1");
@@ -60,11 +60,11 @@ describe("OnboardingTour", () => {
   it("traps Tab focus: pressing Tab on the last focusable element wraps to the first", async () => {
     render(<OnboardingTour />);
     const dialog = await screen.findByRole("dialog");
-    const primaryButton = screen.getByRole("button", { name: "はじめる" });
-    const firstLink = screen.getByRole("link", { name: /投稿分析/ });
+    const primaryCta = screen.getByRole("link", { name: /投稿URLを分析してみる/ });
+    const firstLink = screen.getByRole("link", { name: /トレンド/ });
 
-    primaryButton.focus();
-    expect(document.activeElement).toBe(primaryButton);
+    primaryCta.focus();
+    expect(document.activeElement).toBe(primaryCta);
 
     fireEvent.keyDown(dialog, { key: "Tab" });
 
@@ -74,14 +74,14 @@ describe("OnboardingTour", () => {
   it("traps Shift+Tab focus: pressing Shift+Tab on the first focusable element wraps to the last", async () => {
     render(<OnboardingTour />);
     const dialog = await screen.findByRole("dialog");
-    const primaryButton = screen.getByRole("button", { name: "はじめる" });
-    const firstLink = screen.getByRole("link", { name: /投稿分析/ });
+    const primaryCta = screen.getByRole("link", { name: /投稿URLを分析してみる/ });
+    const firstLink = screen.getByRole("link", { name: /トレンド/ });
 
     firstLink.focus();
     expect(document.activeElement).toBe(firstLink);
 
     fireEvent.keyDown(dialog, { key: "Tab", shiftKey: true });
 
-    expect(document.activeElement).toBe(primaryButton);
+    expect(document.activeElement).toBe(primaryCta);
   });
 });

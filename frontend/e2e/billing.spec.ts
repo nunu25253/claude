@@ -19,7 +19,9 @@ test("課金プランのアップグレード・解約が壊れない", async ({
   // オンボーディングツアーのモーダルは初回ユーザー情報取得後に非同期でマウントされるため、
   // 即座のisVisible()チェックでは表示前後のタイミングを取りこぼすことがある。
   // 数秒待ってでも表示されれば閉じる、出なければそのまま進める。
-  await page.getByRole("button", { name: "はじめる" }).click({ timeout: 3_000 }).catch(() => {});
+  // (主要CTAは/posts/analyzeへ遷移してしまうため、遷移を伴わないEscapeで閉じる)
+  await page.getByRole("dialog").waitFor({ state: "visible", timeout: 3_000 }).catch(() => {});
+  await page.keyboard.press("Escape").catch(() => {});
 
   await page.goto("/billing", { waitUntil: "networkidle" });
   await expect(page.getByText("FREEプラン")).toBeVisible({ timeout: 10_000 });
