@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>生成AIパスポート試験 用語集</title>
+<style>
+:root{
+  --bg:#ffffff;
+  --fg:#1a1a1a;
+  --muted:#6b7280;
+  --card-bg:#f8f9fb;
+  --card-border:#e3e6ea;
+  --accent:#2563eb;
+  --accent-fg:#ffffff;
+  --header-bg:#ffffff;
+  --overlay:rgba(0,0,0,0.5);
+  --ch1:#2563eb;
+  --ch2:#7c3aed;
+  --ch3:#059669;
+  --ch4:#d97706;
+  --ch5:#db2777;
+  --chip-bg:#eef1f5;
+  --chip-fg:#374151;
+  --chip-active-bg:#2563eb;
+  --chip-active-fg:#ffffff;
+  --track:#e5e7eb;
+}
+:root[data-theme="dark"]{
+  --bg:#111317;
+  --fg:#e9eaec;
+  --muted:#9aa1ac;
+  --card-bg:#1a1d23;
+  --card-border:#2a2e36;
+  --accent:#60a5fa;
+  --accent-fg:#0b1220;
+  --header-bg:#15171c;
+  --overlay:rgba(0,0,0,0.7);
+  --chip-bg:#20242c;
+  --chip-fg:#c7cbd3;
+  --chip-active-bg:#60a5fa;
+  --chip-active-fg:#0b1220;
+  --track:#2a2e36;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111317; --fg:#e9eaec; --muted:#9aa1ac; --card-bg:#1a1d23; --card-border:#2a2e36;
+    --accent:#60a5fa; --accent-fg:#0b1220; --header-bg:#15171c; --overlay:rgba(0,0,0,0.7);
+    --chip-bg:#20242c; --chip-fg:#c7cbd3; --chip-active-bg:#60a5fa; --chip-active-fg:#0b1220; --track:#2a2e36;
+  }
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif;
+  background:var(--bg);
+  color:var(--fg);
+  line-height:1.6;
+  -webkit-text-size-adjust:100%;
+}
+a{color:var(--accent);}
+header{
+  position:sticky;top:0;z-index:20;
+  background:var(--header-bg);
+  border-bottom:1px solid var(--card-border);
+  padding:12px 16px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+header h1{
+  font-size:16px;margin:0;font-weight:700;letter-spacing:.02em;
+}
+header h1 small{display:block;font-weight:400;color:var(--muted);font-size:11px;margin-top:2px;}
+.theme-btn{
+  border:1px solid var(--card-border);
+  background:var(--card-bg);
+  color:var(--fg);
+  border-radius:20px;
+  padding:8px 14px;
+  font-size:13px;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.theme-btn:hover{border-color:var(--accent);}
+main{max-width:1100px;margin:0 auto;padding:16px;}
+.controls{
+  display:flex;flex-direction:column;gap:12px;
+  margin-bottom:16px;
+}
+.search-wrap{position:relative;}
+#search{
+  width:100%;
+  padding:12px 14px;
+  font-size:15px;
+  border-radius:10px;
+  border:1px solid var(--card-border);
+  background:var(--card-bg);
+  color:var(--fg);
+}
+#search:focus{outline:2px solid var(--accent);outline-offset:1px;}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.chip{
+  border:1px solid var(--card-border);
+  background:var(--chip-bg);
+  color:var(--chip-fg);
+  border-radius:999px;
+  padding:6px 12px;
+  font-size:13px;
+  cursor:pointer;
+  user-select:none;
+  display:inline-flex;align-items:center;gap:6px;
+}
+.chip input{accent-color:var(--accent);}
+.chip.active{background:var(--chip-active-bg);color:var(--chip-active-fg);border-color:var(--chip-active-bg);}
+.sort-toggle{display:inline-flex;border:1px solid var(--card-border);border-radius:999px;overflow:hidden;}
+.sort-toggle button{
+  border:none;background:var(--chip-bg);color:var(--chip-fg);
+  padding:7px 14px;font-size:13px;cursor:pointer;
+}
+.sort-toggle button.active{background:var(--accent);color:var(--accent-fg);}
+.status-row{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;font-size:13px;color:var(--muted);}
+.progress-wrap{display:flex;align-items:center;gap:8px;flex:1;min-width:180px;}
+.progress-track{flex:1;height:8px;border-radius:5px;background:var(--track);overflow:hidden;}
+.progress-fill{height:100%;background:var(--accent);border-radius:5px;transition:width .2s ease;}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(250px, 1fr));
+  gap:12px;
+}
+.card{
+  background:var(--card-bg);
+  border:1px solid var(--card-border);
+  border-radius:12px;
+  padding:14px;
+  cursor:pointer;
+  display:flex;flex-direction:column;gap:8px;
+  transition:border-color .15s ease, transform .1s ease;
+}
+.card:hover{border-color:var(--accent);}
+.card:active{transform:scale(0.99);}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.card-title{font-size:15px;font-weight:700;word-break:break-word;}
+.learned-toggle{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);white-space:nowrap;cursor:pointer;flex-shrink:0;}
+.learned-toggle input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;}
+.tag{
+  display:inline-block;font-size:11px;font-weight:600;color:#fff;
+  padding:2px 8px;border-radius:999px;width:fit-content;
+}
+.tag.ch1{background:var(--ch1);}
+.tag.ch2{background:var(--ch2);}
+.tag.ch3{background:var(--ch3);}
+.tag.ch4{background:var(--ch4);}
+.tag.ch5{background:var(--ch5);}
+.category{font-size:11px;color:var(--muted);}
+.desc-preview{
+  font-size:13px;color:var(--fg);opacity:.85;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.card.learned{opacity:.6;}
+.card.learned .card-title{text-decoration:line-through;text-decoration-color:var(--muted);}
+.empty{
+  text-align:center;color:var(--muted);padding:40px 10px;font-size:14px;
+}
+/* modal */
+.overlay{
+  position:fixed;inset:0;background:var(--overlay);
+  display:none;align-items:flex-end;justify-content:center;
+  z-index:50;
+}
+.overlay.open{display:flex;}
+.modal{
+  background:var(--bg);
+  border-radius:16px 16px 0 0;
+  max-width:560px;width:100%;
+  max-height:85vh;overflow-y:auto;
+  padding:20px;
+  border:1px solid var(--card-border);
+  border-bottom:none;
+}
+@media (min-width:640px){
+  .overlay{align-items:center;}
+  .modal{border-radius:16px;border-bottom:1px solid var(--card-border);margin:16px;}
+}
+.modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px;}
+.modal-title{font-size:20px;font-weight:700;}
+.close-btn{
+  background:var(--chip-bg);border:none;color:var(--fg);
+  width:32px;height:32px;border-radius:50%;font-size:16px;cursor:pointer;flex-shrink:0;
+}
+.modal-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+.modal-category{font-size:13px;color:var(--muted);}
+.modal-desc{font-size:15px;line-height:1.9;white-space:pre-wrap;}
+.modal-footer{margin-top:20px;display:flex;justify-content:flex-end;}
+.learn-btn{
+  border:1px solid var(--accent);background:transparent;color:var(--accent);
+  padding:10px 18px;border-radius:999px;font-size:14px;cursor:pointer;font-weight:600;
+}
+.learn-btn.on{background:var(--accent);color:var(--accent-fg);}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:24px 16px 40px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>生成AIパスポート 用語集<small>GUGA公式シラバス対応（2026年2月試験〜）</small></h1>
+  <button class="theme-btn" id="themeBtn" type="button">🌙 ダークモード</button>
+</header>
+
+<main>
+  <div class="controls">
+    <div class="search-wrap">
+      <input type="text" id="search" placeholder="用語・解説を検索（例：ハルシネーション、著作権 など）" autocomplete="off">
+    </div>
+    <div class="row" id="chapterChips"></div>
+    <div class="row" style="justify-content:space-between;">
+      <div class="sort-toggle" id="sortToggle">
+        <button data-sort="chapter" class="active" type="button">章順</button>
+        <button data-sort="kana" type="button">五十音順</button>
+      </div>
+      <div class="row">
+        <span class="chip" id="showLearned" role="button">習得済みのみ</span>
+        <span class="chip" id="showUnlearned" role="button">未習得のみ</span>
+      </div>
+    </div>
+    <div class="status-row">
+      <span id="countText">表示中 0 / 全0語</span>
+      <div class="progress-wrap">
+        <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+        <span id="progressText">覚えた 0 / 0（0%）</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="emptyMsg" style="display:none;">該当する用語が見つかりませんでした。</div>
+</main>
+
+<footer>本アプリは学習支援を目的とした非公式の教材です。試験の出題内容を保証するものではありません。</footer>
+
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="mTitle"></div>
+      <button class="close-btn" id="closeBtn" type="button">✕</button>
+    </div>
+    <div class="modal-meta">
+      <span class="tag" id="mTag"></span>
+      <span class="modal-category" id="mCategory"></span>
+    </div>
+    <div class="modal-desc" id="mDesc"></div>
+    <div class="modal-footer">
+      <button class="learn-btn" id="mLearnBtn" type="button"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TERMS = [
+// ===== 第1章 AI（人工知能） =====
+{t:"AI（人工知能）",c:1,g:"AIの基礎",d:`人間の知能を模倣し、学習・推論・判断などの知的な処理をコンピュータで実現する技術や研究分野の総称。明確な単一の定義はなく、研究者によって捉え方が異なる。`},
+{t:"ダートマス会議",c:1,g:"AIの基礎",d:`1956年に米国ダートマス大学で開催された会議。「人工知能（AI）」という用語が初めて使われ、AI研究分野の始まりとされる歴史的な会合。`},
+{t:"ルールベース",c:1,g:"AIの基礎",d:`あらかじめ人間が定めた「もしAならばB」といった条件・規則に従って判断や処理を行う手法。初期のAIで多く用いられ、状況の変化に弱いという弱点がある。`},
+{t:"機械学習",c:1,g:"機械学習",d:`コンピュータが大量のデータからパターンや規則性を自動的に学習し、未知のデータに対する予測や判断を可能にする技術。AIを実現する代表的な手法の一つ。`},
+{t:"学習済みモデル",c:1,g:"機械学習",d:`訓練データを用いて機械学習アルゴリズムによる学習を終え、新しい入力データに対して予測や推論ができるようになったモデルのこと。`},
+{t:"教師あり学習",c:1,g:"機械学習",d:`入力データと正解ラベルのペアを用いて学習する機械学習の手法。分類や回帰問題に用いられ、未知データへの予測精度向上を目指す。`},
+{t:"教師なし学習",c:1,g:"機械学習",d:`正解ラベルのないデータからデータ自体の構造やパターンを見つけ出す機械学習の手法。クラスタリングや次元削減などに用いられる。`},
+{t:"クラスタリング",c:1,g:"機械学習",d:`データを類似性に基づいていくつかのグループ（クラスタ）に分ける教師なし学習の手法。データの傾向把握や分類に利用される。`},
+{t:"次元削減",c:1,g:"機械学習",d:`高次元のデータを、情報をできるだけ保持したまま低次元のデータに変換する手法。可視化や計算負荷の軽減、ノイズ除去などに用いられる。`},
+{t:"強化学習",c:1,g:"機械学習",d:`エージェントが環境と相互作用しながら、得られる報酬を最大化するように試行錯誤を通じて行動方針を学習する機械学習の手法。`},
+{t:"半教師あり学習",c:1,g:"機械学習",d:`少量のラベル付きデータと大量のラベルなしデータを組み合わせて学習を行う手法。ラベル付けのコストを抑えつつ精度向上を図る。`},
+{t:"ノーフリーランチ定理",c:1,g:"機械学習",d:`あらゆる問題に対して万能に優れたアルゴリズムは存在せず、特定の問題に最適化された手法にはトレードオフが伴うことを示す定理。`},
+{t:"ニューロン",c:1,g:"ニューラルネットワークの仕組み",d:`脳や神経系を構成する神経細胞。他の神経細胞から信号を受け取り、処理して次の細胞へ伝達する働きを持ち、人工ニューロンのモデルの元になった。`},
+{t:"シナプス",c:1,g:"ニューラルネットワークの仕組み",d:`ニューロン同士が接続し、電気的・化学的な信号をやり取りする接合部分。人工ニューラルネットワークの「重み」の概念のもとになった生体構造。`},
+{t:"人工ニューロン（ノード）",c:1,g:"ニューラルネットワークの仕組み",d:`生物のニューロンの働きを数理的に模倣した計算単位。複数の入力に重みを掛けて合計し、活性化関数を通して出力するニューラルネットワークの構成要素。`},
+{t:"ニューラルネットワーク",c:1,g:"ニューラルネットワークの仕組み",d:`人工ニューロンを層状に結合して構成される計算モデル。人間の脳神経回路を模したしくみで、パターン認識や予測など幅広いタスクに用いられる。`},
+{t:"ディープラーニング",c:1,g:"ニューラルネットワークの仕組み",d:`多層のニューラルネットワークを用いる機械学習の手法。層を深くすることで複雑な特徴を自動的に学習でき、画像認識や自然言語処理などで高い性能を発揮する。`},
+{t:"重み",c:1,g:"ニューラルネットワークの仕組み",d:`ニューラルネットワークにおいて、各入力信号の重要度を表すパラメータ。学習によって値が調整され、出力結果に影響を与える。`},
+{t:"情報の重みづけ",c:1,g:"ニューラルネットワークの仕組み",d:`入力される情報や特徴量に対して、出力への影響度合いを数値（重み）として割り当てる考え方。ニューラルネットワークの学習の中核をなす。`},
+{t:"過学習",c:1,g:"学習の課題と工夫",d:`訓練データに対して過度に適合してしまい、未知のデータに対する汎化性能が低下してしまう現象。オーバーフィッティングとも呼ばれる。`},
+{t:"正則化",c:1,g:"学習の課題と工夫",d:`モデルが訓練データに過剰適合するのを防ぐため、パラメータの大きさに制約を加えるなどしてモデルの複雑さを抑制する手法の総称。`},
+{t:"ドロップアウト",c:1,g:"学習の課題と工夫",d:`ニューラルネットワークの学習時に、一部のノードをランダムに無効化することで過学習を防ぐ正則化手法の一つ。`},
+{t:"転移学習",c:1,g:"学習の課題と工夫",d:`あるタスクで学習済みのモデルの知識を、別の関連するタスクに再利用して学習効率や性能を高める手法。少ないデータでの学習に有効。`},
+{t:"特徴量",c:1,g:"学習の課題と工夫",d:`データが持つ性質や特性を数値などで表現した変数。機械学習モデルの入力として用いられ、予測精度に大きく影響する。`},
+{t:"弱いAI（ANI）",c:1,g:"AIの分類",d:`特定のタスクや領域に限定して人間並み、あるいはそれ以上の性能を発揮するAI。現在実用化されているAIの多くはこの弱いAI（特化型AI）に分類される。`},
+{t:"強いAI（AGI）",c:1,g:"AIの分類",d:`特定分野に限定されず、人間のようにあらゆる知的タスクを汎用的にこなせるとされる仮説上のAI。汎用人工知能とも呼ばれ、現時点では実現していない。`},
+{t:"第一次AIブーム",c:1,g:"AIの歴史",d:`1950～60年代に起きたAI研究の盛り上がり。探索や推論による問題解決が中心だったが、複雑な現実問題には対応できず後に停滞した。`},
+{t:"探索",c:1,g:"AIの歴史",d:`目標状態に到達するために、可能な選択肢の中から手順や解を体系的に調べていく問題解決の基本手法。初期AI研究の中心技術の一つ。`},
+{t:"推論",c:1,g:"AIの歴史",d:`既知の情報や規則をもとに、新たな結論や判断を導き出す処理。AIにおいては論理的なルールに基づいて答えを導く手法として研究された。`},
+{t:"第二次AIブーム",c:1,g:"AIの歴史",d:`1980年代に起きたAI研究の盛り上がり。専門知識をルール化するエキスパートシステムが実用化された一方、知識獲得の限界などから再び停滞した。`},
+{t:"エキスパートシステム",c:1,g:"AIの歴史",d:`特定分野の専門家の知識をルールとしてコンピュータに組み込み、専門家のような判断や助言を行えるようにしたシステム。第二次AIブームの中心技術。`},
+{t:"AIの冬",c:1,g:"AIの歴史",d:`AI研究への期待が過熱した後、技術的限界や実用化の壁に直面して研究資金や関心が急激に減少する停滞期のこと。過去に複数回発生している。`},
+{t:"第三次AIブーム",c:1,g:"AIの歴史",d:`2000年代以降、ビッグデータと計算資源の向上を背景にディープラーニングが発展したことで起きたAI研究・実用化の盛り上がり。現在も継続している。`},
+{t:"ビッグデータ",c:1,g:"AIの歴史",d:`従来の手法では処理が難しいほど巨大で多様、かつ高速に生成されるデータ群。ディープラーニングの発展を支えた重要な要素の一つ。`},
+{t:"シンギュラリティ（技術的特異点）",c:1,g:"シンギュラリティ",d:`AIの知能が人間の知能を超え、技術の進歩が人間の予測や制御を超えて加速度的に進む仮説上の転換点のこと。`},
+{t:"ヴァーナー・ヴィンジ",c:1,g:"シンギュラリティ",d:`「シンギュラリティ」という概念を1993年の論文で広めた米国のSF作家・数学者。技術的特異点の到来を予測したことで知られる。`},
+{t:"レイ・カーツワイル",c:1,g:"シンギュラリティ",d:`AIの技術的特異点が2045年頃に到来すると予測した米国の未来学者・発明家。著書「シンギュラリティは近い」などで知られる。`},
+{t:"2045年問題",c:1,g:"シンギュラリティ",d:`レイ・カーツワイルらが提唱した、AIの能力が2045年頃に人類全体の知能を超えるとされる仮説とそれに伴う社会的影響への懸念。`},
+{t:"AI効果",c:1,g:"シンギュラリティ",d:`AIが新しい課題を達成すると、それが「単なる自動化・計算にすぎない」とみなされ、知能とは呼ばれなくなっていく心理的傾向のこと。`},
+
+// ===== 第2章 生成AI（ジェネレーティブAI） =====
+{t:"生成AI（ジェネレーティブAI）",c:2,g:"生成AIの基礎",d:`学習したデータのパターンをもとに、テキスト・画像・音声・動画など新しいコンテンツを自ら生成できるAI技術の総称。`},
+{t:"ボルツマンマシン",c:2,g:"生成モデルの基礎技術",d:`確率的に動作するニューラルネットワークの一種で、ノード間の結合状態からデータの確率分布を学習するモデル。生成モデルの基礎技術の一つ。`},
+{t:"制約付きボルツマンマシン",c:2,g:"生成モデルの基礎技術",d:`ボルツマンマシンの層間結合のみを許し、同一層内の結合を無くすことで学習を効率化したモデル。特徴抽出や生成モデルの基礎に用いられた。`},
+{t:"自己回帰モデル",c:2,g:"生成モデルの基礎技術",d:`これまでに生成した過去のデータ（系列）をもとに、次の値を予測・生成していく手法。文章生成などで一語ずつ次を予測する仕組みに用いられる。`},
+{t:"CNN（畳み込みニューラルネットワーク）",c:2,g:"画像生成技術",d:`畳み込み処理により画像の局所的な特徴を抽出するニューラルネットワーク。画像認識・画像生成など画像分野で広く使われる。`},
+{t:"畳み込み",c:2,g:"画像生成技術",d:`画像などのデータにフィルタ（カーネル）を適用し、局所的な特徴（エッジや模様など）を抽出する演算処理。CNNの中心的な仕組み。`},
+{t:"VAE（変分自己符号化器）",c:2,g:"画像生成技術",d:`データを潜在空間に圧縮するエンコーダと、そこから元のようなデータを復元するデコーダを組み合わせ、新しいデータを生成できるモデル。`},
+{t:"ノイズ",c:2,g:"画像生成技術",d:`データに混入する不要な変動や乱れのこと。画像生成AIの拡散モデルなどでは、意図的にノイズを加えてから除去する過程で新しい画像を生成する。`},
+{t:"エンコーダ",c:2,g:"画像生成技術",d:`入力データを、より低次元で本質的な特徴を表す潜在表現（ベクトル）に変換する処理・機構。VAEやTransformerなどで用いられる。`},
+{t:"デコーダ",c:2,g:"画像生成技術",d:`潜在表現やエンコーダの出力から、元のデータに近い形式のデータや目的の出力データを復元・生成する処理・機構。`},
+{t:"潜在ベクトル",c:2,g:"画像生成技術",d:`データの本質的な特徴を圧縮して表現した、低次元の数値ベクトル。VAEなどのエンコーダによって生成され、デコーダでの復元・生成に使われる。`},
+{t:"GAN（敵対的生成ネットワーク）",c:2,g:"画像生成技術",d:`生成器と識別器という2つのネットワークを競わせるように学習させ、本物に近いデータを生成できるようにする生成モデルの手法。`},
+{t:"生成器",c:2,g:"画像生成技術",d:`GANにおいて、乱数などから本物に似せた偽のデータを作り出すネットワーク。識別器を騙せるように学習が進められる。`},
+{t:"識別器",c:2,g:"画像生成技術",d:`GANにおいて、入力されたデータが本物か生成器が作った偽物かを判定するネットワーク。生成器と競い合うように学習される。`},
+{t:"RNN（回帰型ニューラルネットワーク）",c:2,g:"系列データ処理技術",d:`過去の出力を次の入力に再帰的に利用することで、時系列や文章などの順序を持つデータを扱えるニューラルネットワーク。`},
+{t:"隠れ層",c:2,g:"系列データ処理技術",d:`入力層と出力層の間に存在し、データの特徴を段階的に変換・抽出する層。ニューラルネットワークの中間的な処理を担う。`},
+{t:"リカレント層",c:2,g:"系列データ処理技術",d:`RNNにおいて、過去の情報（内部状態）を保持しながら次の入力を処理する層。系列データの文脈を捉えるために用いられる。`},
+{t:"シーケンスデータ",c:2,g:"系列データ処理技術",d:`文章、音声、時系列データなど、要素の並び順に意味を持つデータのこと。RNNやTransformerなどが扱いを得意とする。`},
+{t:"LSTM（長・短期記憶）",c:2,g:"系列データ処理技術",d:`RNNの一種で、ゲート構造により長期的な情報も忘れずに保持できるよう改良されたモデル。長い系列データの学習における勾配消失問題を緩和する。`},
+{t:"Transformerモデル",c:2,g:"Transformer",d:`Attention機構を中心に構成され、再帰構造を用いずに系列データを並列処理できるニューラルネットワークの構造。現在の大規模言語モデルの基盤技術。`},
+{t:"Attention層",c:2,g:"Transformer",d:`入力データの各要素間の関連度を計算し、重要な部分に重みを付けて処理するTransformerの中核となる層。`},
+{t:"自己注意力（Self-Attention）",c:2,g:"Transformer",d:`系列データ内の各要素同士の関連度を計算し、文脈に応じて重要な要素に注目する仕組み。Transformerの中核的な技術。`},
+{t:"Attention Mechanism",c:2,g:"Transformer",d:`入力の各部分に異なる重要度（重み）を割り当てて処理する仕組みの総称。どの情報に注目すべきかをモデルが学習できるようにする。`},
+{t:"位置エンコーディング",c:2,g:"Transformer",d:`Transformerにおいて、単語の並び順（位置情報）をモデルに認識させるために入力に付加される情報。再帰構造を持たないため必要となる。`},
+{t:"アーキテクチャ",c:2,g:"Transformer",d:`ニューラルネットワークなどのモデルにおける、層の構成や接続方法といった全体的な設計・構造のこと。`},
+{t:"GPTモデル",c:2,g:"GPTの発展",d:`Generative Pre-trained Transformerの略で、Transformerを用いて大量のテキストで事前学習された生成型の言語モデル。OpenAIが開発した。`},
+{t:"OpenAI",c:2,g:"GPTの発展",d:`GPTシリーズやChatGPTなどを開発した米国のAI研究・開発企業。安全で有益なAIの実現を目指すことを掲げている。`},
+{t:"BERTモデル",c:2,g:"BERTの発展",d:`Googleが開発した、文章を双方向（前後両方の文脈）から理解する事前学習済み言語モデル。文章理解タスクで高い性能を発揮する。`},
+{t:"MLM（Masked Language Model）",c:2,g:"BERTの発展",d:`文章中の一部の単語をマスク（隠す）し、周囲の文脈からその単語を予測させることで学習を行う手法。BERTの事前学習に用いられる。`},
+{t:"NSP（Next Sentence Prediction）",c:2,g:"BERTの発展",d:`2つの文が連続する文かどうかを判定させることで、文と文の関係性を学習させるBERTの事前学習手法の一つ。`},
+{t:"RoBERTa",c:2,g:"BERTの発展",d:`BERTの学習方法を改良し、より大規模なデータと長時間の学習によって性能を向上させた言語モデル。Facebook（Meta）が開発した。`},
+{t:"ALBERT（a Lite BERT）",c:2,g:"BERTの発展",d:`BERTのパラメータ数を削減し、軽量化と学習効率の向上を図った派生モデル。パラメータ共有などの工夫により性能を保ちつつ軽量化を実現した。`},
+{t:"ChatGPT",c:2,g:"ChatGPTとGPTシリーズ",d:`OpenAIが開発した、GPTモデルをベースに対話形式でやり取りできるように調整された生成AIサービス。自然な会話や文章生成が可能。`},
+{t:"GPT-1",c:2,g:"ChatGPTとGPTシリーズ",d:`OpenAIが2018年に発表した最初のGPTモデル。Transformerを用いた事前学習とファインチューニングの組み合わせによる有効性を示した。`},
+{t:"自然言語処理（NLP）",c:2,g:"ChatGPTとGPTシリーズ",d:`人間が日常的に使う言語（自然言語）をコンピュータに理解・生成・処理させるための技術分野の総称。`},
+{t:"GPT-2",c:2,g:"ChatGPTとGPTシリーズ",d:`OpenAIが2019年に発表したGPTモデルの後継。パラメータ数を大幅に増やし、より自然で高品質な文章生成能力を示した。`},
+{t:"パラメータ",c:2,g:"ChatGPTとGPTシリーズ",d:`ニューラルネットワークの学習によって調整される重みなどの数値のこと。一般にパラメータ数が多いほどモデルの表現力は高くなる傾向がある。`},
+{t:"GPT-3",c:2,g:"ChatGPTとGPTシリーズ",d:`OpenAIが2020年に発表したGPTモデル。パラメータ数を約1750億に拡大し、Few-Shot学習など高い汎用性を示したことで注目された。`},
+{t:"InstructGPT",c:2,g:"ChatGPTとGPTシリーズ",d:`GPT-3をベースに、人間のフィードバックを用いた強化学習（RLHF）によって、指示に従いやすいよう調整されたモデル。ChatGPTの基盤技術の一つ。`},
+{t:"GPT-3.5",c:2,g:"ChatGPTとGPTシリーズ",d:`GPT-3をベースにファインチューニングなどの改良を加えたモデル群。初期のChatGPTに採用されたことで広く知られるようになった。`},
+{t:"GPT-4",c:2,g:"ChatGPTとGPTシリーズ",d:`OpenAIが2023年に発表したGPTモデル。テキストに加え画像入力にも対応するなど、従来モデルより高い精度と汎用性を持つとされる。`},
+{t:"データセット",c:2,g:"ChatGPTとGPTシリーズ",d:`機械学習モデルの学習や評価に用いられる、まとまったデータの集合。データの質と量がモデルの性能に大きく影響する。`},
+{t:"RLHF（Reinforcement Learning from Human Feedback）",c:2,g:"学習の調整技術",d:`人間の評価・フィードバックを報酬として利用し、強化学習によってモデルの出力を人間の意図に沿うよう調整する手法。`},
+{t:"アライメント（Alignment）",c:2,g:"学習の調整技術",d:`AIの振る舞いや出力を、人間の意図や価値観、倫理観に沿うように調整すること。安全で有用なAIを実現するための重要な課題。`},
+{t:"ファインチューニング",c:2,g:"学習の調整技術",d:`事前学習済みのモデルに対し、特定のタスクや用途に合わせた追加データで再学習を行い、性能を最適化する手法。`},
+{t:"ハルシネーション（Hallucination）",c:2,g:"学習の調整技術",d:`生成AIが、事実に基づかない誤った情報や存在しない内容を、あたかも真実であるかのように出力してしまう現象。`},
+{t:"マルチモーダル",c:2,g:"学習の調整技術",d:`テキスト・画像・音声・動画など、複数の種類（モダリティ）の情報を組み合わせて処理・生成できる能力や、そのようなAIモデルのこと。`},
+
+// ===== 第3章 現在の生成AIの動向 =====
+{t:"テキスト生成AI",c:3,g:"生成AIの種類",d:`入力された文章やプロンプトに応じて、自然な文章を自動的に生成するAI。ChatGPTなどが代表例で、文章作成や要約、翻訳などに活用される。`},
+{t:"画像生成AI",c:3,g:"生成AIの種類",d:`テキストによる指示（プロンプト）などをもとに、新しい画像を自動的に生成するAI。GANや拡散モデルなどの技術が用いられる。`},
+{t:"音楽生成AI",c:3,g:"生成AIの種類",d:`メロディや歌詞、雰囲気などの指示をもとに、新しい楽曲やBGMを自動的に作曲・生成するAI。作曲支援や制作の効率化に活用される。`},
+{t:"音声生成AI",c:3,g:"生成AIの種類",d:`テキストから自然な音声を合成したり、特定の声質を再現したりするAI。ナレーション生成や音声アシスタントなどに活用される。`},
+{t:"動画生成AI",c:3,g:"生成AIの種類",d:`テキストや画像などの指示をもとに、新しい動画コンテンツを自動的に生成するAI。近年急速に発展している生成AIの一分野。`},
+{t:"画像のリサイズ",c:3,g:"データ処理技術",d:`画像生成AIにおいて、生成前後に画像の縦横サイズを調整する処理。学習データの統一やモデルの入出力形式に合わせるために行われる。`},
+{t:"正規化",c:3,g:"データ処理技術",d:`データの値の範囲やスケールを一定の基準に揃える前処理。学習を安定させ、モデルの精度や収束速度を高めるために行われる。`},
+{t:"データの水増し（augmentation）",c:3,g:"データ処理技術",d:`既存のデータに回転・反転・拡大縮小などの加工を施し、データ量を人工的に増やす手法。過学習の抑制や汎化性能の向上に役立つ。`},
+{t:"データ拡張技術",c:3,g:"データ処理技術",d:`学習データの多様性を増やすための技術の総称。少ないデータでも高い性能を得られるようにする工夫として用いられる。`},
+{t:"リマスタリング",c:3,g:"データ処理技術",d:`既存の音声・映像・画像データをAI技術などで高画質・高音質に修復・再構成する処理。古い作品の品質向上などに活用される。`},
+{t:"ユーザーエクスペリエンス",c:3,g:"データ処理技術",d:`製品やサービスを利用する際にユーザーが得る体験や満足度のこと。生成AIの活用ではUXの向上が重要な目的の一つとなる。`},
+{t:"ディープフェイク（深層偽造）技術",c:3,g:"生成AIのリスク",d:`ディープラーニングを用いて、実在の人物の顔や声を精巧に合成・改変し、本物と見分けがつきにくい偽の映像や音声を作る技術。`},
+{t:"偽情報（ディスインフォメーション）",c:3,g:"生成AIのリスク",d:`意図的に人を欺くために作成・拡散される虚偽の情報。生成AIの悪用によって、より巧妙で大量の偽情報が作られるリスクが指摘されている。`},
+
+// ===== 第4章 情報リテラシー・基本理念とAI社会原則 =====
+{t:"インターネットリテラシー",c:4,g:"情報リテラシー",d:`インターネットの仕組みやリスクを理解し、情報を適切かつ安全に検索・発信・活用できる能力のこと。`},
+{t:"テクノロジーの理解",c:4,g:"情報リテラシー",d:`デジタル技術やAIなどの仕組み・特性を正しく理解し、適切に活用・判断する能力のこと。情報リテラシーを構成する要素の一つ。`},
+{t:"情報リテラシー",c:4,g:"情報リテラシー",d:`情報を適切に収集・分析・評価し、目的に応じて活用・発信できる能力の総称。インターネットリテラシーやセキュリティ意識なども含む広い概念。`},
+{t:"セキュリティとプライバシー",c:4,g:"情報リテラシー",d:`情報システムやデータを不正アクセス・漏えいなどの脅威から守る「セキュリティ」と、個人の情報を守る「プライバシー」への配慮の総称。`},
+{t:"デジタル市民権",c:4,g:"情報リテラシー",d:`デジタル社会において、責任を持ってテクノロジーを適切かつ倫理的に利用する能力や姿勢のこと。`},
+{t:"フィッシング詐欺",c:4,g:"サイバー攻撃の種類",d:`実在する企業などを装った偽のメールやサイトを用いて、ID・パスワードやクレジットカード情報などを不正に盗み取る詐欺の手口。`},
+{t:"スミッシング",c:4,g:"サイバー攻撃の種類",d:`SMS（ショートメッセージ）を悪用したフィッシング詐欺。偽のリンクを送りつけ、個人情報の入力やマルウェアの実行を誘導する手口。`},
+{t:"ヴィッシング",c:4,g:"サイバー攻撃の種類",d:`電話（Voice）を用いたフィッシング詐欺。金融機関や公的機関などを装って電話をかけ、個人情報や金銭をだまし取る手口。`},
+{t:"マルウェア",c:4,g:"サイバー攻撃の種類",d:`コンピュータやネットワークに害を及ぼす目的で作られた悪意のあるソフトウェアの総称。ウイルスやランサムウェアなどが含まれる。`},
+{t:"アンチウイルスソフトウェア",c:4,g:"サイバー攻撃の種類",d:`マルウェアの検知・駆除・感染防止を目的としたセキュリティ対策ソフトウェアのこと。`},
+{t:"クラウドストレージ",c:4,g:"サイバー攻撃の種類",d:`インターネット経由でデータを保存・共有できるオンライン上の記憶領域サービス。利便性が高い一方、適切なアクセス管理が求められる。`},
+{t:"ランサムウェア",c:4,g:"サイバー攻撃の種類",d:`感染した端末やデータを暗号化して使用不能にし、復旧と引き換えに金銭（身代金）を要求するマルウェアの一種。`},
+{t:"ソーシャルエンジニアリング攻撃",c:4,g:"ソーシャルエンジニアリング",d:`技術的な手段ではなく、人間の心理的な隙や不注意につけ込んで情報を盗み出したり、不正な行動を誘導したりする攻撃手法の総称。`},
+{t:"スピアフィッシング",c:4,g:"ソーシャルエンジニアリング",d:`特定の個人や組織を狙い、業務内容などに合わせた巧妙な偽メールを送りつける標的型のフィッシング攻撃。`},
+{t:"ベイト攻撃",c:4,g:"ソーシャルエンジニアリング",d:`USBメモリなど魅力的な「餌（ベイト）」を仕掛け、被害者に不正なデバイスやリンクを使わせることでマルウェア感染などを誘発する攻撃手法。`},
+{t:"ブラックメール",c:4,g:"ソーシャルエンジニアリング",d:`不正に入手した情報や弱みを利用して相手を脅迫し、金銭の支払いなどを強要する行為。ソーシャルエンジニアリングの一手法。`},
+{t:"プレテキスト",c:4,g:"ソーシャルエンジニアリング",d:`偽の状況や身分を装って相手を信用させ、本来得られないはずの情報を聞き出す手口。ソーシャルエンジニアリング攻撃の一種。`},
+{t:"個人情報保護法",c:4,g:"個人情報保護",d:`個人情報を取り扱う事業者が守るべきルールを定めた日本の法律。個人の権利利益を保護することを目的とする。`},
+{t:"改正個人情報保護法",c:4,g:"個人情報保護",d:`技術の進展や社会情勢の変化に対応するため改正された個人情報保護法。要配慮個人情報や匿名加工情報の規定などが整備された。`},
+{t:"個人情報保護委員会",c:4,g:"個人情報保護",d:`個人情報保護法に基づき、個人情報の適正な取り扱いを監督・指導する日本の独立した行政機関。`},
+{t:"個人情報取扱事業者",c:4,g:"個人情報保護",d:`事業活動において個人情報データベース等を利用している事業者のこと。個人情報保護法上の各種義務を負う。`},
+{t:"個人識別符号",c:4,g:"個人情報保護",d:`マイナンバーやパスポート番号、指紋データなど、それ単体で特定の個人を識別できる符号のこと。個人情報保護法で個人情報の一種として定義される。`},
+{t:"要配慮個人情報",c:4,g:"個人情報保護",d:`人種、信条、病歴、犯罪歴など、取り扱いに特に配慮を要する個人情報のこと。取得には原則として本人の同意が必要とされる。`},
+{t:"機微（センシティブ）情報",c:4,g:"個人情報保護",d:`本人にとって不当な差別や不利益につながるおそれのある、取り扱いに慎重を要する情報のこと。要配慮個人情報と近い概念で使われる。`},
+{t:"匿名加工情報",c:4,g:"個人情報保護",d:`特定の個人を識別できないように加工し、かつ元の個人情報に復元できないようにした情報。本人同意なしで一定の範囲で利用・提供が可能。`},
+{t:"マスキング",c:4,g:"個人情報保護",d:`個人情報や機密情報の一部を伏せ字や記号などに置き換え、本人や内容が特定できないようにする処理のこと。`},
+{t:"知的財産権",c:4,g:"知的財産権",d:`発明、著作物、デザイン、商標など、人間の知的な創作活動によって生み出された成果を保護する権利の総称。`},
+{t:"著作権",c:4,g:"知的財産権",d:`小説、音楽、プログラムなど、創作的な表現物（著作物）を作った人に認められる、無断利用を制限できる権利。`},
+{t:"特許権",c:4,g:"知的財産権",d:`新しい発明について、一定期間その発明を独占的に実施できる権利。特許庁への出願・登録によって発生する。`},
+{t:"商標権",c:4,g:"知的財産権",d:`商品やサービスを他者のものと区別するためのマーク（商標）を、独占的に使用できる権利。登録によって発生する。`},
+{t:"意匠権",c:4,g:"知的財産権",d:`物品や画像などのデザイン（意匠）を保護し、独占的に実施できる権利。登録によって発生する。`},
+{t:"肖像権",c:4,g:"知的財産権",d:`本人の承諾なく、みだりに容貌や姿を撮影・公表・利用されない権利。法律に明文規定はないが、判例上認められている人格権の一種。`},
+{t:"パブリシティ権",c:4,g:"知的財産権",d:`著名人の氏名や肖像などが持つ顧客誘引力（経済的価値）を、本人が独占的に利用できる権利。`},
+{t:"不正競争防止法",c:4,g:"知的財産権",d:`営業秘密の侵害や不正な模倣など、公正な競争を阻害する行為を規制し、事業者の利益を保護する日本の法律。`},
+{t:"営業秘密",c:4,g:"知的財産権",d:`秘密として管理され、事業活動に有用で、公然と知られていない技術上・営業上の情報のこと。不正競争防止法で保護される。`},
+{t:"限定提供データ",c:4,g:"知的財産権",d:`相当量蓄積され、電磁的方法で管理された上で、特定の者に反復・継続して提供されるデータのこと。不正競争防止法の保護対象。`},
+{t:"技術的制限手段",c:4,g:"知的財産権",d:`著作物などの不正な複製やアクセスを防ぐために施される、暗号化やコピーガードなどの技術的な保護手段のこと。`},
+{t:"著作権侵害",c:4,g:"知的財産権",d:`著作権者の許諾を得ずに、著作物を無断で複製、公衆送信、翻案などする行為。生成AIの利用・生成物に関しても論点となっている。`},
+{t:"名誉毀損",c:4,g:"知的財産権",d:`事実の摘示などにより、他人の社会的評価を低下させる行為。生成AIによる誤情報の生成・拡散でも問題となり得る。`},
+{t:"AI生成物",c:4,g:"知的財産権",d:`AI（生成AI）によって作り出されたテキスト、画像、音楽、動画などの成果物のこと。著作権の帰属などが議論されている。`},
+{t:"AI社会の基本理念",c:4,g:"AI社会の基本理念",d:`人間中心の考え方のもと、AIを活用して持続可能で誰もが幸せを追求できる社会を目指す、日本のAI政策の根底にある考え方。`},
+{t:"人間中心のAI社会原則",c:4,g:"AI社会の基本理念",d:`内閣府が策定した、AIの利活用にあたり人間の尊厳や多様性、持続可能性を重視すべきとする基本方針の名称。`},
+{t:"人間の尊厳が尊重される社会（Dignity）",c:4,g:"AI社会の基本理念",d:`AIを道具として使いこなし、人間の能力を拡張することで、人間の尊厳が尊重される社会を目指すという基本理念の一つ。`},
+{t:"多様な背景を持つ人々が多様な幸せを追求できる社会（Diversity & Inclusion）",c:4,g:"AI社会の基本理念",d:`多様な人々が、それぞれの多様な幸せを追求できる包摂的な社会をAIによって実現するという基本理念。`},
+{t:"持続性ある社会（Sustainability）",c:4,g:"AI社会の基本理念",d:`AIの活用により、地球規模の課題解決や持続可能な社会の発展に貢献するという基本理念。`},
+{t:"AI社会原則",c:4,g:"AI社会原則",d:`「人間中心のAI社会原則」において示された、AIの開発・活用にあたり社会全体で尊重すべき7つの原則の総称。`},
+{t:"人間中心の原則",c:4,g:"AI社会原則",d:`AIの利活用は人間の基本的人権を侵さず、人間中心の考え方に基づくべきとするAI社会原則の一つ。`},
+{t:"教育・リテラシーの原則",c:4,g:"AI社会原則",d:`AIを適切に利活用できるよう、幅広い層に対して教育やリテラシー向上の機会が提供されるべきとするAI社会原則の一つ。`},
+{t:"プライバシー確保の原則",c:4,g:"AI社会原則",d:`パーソナルデータの利用にあたり、個人の自由・尊厳・平等が侵害されないよう配慮すべきとするAI社会原則の一つ。`},
+{t:"セキュリティ確保の原則",c:4,g:"AI社会原則",d:`社会がAIの利活用にあたり正の効果を得られるよう、AIに関わる者は不断のセキュリティ意識を持つべきとするAI社会原則の一つ。`},
+{t:"公正競争確保の原則",c:4,g:"AI社会原則",d:`特定の企業や国にAIに関する資源が過度に集中せず、公正な競争環境が維持されるべきとするAI社会原則の一つ。`},
+{t:"公平性",c:4,g:"AI社会原則",d:`AIの判断や処理において、特定の属性に基づく不当な差別や偏り（バイアス）が生じないようにするという考え方。`},
+{t:"説明責任及び透明性の原則",c:4,g:"AI社会原則",d:`AIの利活用にあたり、判断過程の説明可能性を確保し、社会の信頼を醸成すべきとするAI社会原則の一つ。`},
+{t:"イノベーションの原則",c:4,g:"AI社会原則",d:`大学と産業、異分野の連携などを通じて、絶え間ないイノベーションが生み出される環境を整備すべきとするAI社会原則の一つ。`},
+{t:"AI利活用原則の基本理念",c:4,g:"AI利活用原則",d:`総務省が示した、AIサービス提供者・利用者などが尊重すべきAI利活用に関する考え方の根底にある理念。`},
+{t:"AIネットワーク",c:4,g:"AI利活用原則",d:`AI同士が接続され、あるいはAIを介して人・モノ・情報が相互につながっているネットワーク環境のこと。`},
+{t:"AI利活用原則（10の原則）",c:4,g:"AI利活用原則",d:`総務省がAI利活用に関するガイドラインで示した、適正利用や適正学習など10項目からなる利用者向けの行動指針。`},
+{t:"適正利用の原則",c:4,g:"AI利活用原則",d:`AIの便益及びリスクについて正しく理解した上で、適正な範囲・方法で利用するよう努めるべきとするAI利活用原則の一つ。`},
+{t:"適正学習の原則",c:4,g:"AI利活用原則",d:`AIに学習させるデータの質や公平性に留意し、適正な学習を行うべきとするAI利活用原則の一つ。`},
+{t:"連携の原則",c:4,g:"AI利活用原則",d:`AIシステム・サービス間の連携に留意すべきとするAI利活用原則の一つ。相互接続性・相互運用性への配慮を含む。`},
+{t:"安全の原則",c:4,g:"AI利活用原則",d:`AIの利活用にあたり、人の生命・身体・財産に危害を及ぼさないよう配慮すべきとするAI利活用原則の一つ。`},
+{t:"セキュリティの原則",c:4,g:"AI利活用原則",d:`AIの利活用にあたり、AIのセキュリティを確保するよう配慮すべきとするAI利活用原則の一つ。`},
+{t:"プライバシーの原則",c:4,g:"AI利活用原則",d:`AIの利活用にあたり、他者のプライバシーが侵害されないよう配慮すべきとするAI利活用原則の一つ。`},
+{t:"尊厳・自律の原則",c:4,g:"AI利活用原則",d:`AIの利活用にあたり、人間の尊厳と個人の自律を尊重すべきとするAI利活用原則の一つ。`},
+{t:"公平性の原則",c:4,g:"AI利活用原則",d:`AIの判断において、人々が不当に差別されないよう配慮すべきとするAI利活用原則の一つ。`},
+{t:"透明性の原則",c:4,g:"AI利活用原則",d:`AIの動作の説明可能性及び検証可能性に留意すべきとするAI利活用原則の一つ。`},
+{t:"アカウンタビリティの原則",c:4,g:"AI利活用原則",d:`利用者などがAIの利活用に伴うステークホルダーへの説明責任を果たすよう努めるべきとするAI利活用原則の一つ。`},
+
+// ===== 第5章 テキスト生成AIのプロンプト制作と実例 =====
+{t:"LM（Language Model：言語モデル）",c:5,g:"言語モデルの基礎",d:`文章中の単語の並びに対して、次に来る単語の確率を計算するなどして、言語の統計的な特徴をモデル化した仕組み。`},
+{t:"n-gramモデル",c:5,g:"言語モデルの基礎",d:`直前のn個の単語（またはn文字）の並びから次の単語の出現確率を推定する、統計的な言語モデルの手法。`},
+{t:"ニューラル言語モデル",c:5,g:"言語モデルの基礎",d:`ニューラルネットワークを用いて単語間の関係や文脈をより柔軟に学習できるようにした言語モデル。n-gramモデルの限界を克服した。`},
+{t:"LLM",c:5,g:"言語モデルの基礎",d:`Large Language Modelの略。大量のテキストデータと膨大なパラメータを用いて学習された、大規模な言語モデルのこと。GPTなどが代表例。`},
+{t:"プレトレーニング",c:5,g:"言語モデルの基礎",d:`モデル固有のタスクに特化する前に、大量の汎用的なデータを用いてあらかじめ広範な知識やパターンを学習させておく事前学習のこと。`},
+{t:"ハイパーパラメータ",c:5,g:"言語モデルの基礎",d:`学習によって自動調整されるパラメータとは異なり、モデルの学習前に人が設定する値のこと。学習率やTemperatureなどが該当する。`},
+{t:"Temperature",c:5,g:"言語モデルの基礎",d:`生成AIの出力における単語選択のランダム性（多様性）を調整するパラメータ。値が高いほど出力が多様に、低いほど決まりやすくなる。`},
+{t:"Top-p",c:5,g:"言語モデルの基礎",d:`生成AIが次の単語を選ぶ際、累積確率が指定した値pに達するまでの候補群からのみ選択する、出力の多様性を制御する手法。`},
+{t:"プロンプト",c:5,g:"プロンプトの基本構成",d:`生成AIに対して与える指示や質問、入力文のこと。プロンプトの内容によって生成AIの出力結果が大きく変わる。`},
+{t:"プロンプトエンジニアリング",c:5,g:"プロンプトの基本構成",d:`生成AIから望ましい出力を得るために、プロンプトの内容や構成を工夫・調整する技術や手法のこと。`},
+{t:"Instruction",c:5,g:"プロンプトの基本構成",d:`プロンプトを構成する要素の一つで、AIに実行してほしい具体的な指示・命令のこと。`},
+{t:"Context",c:5,g:"プロンプトの基本構成",d:`プロンプトを構成する要素の一つで、AIが出力を生成する際に踏まえるべき背景情報や文脈のこと。`},
+{t:"Input Data",c:5,g:"プロンプトの基本構成",d:`プロンプトを構成する要素の一つで、AIが処理・加工の対象とする具体的な入力データのこと。`},
+{t:"Output Indicator",c:5,g:"プロンプトの基本構成",d:`プロンプトを構成する要素の一つで、出力の形式や構成（箇条書き、表形式など）を指定する部分のこと。`},
+{t:"Zero-Shotプロンプティング",c:5,g:"プロンプトの基本構成",d:`具体例を一切示さず、指示のみを与えて生成AIにタスクを実行させるプロンプト手法。`},
+{t:"Few-Shotプロンプティング",c:5,g:"プロンプトの基本構成",d:`いくつかの入力と出力の例をプロンプト中に示した上で、生成AIに同様のタスクを実行させる手法。`},
+{t:"文章の校正",c:5,g:"文章加工の活用例",d:`誤字脱字や文法的な誤り、表現の不自然さなどを、生成AIに指摘・修正させる活用例。`},
+{t:"文章の整理",c:5,g:"文章加工の活用例",d:`冗長な文章や情報を、生成AIを用いて分かりやすく整えたり構成し直したりする活用例。`},
+{t:"文章の要約",c:5,g:"文章加工の活用例",d:`長文の内容を、生成AIを用いて要点を保ちながら短くまとめる活用例。`},
+{t:"箇条書き⇔文章変換",c:5,g:"文章加工の活用例",d:`箇条書きの情報を文章に整えたり、逆に文章を箇条書きに変換したりする生成AIの活用例。`},
+{t:"文章の対象変更",c:5,g:"文章加工の活用例",d:`読み手の年齢層や専門知識のレベルなどに応じて、同じ内容の文章の表現や難易度を生成AIに調整させる活用例。`},
+{t:"話者設定の変更",c:5,g:"文章加工の活用例",d:`文章の語り手や口調（丁寧語、専門家、キャラクターなど）を、生成AIに指定して変更させる活用例。`},
+{t:"文章の会話変換",c:5,g:"文章加工の活用例",d:`説明文などの静的な文章を、対話形式（Q&A形式など）の文章に生成AIで変換する活用例。`},
+{t:"例え話での理解促進",c:5,g:"文章加工の活用例",d:`難しい概念を、身近な例えを用いて分かりやすく説明させる生成AIの活用例。`},
+{t:"数字の変換",c:5,g:"文章加工の活用例",d:`数値データの単位変換や、数字を分かりやすい表現に言い換えさせるなど、生成AIを用いた数字に関する処理の活用例。`},
+{t:"メール作成",c:5,g:"ビジネス活用例",d:`目的や相手に応じたビジネスメールの文面を、生成AIに下書きさせる活用例。`},
+{t:"アンケート項目作成",c:5,g:"ビジネス活用例",d:`調査目的に合わせたアンケートの質問項目を、生成AIに考案させる活用例。`},
+{t:"アンケート分析",c:5,g:"ビジネス活用例",d:`収集したアンケートの自由記述回答などを、生成AIに要約・分類・傾向分析させる活用例。`},
+{t:"キャッチコピー作成",c:5,g:"ビジネス活用例",d:`商品やサービスの魅力を端的に伝える宣伝文句を、生成AIに複数案考案させる活用例。`},
+{t:"ビジネス書類テンプレート作成",c:5,g:"ビジネス活用例",d:`議事録や報告書などの定型的なビジネス書類のひな形を、生成AIに作成させる活用例。`},
+{t:"スケジュール作成",c:5,g:"ビジネス活用例",d:`プロジェクトの目的や条件に応じたスケジュール案・計画表を、生成AIに作成させる活用例。`},
+{t:"業務手順の分解",c:5,g:"ビジネス活用例",d:`複雑な業務を、生成AIを用いて実行可能な手順・工程に分解して整理する活用例。`},
+{t:"タスク抽出",c:5,g:"ビジネス活用例",d:`目的や議事録などの文章から、実行すべき具体的なタスクを生成AIに洗い出させる活用例。`},
+{t:"外国語翻訳",c:5,g:"語学・その他活用例",d:`文章を別の言語に翻訳する生成AIの活用例。文脈やニュアンスを踏まえた自然な翻訳が期待できる。`},
+{t:"英単語から英文作成",c:5,g:"語学・その他活用例",d:`いくつかの英単語を与えて、それらを使った自然な英文を生成AIに作成させる活用例。`},
+{t:"海外企業宛メール作成",c:5,g:"語学・その他活用例",d:`海外の取引先などに送る、ビジネスマナーに配慮した外国語のメール文面を生成AIに作成させる活用例。`},
+{t:"ディベート",c:5,g:"語学・その他活用例",d:`あるテーマについて、生成AIに賛成・反対それぞれの立場の意見や論点を出させ、議論の練習相手とする活用例。`},
+{t:"姓名分離",c:5,g:"語学・その他活用例",d:`氏名のデータから姓と名を分割して抽出する処理を、生成AIに行わせる活用例。`},
+{t:"ふりがな付与",c:5,g:"語学・その他活用例",d:`漢字を含む文章に対して、読み仮名（ふりがな）を生成AIに付与させる活用例。`},
+{t:"ブレインストーミング",c:5,g:"語学・その他活用例",d:`あるテーマについて、生成AIにアイデアや案を多数出させ、発想を広げる活用例。`},
+{t:"対話しながら進める手法",c:5,g:"語学・その他活用例",d:`一度の指示で完結させず、生成AIとの対話を重ねながら出力を段階的に修正・改善していくプロンプトの進め方。`},
+{t:"正確な文字数指定",c:5,g:"不得意なこと",d:`テキスト生成AIが不得意とすることの一つ。指定された文字数ちょうどに出力を合わせることは苦手とされる。`},
+{t:"計算",c:5,g:"不得意なこと",d:`テキスト生成AIが不得意とすることの一つ。仕組み上、複雑な数値計算や桁数の多い計算では誤りが生じやすい。`},
+{t:"最新情報",c:5,g:"不得意なこと",d:`テキスト生成AIが不得意とすることの一つ。学習データの時点以降に起きた出来事など、最新の情報には対応できない、または不正確になりやすい。`},
+{t:"芸術批評",c:5,g:"不得意なこと",d:`テキスト生成AIが不得意とすることの一つ。作品の芸術的価値や感性的な評価など、主観的・感性的な判断を要する批評は不得意とされる。`},
+];
+
+const LS_LEARNED = "guga-glossary-learned-v1";
+const LS_THEME = "guga-glossary-theme-v1";
+
+const state = {
+  query: "",
+  chapters: new Set([1,2,3,4,5]),
+  sort: "chapter",
+  learnedFilter: "all", // all | learned | unlearned
+  learned: {},
+  activeId: null,
+};
+
+function loadLearned(){
+  try { return JSON.parse(localStorage.getItem(LS_LEARNED)) || {}; }
+  catch(e){ return {}; }
+}
+function saveLearned(){
+  localStorage.setItem(LS_LEARNED, JSON.stringify(state.learned));
+}
+state.learned = loadLearned();
+
+// theme
+function applyTheme(theme){
+  document.documentElement.setAttribute("data-theme", theme);
+  document.getElementById("themeBtn").textContent = theme === "dark" ? "☀️ ライトモード" : "🌙 ダークモード";
+}
+(function initTheme(){
+  const saved = localStorage.getItem(LS_THEME);
+  const theme = saved || (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  applyTheme(theme);
+})();
+document.getElementById("themeBtn").addEventListener("click", () => {
+  const cur = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+  const next = cur === "dark" ? "light" : "dark";
+  applyTheme(next);
+  localStorage.setItem(LS_THEME, next);
+});
+
+// chapter chips
+const chapterChipsEl = document.getElementById("chapterChips");
+const CH_LABELS = {1:"第1章 AI", 2:"第2章 生成AI", 3:"第3章 動向", 4:"第4章 リテラシー・原則", 5:"第5章 プロンプト"};
+[1,2,3,4,5].forEach(c => {
+  const chip = document.createElement("label");
+  chip.className = "chip active";
+  chip.dataset.ch = c;
+  chip.innerHTML = `<input type="checkbox" checked style="display:none;"> ${CH_LABELS[c]}`;
+  chip.addEventListener("click", (e) => {
+    e.preventDefault();
+    if(state.chapters.has(c)){
+      if(state.chapters.size === 1) return; // keep at least one
+      state.chapters.delete(c);
+      chip.classList.remove("active");
+    } else {
+      state.chapters.add(c);
+      chip.classList.add("active");
+    }
+    render();
+  });
+  chapterChipsEl.appendChild(chip);
+});
+
+// sort toggle
+document.getElementById("sortToggle").addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-sort]");
+  if(!btn) return;
+  state.sort = btn.dataset.sort;
+  document.querySelectorAll("#sortToggle button").forEach(b => b.classList.toggle("active", b === btn));
+  render();
+});
+
+// learned filter chips
+const learnedChipEl = document.getElementById("showLearned");
+const unlearnedChipEl = document.getElementById("showUnlearned");
+learnedChipEl.addEventListener("click", () => {
+  state.learnedFilter = state.learnedFilter === "learned" ? "all" : "learned";
+  learnedChipEl.classList.toggle("active", state.learnedFilter === "learned");
+  unlearnedChipEl.classList.remove("active");
+  render();
+});
+unlearnedChipEl.addEventListener("click", () => {
+  state.learnedFilter = state.learnedFilter === "unlearned" ? "all" : "unlearned";
+  unlearnedChipEl.classList.toggle("active", state.learnedFilter === "unlearned");
+  learnedChipEl.classList.remove("active");
+  render();
+});
+
+// search
+const searchEl = document.getElementById("search");
+searchEl.addEventListener("input", () => {
+  state.query = searchEl.value.trim();
+  render();
+});
+
+// collator for kana-ish sort
+const collator = new Intl.Collator("ja-JP");
+
+function getFiltered(){
+  const q = state.query.toLowerCase();
+  return TERMS
+    .map((term, idx) => ({...term, id: idx}))
+    .filter(term => state.chapters.has(term.c))
+    .filter(term => {
+      if(state.learnedFilter === "learned") return !!state.learned[term.id];
+      if(state.learnedFilter === "unlearned") return !state.learned[term.id];
+      return true;
+    })
+    .filter(term => {
+      if(!q) return true;
+      return term.t.toLowerCase().includes(q) || term.d.toLowerCase().includes(q) || term.g.toLowerCase().includes(q);
+    });
+}
+
+function getSorted(list){
+  const arr = list.slice();
+  if(state.sort === "kana"){
+    arr.sort((a,b) => collator.compare(a.t, b.t));
+  } else {
+    arr.sort((a,b) => a.c - b.c || a.id - b.id);
+  }
+  return arr;
+}
+
+const gridEl = document.getElementById("grid");
+const emptyMsgEl = document.getElementById("emptyMsg");
+const countTextEl = document.getElementById("countText");
+const progressFillEl = document.getElementById("progressFill");
+const progressTextEl = document.getElementById("progressText");
+
+function render(){
+  const filtered = getSorted(getFiltered());
+  gridEl.innerHTML = "";
+  emptyMsgEl.style.display = filtered.length === 0 ? "block" : "none";
+
+  const frag = document.createDocumentFragment();
+  filtered.forEach(term => {
+    const isLearned = !!state.learned[term.id];
+    const card = document.createElement("div");
+    card.className = "card" + (isLearned ? " learned" : "");
+    card.dataset.id = term.id;
+    card.innerHTML = `
+      <div class="card-top">
+        <div class="card-title">${escapeHtml(term.t)}</div>
+        <label class="learned-toggle" data-id="${term.id}">
+          <input type="checkbox" ${isLearned ? "checked" : ""}> 覚えた
+        </label>
+      </div>
+      <span class="tag ch${term.c}">第${term.c}章</span>
+      <div class="category">${escapeHtml(term.g)}</div>
+      <div class="desc-preview">${escapeHtml(term.d)}</div>
+    `;
+    frag.appendChild(card);
+  });
+  gridEl.appendChild(frag);
+
+  const total = TERMS.length;
+  countTextEl.textContent = `表示中 ${filtered.length} / 全${total}語`;
+  const learnedCount = Object.values(state.learned).filter(Boolean).length;
+  const pct = total ? Math.round((learnedCount/total)*100) : 0;
+  progressFillEl.style.width = pct + "%";
+  progressTextEl.textContent = `覚えた ${learnedCount} / ${total}（${pct}%）`;
+}
+
+function escapeHtml(str){
+  return str.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+// delegate clicks on grid
+gridEl.addEventListener("click", (e) => {
+  const toggleLabel = e.target.closest(".learned-toggle");
+  if(toggleLabel){
+    e.stopPropagation();
+    const id = Number(toggleLabel.dataset.id);
+    toggleLearned(id);
+    return;
+  }
+  const card = e.target.closest(".card");
+  if(card){
+    openModal(Number(card.dataset.id));
+  }
+});
+
+function toggleLearned(id){
+  if(state.learned[id]) delete state.learned[id];
+  else state.learned[id] = true;
+  saveLearned();
+  render();
+  if(state.activeId === id) syncModalLearnBtn(id);
+}
+
+// modal
+const overlayEl = document.getElementById("overlay");
+const mTitleEl = document.getElementById("mTitle");
+const mTagEl = document.getElementById("mTag");
+const mCategoryEl = document.getElementById("mCategory");
+const mDescEl = document.getElementById("mDesc");
+const mLearnBtnEl = document.getElementById("mLearnBtn");
+
+function openModal(id){
+  const term = TERMS[id];
+  state.activeId = id;
+  mTitleEl.textContent = term.t;
+  mTagEl.textContent = `第${term.c}章`;
+  mTagEl.className = `tag ch${term.c}`;
+  mCategoryEl.textContent = term.g;
+  mDescEl.textContent = term.d;
+  syncModalLearnBtn(id);
+  overlayEl.classList.add("open");
+}
+function syncModalLearnBtn(id){
+  const isLearned = !!state.learned[id];
+  mLearnBtnEl.textContent = isLearned ? "✓ 覚えた（クリックで解除）" : "未習得（クリックで覚えたにする）";
+  mLearnBtnEl.classList.toggle("on", isLearned);
+}
+function closeModal(){
+  overlayEl.classList.remove("open");
+  state.activeId = null;
+}
+document.getElementById("closeBtn").addEventListener("click", closeModal);
+overlayEl.addEventListener("click", (e) => { if(e.target === overlayEl) closeModal(); });
+document.addEventListener("keydown", (e) => { if(e.key === "Escape") closeModal(); });
+mLearnBtnEl.addEventListener("click", () => {
+  if(state.activeId === null) return;
+  toggleLearned(state.activeId);
+});
+
+render();
+</script>
+</body>
+</html>
