@@ -143,6 +143,7 @@ html[data-mode="list"] .stage{display:none;}
   background:var(--card-bg);border:1px solid var(--card-border);border-radius:22px;
   box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;
   cursor:pointer;will-change:transform,opacity;
+  touch-action:pan-y;
 }
 .card-accent{height:6px;flex:0 0 auto;}
 .card-accent.ch1{background:var(--ch1);}
@@ -182,12 +183,21 @@ html[data-mode="list"] .stage{display:none;}
   padding:10px 16px calc(12px + env(safe-area-inset-bottom,0px));
   display:flex;align-items:center;justify-content:space-between;gap:8px;
 }
-.bb-group{display:flex;align-items:center;gap:8px;}
-.bb-btn{border:none;background:var(--chip-bg);color:var(--fg);width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;}
-.bb-btn.primary{background:var(--accent);color:var(--accent-fg);width:54px;height:54px;font-size:20px;}
+.bb-group{display:flex;align-items:center;gap:10px;}
+.bb-btn{border:none;background:var(--chip-bg);color:var(--fg);width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;}
+.bb-btn.primary{background:var(--accent);color:var(--accent-fg);width:52px;height:52px;font-size:19px;}
 .bb-btn.learned{color:var(--muted);}
 .bb-btn.learned.on{color:var(--danger);}
-.bb-count{font-size:12px;color:var(--muted);min-width:64px;text-align:center;font-variant-numeric:tabular-nums;}
+.bb-count{font-size:12px;color:var(--muted);min-width:56px;text-align:right;font-variant-numeric:tabular-nums;flex:0 0 auto;}
+.bb-nav{
+  border:none;background:var(--accent);color:var(--accent-fg);
+  padding:13px 18px;border-radius:999px;font-size:14.5px;font-weight:700;cursor:pointer;
+  display:inline-flex;align-items:center;gap:4px;white-space:nowrap;flex:0 0 auto;
+}
+.bb-nav.secondary{background:var(--chip-bg);color:var(--fg);}
+.bb-nav:active{filter:brightness(0.92);}
+.flow-meta-row{display:flex;align-items:center;gap:10px;flex:0 0 auto;padding:6px 12px;background:var(--header-bg);}
+.flow-meta-row .flow-progress-line{flex:1;}
 
 .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;height:100%;color:var(--muted);text-align:center;padding:24px;}
 .empty-state .icon-btn{margin-top:6px;}
@@ -264,7 +274,10 @@ html[data-mode="list"] .stage{display:none;}
     </div>
   </div>
 </div>
-<div class="flow-progress-line flow-only"><div class="flow-progress-line-fill" id="flowProgressFill" style="width:0%"></div></div>
+<div class="flow-meta-row flow-only">
+  <div class="flow-progress-line"><div class="flow-progress-line-fill" id="flowProgressFill" style="width:0%"></div></div>
+  <span class="bb-count" id="posCount">0 / 0</span>
+</div>
 
 <div class="content" id="content">
   <div class="list-panel list-only" id="listPanel">
@@ -281,18 +294,13 @@ html[data-mode="list"] .stage{display:none;}
 </div>
 
 <div class="bottombar flow-only" id="bottombar">
+  <button class="bb-nav secondary" id="prevBtn" type="button" aria-label="前のカードへ">‹ 前へ</button>
   <div class="bb-group">
-    <button class="bb-btn" id="prevBtn" type="button" aria-label="前へ">◀</button>
     <button class="bb-btn" id="flipBtn" type="button" aria-label="裏返す">⇅</button>
-  </div>
-  <div class="bb-group">
     <button class="bb-btn learned" id="learnedBtnFlow" type="button" aria-label="覚えた">♡</button>
     <button class="bb-btn primary" id="playBtn" type="button" aria-label="自動再生">▶</button>
-    <span class="bb-count" id="posCount">0 / 0</span>
   </div>
-  <div class="bb-group">
-    <button class="bb-btn" id="nextBtn" type="button" aria-label="次へ">▶</button>
-  </div>
+  <button class="bb-nav" id="nextBtn" type="button" aria-label="次のカードへ">次へ ›</button>
 </div>
 
 <div class="overlay" id="overlay">
@@ -1044,38 +1052,62 @@ document.addEventListener("keydown", (e) => {
 function attachCardGestures(){
   const card = document.getElementById("card");
   if(!card) return;
-  let startX = 0, startY = 0, startT = 0, dragging = false, currentX = 0, currentY = 0;
-  function onDown(x,y){ dragging = true; startX = x; startY = y; startT = Date.now(); currentX = x; currentY = y; card.style.transition = "none"; }
-  function onMove(x,y){
-    if(!dragging) return;
-    currentX = x; currentY = y;
-    const dx = x - startX, dy = y - startY;
-    card.style.transform = `translate(${dx*0.4}px, ${dy}px) rotate(${dx*0.02}deg)`;
-    card.style.opacity = String(Math.max(0.5, 1 - Math.abs(dy)/500));
+  // Horizontal swipe = prev/next (left card list-panel doesn't scroll, so it never
+  // fights the description text's vertical scrolling). A tap flips the card.
+  // Direction is locked on first ~8px of movement: once recognized as vertical,
+  // we back off completely and let the browser handle native scrolling
+  // (card has touch-action:pan-y for exactly this reason).
+  let startX = 0, startY = 0, startT = 0, dragging = false, axis = null, pointerId = null;
+  const LOCK = 8, THRESH = 60;
+
+  function onDown(e){
+    dragging = true; axis = null; pointerId = e.pointerId;
+    startX = e.clientX; startY = e.clientY; startT = Date.now();
+    card.style.transition = "none";
   }
-  function onUp(){
+  function onMove(e){
+    if(!dragging) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    if(axis === null){
+      if(Math.abs(dx) < LOCK && Math.abs(dy) < LOCK) return;
+      axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+      if(axis === "x"){
+        try{ card.setPointerCapture(pointerId); }catch(err){}
+      }
+    }
+    if(axis !== "x") return; // vertical drag: let native scroll happen, don't touch the card
+    e.preventDefault();
+    card.style.transform = `translateX(${dx}px) rotate(${dx*0.035}deg)`;
+    card.style.opacity = String(Math.max(0.4, 1 - Math.abs(dx)/380));
+  }
+  function onUp(e){
     if(!dragging) return;
     dragging = false;
-    const dx = currentX - startX, dy = currentY - startY;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
     const dt = Date.now() - startT;
-    card.style.transition = "transform .25s ease, opacity .25s ease";
-    const THRESH = 70;
-    if(Math.abs(dy) > THRESH && Math.abs(dy) > Math.abs(dx)){
-      stopAutoplay();
-      const dist = dy < 0 ? -600 : 600;
-      card.style.transform = `translateY(${dist}px)`;
-      card.style.opacity = "0";
-      setTimeout(() => { dy < 0 ? goNext() : goPrev(); }, 180);
-    } else if(Math.abs(dx) < 8 && Math.abs(dy) < 8 && dt < 350){
+    card.style.transition = "transform .22s ease, opacity .22s ease";
+    if(axis === "x"){
+      if(Math.abs(dx) > THRESH){
+        stopAutoplay();
+        const goingNext = dx < 0;
+        const dist = goingNext ? -700 : 700;
+        card.style.transform = `translateX(${dist}px) rotate(${dx*0.05}deg)`;
+        card.style.opacity = "0";
+        setTimeout(() => { goingNext ? goNext() : goPrev(); }, 160);
+      } else {
+        card.style.transform = ""; card.style.opacity = "";
+      }
+    } else if(axis === null && Math.abs(dx) < LOCK && Math.abs(dy) < LOCK && dt < 350){
       card.style.transform = ""; card.style.opacity = "";
       stopAutoplay();
       toggleFlip();
     } else {
       card.style.transform = ""; card.style.opacity = "";
     }
+    axis = null;
   }
-  card.addEventListener("pointerdown", (e) => { card.setPointerCapture(e.pointerId); onDown(e.clientX, e.clientY); });
-  card.addEventListener("pointermove", (e) => onMove(e.clientX, e.clientY));
+  card.addEventListener("pointerdown", onDown);
+  card.addEventListener("pointermove", onMove, { passive:false });
   card.addEventListener("pointerup", onUp);
   card.addEventListener("pointercancel", onUp);
 }
